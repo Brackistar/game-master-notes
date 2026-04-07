@@ -1,12 +1,18 @@
 package constants
 
+// Defines the category of a note.
 type NoteType int8
 
 const (
+	// Represents a regular free-form note.
 	General NoteType = iota
+	// Represents a condensed summary note.
 	SummaryNote
+	// Represents a note that represents a map.
 	Map
+	// Represents a note focused on a character.
 	Character
+	// Represents a note focused on a place.
 	Location
 )
 

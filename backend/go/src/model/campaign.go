@@ -1,7 +1,8 @@
-﻿package model
+package model
 
 import "time"
 
+// Represents a story arc in a world.
 type Campaign struct {
 	ID          ULID
 	WorldID     ULID

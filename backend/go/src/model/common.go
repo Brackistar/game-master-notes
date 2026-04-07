@@ -9,6 +9,7 @@ type ULID string
 
 type Version int32
 
+// Stores timestamps and version metadata.
 type AuditFields struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time

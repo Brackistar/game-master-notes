@@ -1,5 +1,6 @@
-﻿package model
+package model
 
+// Stores a note marker position on a map note.
 type MapNotePlacement struct {
 	ID           ULID
 	MapNoteID    ULID

@@ -1,8 +1,10 @@
 package constants
 
+// Defines the kind of asset attached to a note.
 type AssetType int8
 
 const (
+	// Represent an image file asset.
 	Image AssetType = iota
 )
 

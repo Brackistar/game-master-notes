@@ -1,7 +1,8 @@
-﻿package model
+package model
 
 import "time"
 
+// Records one played game session in a campaign.
 type Session struct {
 	ID          ULID
 	CampaignID  ULID

@@ -1,4 +1,4 @@
-﻿package model
+package model
 
 import (
 	"time"
@@ -6,6 +6,7 @@ import (
 	"github.com/Brackistar/game-master-notes/backend/go/src/model/constants"
 )
 
+// Assigns a note to an owning entity.
 type NoteOwner struct {
 	NoteID    ULID
 	OwnerType constants.OwnerType

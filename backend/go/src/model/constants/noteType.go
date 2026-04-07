@@ -1,7 +1,7 @@
 package constants
 
 // Defines the category of a note.
-type NoteType int8
+type NoteType uint8
 
 const (
 	// Represents a regular free-form note.

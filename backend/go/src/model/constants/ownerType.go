@@ -1,7 +1,7 @@
 package constants
 
 // Defines which entity owns a note.
-type OwnerType int8
+type OwnerType uint8
 
 const (
 	// Sets a world as the owner.

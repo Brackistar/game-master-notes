@@ -1,7 +1,7 @@
 package constants
 
 // Defines the relationship between two notes.
-type NoteLinkType int8
+type NoteLinkType uint8
 
 const (
 	// Marks notes as generally related.

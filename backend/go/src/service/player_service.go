@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Brackistar/game-master-notes/backend/go/src/model"
-	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	repo "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	serviceerrors "github.com/Brackistar/game-master-notes/backend/go/src/service/error"
 	shared "github.com/Brackistar/game-master-notes/backend/go/src/service/shared"
@@ -24,24 +23,14 @@ const (
 
 var playerAllowedNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 '\-]*[A-Za-z0-9]$`)
 
-type Clock interface {
-	Now() time.Time
-}
-
 type PlayerNamePolicy interface {
 	NormalizeAndValidate(name string) (string, error)
-}
-
-type SystemClock struct{}
-
-func (SystemClock) Now() time.Time {
-	return time.Now().UTC()
 }
 
 type DefaultPlayerNamePolicy struct{}
 
 func (DefaultPlayerNamePolicy) NormalizeAndValidate(name string) (string, error) {
-	normalized := normalizeSpaces(name)
+	normalized := shared.NormalizeSpaces(name)
 	if len(normalized) < playerMinNameLen {
 		return "", fmt.Errorf("name must be at least %d characters", playerMinNameLen)
 	}
@@ -88,14 +77,14 @@ type SearchPlayersParams struct {
 
 type PlayerService struct {
 	repo        repo.PlayerRepository
-	clock       Clock
+	clock       shared.Clock
 	namePolicy  PlayerNamePolicy
 	idGenerator shared.IDGenerator
 }
 
 type PlayerServiceDeps struct {
 	Repo        repo.PlayerRepository
-	Clock       Clock
+	Clock       shared.Clock
 	NamePolicy  PlayerNamePolicy
 	IDGenerator shared.IDGenerator
 }
@@ -103,25 +92,18 @@ type PlayerServiceDeps struct {
 func NewPlayerService(repo repo.PlayerRepository, idGenerator shared.IDGenerator) *PlayerService {
 	return NewPlayerServiceWithDeps(PlayerServiceDeps{
 		Repo:        repo,
-		Clock:       SystemClock{},
+		Clock:       shared.SystemClock{},
 		NamePolicy:  DefaultPlayerNamePolicy{},
 		IDGenerator: idGenerator,
 	})
 }
 
 func NewPlayerServiceWithDeps(deps PlayerServiceDeps) *PlayerService {
-	if deps.Repo == nil {
-		panic(fmt.Sprintf(serviceerrors.SERVDEPNILMESSAGE, serviceName, "repo"))
-	}
-	if deps.Clock == nil {
-		panic(fmt.Sprintf(serviceerrors.SERVDEPNILMESSAGE, serviceName, "Clock"))
-	}
-	if deps.NamePolicy == nil {
-		panic(fmt.Sprintf(serviceerrors.SERVDEPNILMESSAGE, serviceName, "NamePolicy"))
-	}
-	if deps.IDGenerator == nil {
-		panic(fmt.Sprintf(serviceerrors.SERVDEPNILMESSAGE, serviceName, "IDGenerator"))
-	}
+	shared.PanicIfNilDependency(serviceName, "repo", deps.Repo)
+	shared.PanicIfNilDependency(serviceName, "Clock", deps.Clock)
+	shared.PanicIfNilDependency(serviceName, "NamePolicy", deps.NamePolicy)
+	shared.PanicIfNilDependency(serviceName, "IDGenerator", deps.IDGenerator)
+
 	return &PlayerService{
 		repo:        deps.Repo,
 		clock:       deps.Clock,
@@ -152,7 +134,7 @@ func (s *PlayerService) Create(ctx context.Context, params CreatePlayerParams) (
 		},
 	})
 	if repoErr != nil {
-		return model.Player{}, mapRepositoryError(repoErr, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(repoErr, op, serviceName)
 	}
 	return player, nil
 }
@@ -164,7 +146,7 @@ func (s *PlayerService) GetByID(ctx context.Context, id model.ULID, includeDelet
 	}
 	player, err := s.repo.GetByID(ctx, id, includeDeleted)
 	if err != nil {
-		return model.Player{}, mapRepositoryError(err, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(err, op, serviceName)
 	}
 	return player, nil
 }
@@ -184,7 +166,7 @@ func (s *PlayerService) List(ctx context.Context, params ListPlayersParams) ([]P
 		IncludeDeleted: params.IncludeDeleted,
 	})
 	if err != nil {
-		return nil, mapRepositoryError(err, op, serviceName)
+		return nil, shared.MapRepositoryError(err, op, serviceName)
 	}
 	out := toPlayerListItems(rows)
 	sortPlayerItems(out)
@@ -199,7 +181,7 @@ func (s *PlayerService) SearchByName(ctx context.Context, params SearchPlayersPa
 	if params.Limit <= 0 {
 		return nil, serviceerrors.WrapValidation(op, serviceName, errors.New("limit must be > 0"))
 	}
-	query := normalizeSpaces(params.Query)
+	query := shared.NormalizeSpaces(params.Query)
 	if len(query) < playerMinNameLen {
 		return nil, serviceerrors.WrapValidation(op, serviceName, fmt.Errorf("search query must be at least %d characters", playerMinNameLen))
 	}
@@ -211,7 +193,7 @@ func (s *PlayerService) SearchByName(ctx context.Context, params SearchPlayersPa
 		IncludeDeleted: params.IncludeDeleted,
 	})
 	if err != nil {
-		return nil, mapRepositoryError(err, op, serviceName)
+		return nil, shared.MapRepositoryError(err, op, serviceName)
 	}
 	out := toPlayerListItems(rows)
 	sortPlayerItems(out)
@@ -238,7 +220,7 @@ func (s *PlayerService) Update(ctx context.Context, params UpdatePlayerParams) (
 		ExpectedVersion: params.ExpectedVersion,
 	})
 	if repoErr != nil {
-		return model.Player{}, mapRepositoryError(repoErr, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(repoErr, op, serviceName)
 	}
 	return player, nil
 }
@@ -249,7 +231,7 @@ func (s *PlayerService) Delete(ctx context.Context, id model.ULID) error {
 		return serviceerrors.WrapValidation(op, serviceName, errors.New("id is required"))
 	}
 	if err := s.repo.Delete(ctx, id); err != nil {
-		return mapRepositoryError(err, op, serviceName)
+		return shared.MapRepositoryError(err, op, serviceName)
 	}
 	return nil
 }
@@ -262,7 +244,7 @@ func (s *PlayerService) Restore(ctx context.Context, id model.ULID) (model.Playe
 
 	current, err := s.repo.GetByID(ctx, id, true)
 	if err != nil {
-		return model.Player{}, mapRepositoryError(err, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(err, op, serviceName)
 	}
 	if current.AuditFields.DeletedAt == nil {
 		return model.Player{}, serviceerrors.NewConflict(op, serviceName)
@@ -270,28 +252,9 @@ func (s *PlayerService) Restore(ctx context.Context, id model.ULID) (model.Playe
 
 	restored, err := s.repo.Restore(ctx, id)
 	if err != nil {
-		return model.Player{}, mapRepositoryError(err, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(err, op, serviceName)
 	}
 	return restored, nil
-}
-
-func normalizeSpaces(value string) string {
-	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
-}
-
-func mapRepositoryError(err error, op string, entity string) error {
-	switch {
-	case errors.Is(err, repoerrors.ErrNotFound):
-		return serviceerrors.NewNotFound(op, entity)
-	case errors.Is(err, repoerrors.ErrConflict):
-		return serviceerrors.NewConflict(op, entity)
-	case errors.Is(err, repoerrors.ErrValidation):
-		return serviceerrors.WrapValidation(op, entity, err)
-	case errors.Is(err, repoerrors.ErrUnknown):
-		return serviceerrors.WrapUnknown(op, entity, err)
-	default:
-		return serviceerrors.WrapUnknown(op, entity, err)
-	}
 }
 
 func toPlayerListItems(players []model.Player) []PlayerListItem {
@@ -319,3 +282,4 @@ func sortPlayerItems(items []PlayerListItem) {
 		return left < right
 	})
 }
+

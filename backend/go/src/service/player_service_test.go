@@ -10,6 +10,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	serviceerrors "github.com/Brackistar/game-master-notes/backend/go/src/service/error"
+	shared "github.com/Brackistar/game-master-notes/backend/go/src/service/shared"
 )
 
 type fakePlayerRepo struct {
@@ -81,7 +82,7 @@ func TestPlayerServiceCreateNormalizesAndValidatesName(t *testing.T) {
 		Clock: fakeClock{now: now},
 		NamePolicy: fakeNamePolicy{
 			normalizeFn: func(in string) (string, error) {
-				return normalizeSpaces(in), nil
+				return shared.NormalizeSpaces(in), nil
 			},
 		},
 		IDGenerator: fakeIDGenerator{
@@ -529,14 +530,14 @@ func TestPlayerServiceRestoreValidationAndErrorMappings(t *testing.T) {
 }
 
 func TestMapRepositoryErrorDefaultPath(t *testing.T) {
-	err := mapRepositoryError(errors.New("plain"), "op", "entity")
+	err := shared.MapRepositoryError(errors.New("plain"), "op", "entity")
 	if !errors.Is(err, serviceerrors.ErrUnknown) {
 		t.Fatalf("expected default unknown mapping, got %v", err)
 	}
 }
 
 func TestNormalizeSpacesAndSortHelpers(t *testing.T) {
-	if got := normalizeSpaces("  a   b  c "); got != "a b c" {
+	if got := shared.NormalizeSpaces("  a   b  c "); got != "a b c" {
 		t.Fatalf("unexpected normalize result: %q", got)
 	}
 

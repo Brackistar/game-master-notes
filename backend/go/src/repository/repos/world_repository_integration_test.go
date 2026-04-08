@@ -249,11 +249,18 @@ func integrationDatabaseURL(t *testing.T) string {
 		return v
 	}
 
-	if v, ok := readDatabaseURLFromDotEnv(".env"); ok {
-		return v
-	}
-	if v, ok := readDatabaseURLFromDotEnv(filepath.Join("..", "..", "..", "..", ".env")); ok {
-		return v
+	if wd, err := os.Getwd(); err == nil {
+		current := wd
+		for i := 0; i < 8; i++ {
+			if v, ok := readDatabaseURLFromDotEnv(current + string(os.PathSeparator) + ".env"); ok {
+				return v
+			}
+			parent := filepath.Dir(current)
+			if parent == current {
+				break
+			}
+			current = parent
+		}
 	}
 
 	t.Skip("DATABASE_URL not set and .env not found")

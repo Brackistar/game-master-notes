@@ -32,11 +32,11 @@ func (r *NoteTagRepository) Create(ctx context.Context, rel model.NoteTag) (mode
 	if err != nil {
 		return model.NoteTag{}, mapFunctionError(err, "note_tag.create", "note_tag",
 			map[string]struct{}{
-				"GMN_NOTE_NOT_FOUND": {},
-				"GMN_TAG_NOT_FOUND":  {},
+				repoerrors.GMNNoteNotFound: {},
+				repoerrors.GMNTagNotFound:  {},
 			},
 			map[string]struct{}{
-				"GMN_NOTE_TAG_ALREADY_ACTIVE": {},
+				repoerrors.GMNNoteTagAlreadyOpen: {},
 			},
 		)
 	}
@@ -100,7 +100,7 @@ func (r *NoteTagRepository) Delete(ctx context.Context, noteID, tagID model.ULID
 	if err != nil {
 		return mapFunctionError(err, "note_tag.delete", "note_tag",
 			map[string]struct{}{
-				"GMN_NOTE_TAG_NOT_ACTIVE": {},
+				repoerrors.GMNNoteTagNotActive: {},
 			},
 			nil,
 		)

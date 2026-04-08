@@ -38,8 +38,8 @@ func (r *MapNotePlacementRepository) Create(ctx context.Context, placement model
 	if err != nil {
 		return model.MapNotePlacement{}, mapFunctionError(err, "map_note_placement.create", "map_note_placement",
 			map[string]struct{}{
-				"GMN_MAP_NOTE_NOT_FOUND":    {},
-				"GMN_TARGET_NOTE_NOT_FOUND": {},
+				repoerrors.GMNMapNoteNotFound:  {},
+				repoerrors.GMNTargetNoteNotFound: {},
 			},
 			nil,
 		)
@@ -125,7 +125,7 @@ func (r *MapNotePlacementRepository) Delete(ctx context.Context, id model.ULID) 
 	if err != nil {
 		return mapFunctionError(err, "map_note_placement.delete", "map_note_placement",
 			map[string]struct{}{
-				"GMN_MAP_NOTE_PLACEMENT_NOT_ACTIVE": {},
+				repoerrors.GMNMapPlacementNotActive: {},
 			},
 			nil,
 		)

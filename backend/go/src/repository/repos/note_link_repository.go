@@ -42,11 +42,11 @@ func (r *NoteLinkRepository) Create(ctx context.Context, link model.NoteLink) (m
 	if err != nil {
 		return model.NoteLink{}, mapFunctionError(err, "note_link.create", "note_link",
 			map[string]struct{}{
-				"GMN_SOURCE_NOTE_NOT_FOUND": {},
-				"GMN_TARGET_NOTE_NOT_FOUND": {},
+				repoerrors.GMNSourceNoteNotFound: {},
+				repoerrors.GMNTargetNoteNotFound: {},
 			},
 			map[string]struct{}{
-				"GMN_NOTE_LINK_ALREADY_ACTIVE": {},
+				repoerrors.GMNNoteLinkAlreadyOpen: {},
 			},
 		)
 	}
@@ -148,7 +148,7 @@ func (r *NoteLinkRepository) Delete(ctx context.Context, id model.ULID) error {
 	if err != nil {
 		return mapFunctionError(err, "note_link.delete", "note_link",
 			map[string]struct{}{
-				"GMN_NOTE_LINK_NOT_ACTIVE": {},
+				repoerrors.GMNNoteLinkNotActive: {},
 			},
 			nil,
 		)

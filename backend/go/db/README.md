@@ -63,3 +63,4 @@ This script:
 - DB init scripts run only on first volume initialization.
 - `001_init_phase1` is implemented and validated.
 - `002_service_functions` is part of Phase 2 initialization and is expected after schema init.
+- Stable DB error-token contract (`GMN_*`) is documented in `backend/go/db/GMN_ERROR_CONTRACT.md`.

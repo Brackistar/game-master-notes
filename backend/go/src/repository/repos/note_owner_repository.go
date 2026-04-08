@@ -38,15 +38,15 @@ func (r *NoteOwnerRepository) Create(ctx context.Context, rel model.NoteOwner) (
 	if err != nil {
 		return model.NoteOwner{}, mapFunctionError(err, "note_owner.create", "note_owner",
 			map[string]struct{}{
-				"GMN_NOTE_NOT_FOUND":          {},
-				"GMN_OWNER_NOT_FOUND_WORLD":   {},
-				"GMN_OWNER_NOT_FOUND_PLANE":   {},
-				"GMN_OWNER_NOT_FOUND_CAMPAIGN": {},
-				"GMN_OWNER_NOT_FOUND_SESSION": {},
-				"GMN_OWNER_NOT_FOUND_PLAYER":  {},
+				repoerrors.GMNNoteNotFound:          {},
+				repoerrors.GMNOwnerWorldNotFound:    {},
+				repoerrors.GMNOwnerPlaneNotFound:    {},
+				repoerrors.GMNOwnerCampaignNotFound: {},
+				repoerrors.GMNOwnerSessionNotFound:  {},
+				repoerrors.GMNOwnerPlayerNotFound:   {},
 			},
 			map[string]struct{}{
-				"GMN_NOTE_OWNER_ALREADY_ACTIVE": {},
+				repoerrors.GMNNoteOwnerAlreadyOpen: {},
 			},
 		)
 	}
@@ -133,7 +133,7 @@ func (r *NoteOwnerRepository) Delete(ctx context.Context, noteID model.ULID, own
 	if err != nil {
 		return mapFunctionError(err, "note_owner.delete", "note_owner",
 			map[string]struct{}{
-				"GMN_NOTE_OWNER_NOT_ACTIVE": {},
+				repoerrors.GMNNoteOwnerNotActive: {},
 			},
 			nil,
 		)

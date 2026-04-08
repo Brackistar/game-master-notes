@@ -40,6 +40,14 @@ The current v1 direction is:
 
 This split keeps the core application logic in Go while using Python where it is most useful for AI orchestration and agent workflows.
 
+## Start Here (Developer Setup)
+
+This root README is product-facing.
+
+For backend local startup (database, migrations, and integration test baseline), follow:
+
+- [`backend/go/db/README.md`](backend/go/db/README.md)
+
 ## AI and Cost Strategy
 
 The bread-and-butter workflow is live transcription, so the system is being designed with that as the primary AI cost driver. More advanced council-style assistance is manual by design, which helps keep usage predictable and prevents unnecessary background model calls.

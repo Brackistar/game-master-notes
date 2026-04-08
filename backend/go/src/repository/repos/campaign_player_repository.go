@@ -32,11 +32,11 @@ func (r *CampaignPlayerRepository) Create(ctx context.Context, rel model.Campaig
 	if err != nil {
 		return model.CampaignPlayer{}, mapFunctionError(err, "campaign_player.create", "campaign_player",
 			map[string]struct{}{
-				"GMN_CAMPAIGN_NOT_FOUND": {},
-				"GMN_PLAYER_NOT_FOUND":   {},
+				repoerrors.GMNCampaignNotFound: {},
+				repoerrors.GMNPlayerNotFound:   {},
 			},
 			map[string]struct{}{
-				"GMN_CAMPAIGN_PLAYER_ALREADY_ACTIVE": {},
+				repoerrors.GMNCampaignPlayerAlreadyOpen: {},
 			},
 		)
 	}
@@ -100,7 +100,7 @@ func (r *CampaignPlayerRepository) Delete(ctx context.Context, campaignID, playe
 	if err != nil {
 		return mapFunctionError(err, "campaign_player.delete", "campaign_player",
 			map[string]struct{}{
-				"GMN_CAMPAIGN_PLAYER_NOT_ACTIVE": {},
+				repoerrors.GMNCampaignPlayerNotActive: {},
 			},
 			nil,
 		)

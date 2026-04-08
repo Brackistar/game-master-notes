@@ -92,7 +92,6 @@ func TestPlayerServiceCreateNormalizesAndValidatesName(t *testing.T) {
 	})
 
 	out, err := svc.Create(ctx, CreatePlayerParams{
-		ID:   model.ULID("01HZZZZZZZZZZZZZZZZZZZZZZZ"),
 		Name: "  Ana   Maria  ",
 	})
 	if err != nil {
@@ -127,7 +126,6 @@ func TestPlayerServiceCreateRejectsInvalidNames(t *testing.T) {
 	}
 	for _, name := range tests {
 		_, err := svc.Create(ctx, CreatePlayerParams{
-			ID:   model.ULID("01HZZZZZZZZZZZZZZZZZZZZZZZ"),
 			Name: name,
 		})
 		if !errors.Is(err, serviceerrors.ErrValidation) {
@@ -271,7 +269,7 @@ func TestPlayerServiceMapsRepositoryErrors(t *testing.T) {
 	}
 }
 
-func TestPlayerServiceCreateRequiresID(t *testing.T) {
+func TestPlayerServiceCreateReturnsUnknownWhenIDGeneratorFails(t *testing.T) {
 	ctx := context.Background()
 	repo := &fakePlayerRepo{
 		createFn: func(_ context.Context, p model.Player) (model.Player, error) { return p, nil },
@@ -292,8 +290,8 @@ func TestPlayerServiceCreateRequiresID(t *testing.T) {
 	})
 
 	_, err := svc.Create(ctx, CreatePlayerParams{Name: "Valid Name"})
-	if !errors.Is(err, serviceerrors.ErrValidation) {
-		t.Fatalf("expected validation error when id is missing, got %v", err)
+	if !errors.Is(err, serviceerrors.ErrUnknown) {
+		t.Fatalf("expected unknown error when id generator fails, got %v", err)
 	}
 }
 

@@ -64,7 +64,6 @@ type PlayerListItem struct {
 }
 
 type CreatePlayerParams struct {
-	ID   model.ULID
 	Name string
 }
 
@@ -133,18 +132,18 @@ func NewPlayerServiceWithDeps(deps PlayerServiceDeps) *PlayerService {
 
 func (s *PlayerService) Create(ctx context.Context, params CreatePlayerParams) (model.Player, error) {
 	op := "player_service.create"
-	if strings.TrimSpace(string(params.ID)) == "" {
-		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, errors.New("id is required"))
-	}
-
 	name, err := s.namePolicy.NormalizeAndValidate(params.Name)
 	if err != nil {
 		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, err)
 	}
+	id, err := s.idGenerator.NewULID()
+	if err != nil {
+		return model.Player{}, serviceerrors.WrapUnknown(op, serviceName, err)
+	}
 
 	now := s.clock.Now()
 	player, repoErr := s.repo.Create(ctx, model.Player{
-		ID:   params.ID,
+		ID:   id,
 		Name: name,
 		AuditFields: model.AuditFields{
 			CreatedAt: now,

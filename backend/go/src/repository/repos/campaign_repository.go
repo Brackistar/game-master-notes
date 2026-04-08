@@ -10,6 +10,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/postgres/generated"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/repository/repos/shared"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -24,7 +25,7 @@ type CampaignRepository struct {
 func NewCampaignRepository(db generated.DBTX) *CampaignRepository {
 	return &CampaignRepository{
 		queries: generated.New(db),
-		nowFn:   func() time.Time { return time.Now().UTC() },
+		nowFn:   helpers.NowFn,
 	}
 }
 

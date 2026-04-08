@@ -7,37 +7,21 @@ package generated
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createNoteOwner = `-- name: CreateNoteOwner :one
-INSERT INTO note_owners (
-  note_id, owner_type, owner_id, created_at, updated_at, deleted_at
-) VALUES (
-  $1, $2, $3, $4, $5, $6
-)
-RETURNING note_id, owner_type, owner_id, created_at, updated_at, deleted_at
+SELECT note_id, owner_type, owner_id, created_at, updated_at, deleted_at
+FROM fn_add_note_owner($1, $2, $3)
 `
 
 type CreateNoteOwnerParams struct {
-	NoteID    interface{}
-	OwnerType OwnerType
-	OwnerID   interface{}
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-	DeletedAt pgtype.Timestamptz
+	PNoteID    interface{}
+	POwnerType OwnerType
+	POwnerID   interface{}
 }
 
 func (q *Queries) CreateNoteOwner(ctx context.Context, arg CreateNoteOwnerParams) (NoteOwner, error) {
-	row := q.db.QueryRow(ctx, createNoteOwner,
-		arg.NoteID,
-		arg.OwnerType,
-		arg.OwnerID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.DeletedAt,
-	)
+	row := q.db.QueryRow(ctx, createNoteOwner, arg.PNoteID, arg.POwnerType, arg.POwnerID)
 	var i NoteOwner
 	err := row.Scan(
 		&i.NoteID,
@@ -50,35 +34,29 @@ func (q *Queries) CreateNoteOwner(ctx context.Context, arg CreateNoteOwnerParams
 	return i, err
 }
 
-const deleteNoteOwner = `-- name: DeleteNoteOwner :execrows
-UPDATE note_owners
-SET
-  deleted_at = $4,
-  updated_at = $4
-WHERE note_id = $1
-  AND owner_type = $2
-  AND owner_id = $3
-  AND deleted_at IS NULL
+const deleteNoteOwner = `-- name: DeleteNoteOwner :one
+SELECT note_id, owner_type, owner_id, created_at, updated_at, deleted_at
+FROM fn_remove_note_owner($1, $2, $3)
 `
 
 type DeleteNoteOwnerParams struct {
-	NoteID    interface{}
-	OwnerType OwnerType
-	OwnerID   interface{}
-	DeletedAt pgtype.Timestamptz
+	PNoteID    interface{}
+	POwnerType OwnerType
+	POwnerID   interface{}
 }
 
-func (q *Queries) DeleteNoteOwner(ctx context.Context, arg DeleteNoteOwnerParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteNoteOwner,
-		arg.NoteID,
-		arg.OwnerType,
-		arg.OwnerID,
-		arg.DeletedAt,
+func (q *Queries) DeleteNoteOwner(ctx context.Context, arg DeleteNoteOwnerParams) (NoteOwner, error) {
+	row := q.db.QueryRow(ctx, deleteNoteOwner, arg.PNoteID, arg.POwnerType, arg.POwnerID)
+	var i NoteOwner
+	err := row.Scan(
+		&i.NoteID,
+		&i.OwnerType,
+		&i.OwnerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	return i, err
 }
 
 const getNoteOwner = `-- name: GetNoteOwner :one

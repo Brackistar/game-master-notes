@@ -57,12 +57,14 @@ func TestNoteOwnerRepositoryIntegration_BasicFlow(t *testing.T) {
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 
 	noteRepo := repos.NewNoteRepository(tx)
+	worldRepo := repos.NewWorldRepository(tx)
 	ownerRepo := repos.NewNoteOwnerRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
 
 	note, _ := noteRepo.Create(ctx, model.Note{ID: model.ULID(testULID("no-note")), Title: "n", ContentMD: "c", NoteType: constants.General, MetadataJSON: []byte(`{}`), AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
+	world, _ := worldRepo.Create(ctx, model.World{ID: model.ULID(testULID("no-owner")), Name: "owner-world", Description: "d", Status: constants.Active, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
 
-	created, err := ownerRepo.Create(ctx, model.NoteOwner{NoteID: note.ID, OwnerType: constants.World, OwnerID: model.ULID(testULID("no-owner")), CreatedAt: now, UpdatedAt: now})
+	created, err := ownerRepo.Create(ctx, model.NoteOwner{NoteID: note.ID, OwnerType: constants.World, OwnerID: world.ID, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("create note_owner: %v", err)
 	}
@@ -207,4 +209,3 @@ func TestNoteLinkRepositoryIntegration_BasicFlow(t *testing.T) {
 		t.Fatalf("update note_link: %v", err)
 	}
 }
-

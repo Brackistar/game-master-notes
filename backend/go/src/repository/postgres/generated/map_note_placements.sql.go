@@ -12,37 +12,25 @@ import (
 )
 
 const createMapNotePlacement = `-- name: CreateMapNotePlacement :one
-INSERT INTO map_note_placements (
-  id, map_note_id, target_note_id, x, y, created_at, updated_at, deleted_at, version
-) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
-)
-RETURNING id, map_note_id, target_note_id, x, y, created_at, updated_at, deleted_at, version
+SELECT id, map_note_id, target_note_id, x, y, created_at, updated_at, deleted_at, version
+FROM fn_upsert_map_note_placement($1, $2, $3, $4, $5)
 `
 
 type CreateMapNotePlacementParams struct {
-	ID           interface{}
-	MapNoteID    interface{}
-	TargetNoteID interface{}
-	X            int16
-	Y            int16
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
-	DeletedAt    pgtype.Timestamptz
-	Version      int32
+	PID           interface{}
+	PMapNoteID    interface{}
+	PTargetNoteID interface{}
+	PX            int16
+	PY            int16
 }
 
 func (q *Queries) CreateMapNotePlacement(ctx context.Context, arg CreateMapNotePlacementParams) (MapNotePlacement, error) {
 	row := q.db.QueryRow(ctx, createMapNotePlacement,
-		arg.ID,
-		arg.MapNoteID,
-		arg.TargetNoteID,
-		arg.X,
-		arg.Y,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.DeletedAt,
-		arg.Version,
+		arg.PID,
+		arg.PMapNoteID,
+		arg.PTargetNoteID,
+		arg.PX,
+		arg.PY,
 	)
 	var i MapNotePlacement
 	err := row.Scan(
@@ -59,27 +47,31 @@ func (q *Queries) CreateMapNotePlacement(ctx context.Context, arg CreateMapNoteP
 	return i, err
 }
 
-const deleteMapNotePlacement = `-- name: DeleteMapNotePlacement :execrows
-UPDATE map_note_placements
-SET
-  deleted_at = $2,
-  updated_at = $2,
-  version = version + 1
-WHERE id = $1
-  AND deleted_at IS NULL
+const deleteMapNotePlacement = `-- name: DeleteMapNotePlacement :one
+SELECT id, map_note_id, target_note_id, x, y, created_at, updated_at, deleted_at, version
+FROM fn_remove_map_note_placement($1, $2)
 `
 
 type DeleteMapNotePlacementParams struct {
-	ID        interface{}
-	DeletedAt pgtype.Timestamptz
+	PMapNoteID    interface{}
+	PTargetNoteID interface{}
 }
 
-func (q *Queries) DeleteMapNotePlacement(ctx context.Context, arg DeleteMapNotePlacementParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteMapNotePlacement, arg.ID, arg.DeletedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) DeleteMapNotePlacement(ctx context.Context, arg DeleteMapNotePlacementParams) (MapNotePlacement, error) {
+	row := q.db.QueryRow(ctx, deleteMapNotePlacement, arg.PMapNoteID, arg.PTargetNoteID)
+	var i MapNotePlacement
+	err := row.Scan(
+		&i.ID,
+		&i.MapNoteID,
+		&i.TargetNoteID,
+		&i.X,
+		&i.Y,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Version,
+	)
+	return i, err
 }
 
 const getMapNotePlacementByID = `-- name: GetMapNotePlacementByID :one

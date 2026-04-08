@@ -1,10 +1,6 @@
 -- name: CreateNoteOwner :one
-INSERT INTO note_owners (
-  note_id, owner_type, owner_id, created_at, updated_at, deleted_at
-) VALUES (
-  $1, $2, $3, $4, $5, $6
-)
-RETURNING note_id, owner_type, owner_id, created_at, updated_at, deleted_at;
+SELECT note_id, owner_type, owner_id, created_at, updated_at, deleted_at
+FROM fn_add_note_owner($1, $2, $3);
 
 -- name: GetNoteOwner :one
 SELECT note_id, owner_type, owner_id, created_at, updated_at, deleted_at
@@ -33,13 +29,6 @@ ORDER BY created_at DESC
 OFFSET $4
 LIMIT $5;
 
--- name: DeleteNoteOwner :execrows
-UPDATE note_owners
-SET
-  deleted_at = $4,
-  updated_at = $4
-WHERE note_id = $1
-  AND owner_type = $2
-  AND owner_id = $3
-  AND deleted_at IS NULL;
-
+-- name: DeleteNoteOwner :one
+SELECT note_id, owner_type, owner_id, created_at, updated_at, deleted_at
+FROM fn_remove_note_owner($1, $2, $3);

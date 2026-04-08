@@ -1,10 +1,6 @@
 -- name: CreateCampaignPlayer :one
-INSERT INTO campaign_players (
-  campaign_id, player_id, created_at, updated_at, deleted_at
-) VALUES (
-  $1, $2, $3, $4, $5
-)
-RETURNING campaign_id, player_id, created_at, updated_at, deleted_at;
+SELECT campaign_id, player_id, created_at, updated_at, deleted_at
+FROM fn_add_player_to_campaign($1, $2);
 
 -- name: GetCampaignPlayer :one
 SELECT campaign_id, player_id, created_at, updated_at, deleted_at
@@ -31,12 +27,6 @@ ORDER BY created_at DESC
 OFFSET $3
 LIMIT $4;
 
--- name: DeleteCampaignPlayer :execrows
-UPDATE campaign_players
-SET
-  deleted_at = $3,
-  updated_at = $3
-WHERE campaign_id = $1
-  AND player_id = $2
-  AND deleted_at IS NULL;
-
+-- name: DeleteCampaignPlayer :one
+SELECT campaign_id, player_id, created_at, updated_at, deleted_at
+FROM fn_remove_player_from_campaign($1, $2);

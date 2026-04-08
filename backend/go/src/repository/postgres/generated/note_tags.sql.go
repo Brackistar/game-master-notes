@@ -7,35 +7,20 @@ package generated
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createNoteTag = `-- name: CreateNoteTag :one
-INSERT INTO note_tags (
-  note_id, tag_id, created_at, updated_at, deleted_at
-) VALUES (
-  $1, $2, $3, $4, $5
-)
-RETURNING note_id, tag_id, created_at, updated_at, deleted_at
+SELECT note_id, tag_id, created_at, updated_at, deleted_at
+FROM fn_add_note_tag($1, $2)
 `
 
 type CreateNoteTagParams struct {
-	NoteID    interface{}
-	TagID     interface{}
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-	DeletedAt pgtype.Timestamptz
+	PNoteID interface{}
+	PTagID  interface{}
 }
 
 func (q *Queries) CreateNoteTag(ctx context.Context, arg CreateNoteTagParams) (NoteTag, error) {
-	row := q.db.QueryRow(ctx, createNoteTag,
-		arg.NoteID,
-		arg.TagID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.DeletedAt,
-	)
+	row := q.db.QueryRow(ctx, createNoteTag, arg.PNoteID, arg.PTagID)
 	var i NoteTag
 	err := row.Scan(
 		&i.NoteID,
@@ -47,28 +32,27 @@ func (q *Queries) CreateNoteTag(ctx context.Context, arg CreateNoteTagParams) (N
 	return i, err
 }
 
-const deleteNoteTag = `-- name: DeleteNoteTag :execrows
-UPDATE note_tags
-SET
-  deleted_at = $3,
-  updated_at = $3
-WHERE note_id = $1
-  AND tag_id = $2
-  AND deleted_at IS NULL
+const deleteNoteTag = `-- name: DeleteNoteTag :one
+SELECT note_id, tag_id, created_at, updated_at, deleted_at
+FROM fn_remove_note_tag($1, $2)
 `
 
 type DeleteNoteTagParams struct {
-	NoteID    interface{}
-	TagID     interface{}
-	DeletedAt pgtype.Timestamptz
+	PNoteID interface{}
+	PTagID  interface{}
 }
 
-func (q *Queries) DeleteNoteTag(ctx context.Context, arg DeleteNoteTagParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteNoteTag, arg.NoteID, arg.TagID, arg.DeletedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) DeleteNoteTag(ctx context.Context, arg DeleteNoteTagParams) (NoteTag, error) {
+	row := q.db.QueryRow(ctx, deleteNoteTag, arg.PNoteID, arg.PTagID)
+	var i NoteTag
+	err := row.Scan(
+		&i.NoteID,
+		&i.TagID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const getNoteTag = `-- name: GetNoteTag :one

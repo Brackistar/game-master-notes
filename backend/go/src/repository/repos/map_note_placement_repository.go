@@ -29,18 +29,20 @@ func NewMapNotePlacementRepository(db generated.DBTX) *MapNotePlacementRepositor
 
 func (r *MapNotePlacementRepository) Create(ctx context.Context, placement model.MapNotePlacement) (model.MapNotePlacement, error) {
 	row, err := r.queries.CreateMapNotePlacement(ctx, generated.CreateMapNotePlacementParams{
-		ID:           string(placement.ID),
-		MapNoteID:    string(placement.MapNoteID),
-		TargetNoteID: string(placement.TargetNoteID),
-		X:            int16(placement.X),
-		Y:            int16(placement.Y),
-		CreatedAt:    toPgTimestamptz(placement.AuditFields.CreatedAt),
-		UpdatedAt:    toPgTimestamptz(placement.AuditFields.UpdatedAt),
-		DeletedAt:    toNullablePgTimestamptz(placement.AuditFields.DeletedAt),
-		Version:      int32(placement.AuditFields.Version),
+		PID:           string(placement.ID),
+		PMapNoteID:    string(placement.MapNoteID),
+		PTargetNoteID: string(placement.TargetNoteID),
+		PX:            int16(placement.X),
+		PY:            int16(placement.Y),
 	})
 	if err != nil {
-		return model.MapNotePlacement{}, repoerrors.WrapUnknown("map_note_placement.create", "map_note_placement", err)
+		return model.MapNotePlacement{}, mapFunctionError(err, "map_note_placement.create", "map_note_placement",
+			map[string]struct{}{
+				"GMN_MAP_NOTE_NOT_FOUND":    {},
+				"GMN_TARGET_NOTE_NOT_FOUND": {},
+			},
+			nil,
+		)
 	}
 	return mapMapNotePlacementRow(row), nil
 }
@@ -111,15 +113,22 @@ func (r *MapNotePlacementRepository) Update(ctx context.Context, params interfac
 }
 
 func (r *MapNotePlacementRepository) Delete(ctx context.Context, id model.ULID) error {
-	affected, err := r.queries.DeleteMapNotePlacement(ctx, generated.DeleteMapNotePlacementParams{
-		ID:        string(id),
-		DeletedAt: toPgTimestamptz(r.nowFn()),
+	current, err := r.GetByID(ctx, id, false)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.queries.DeleteMapNotePlacement(ctx, generated.DeleteMapNotePlacementParams{
+		PMapNoteID:    string(current.MapNoteID),
+		PTargetNoteID: string(current.TargetNoteID),
 	})
 	if err != nil {
-		return repoerrors.WrapUnknown("map_note_placement.delete", "map_note_placement", err)
-	}
-	if affected == 0 {
-		return repoerrors.NewNotFound("map_note_placement.delete", "map_note_placement")
+		return mapFunctionError(err, "map_note_placement.delete", "map_note_placement",
+			map[string]struct{}{
+				"GMN_MAP_NOTE_PLACEMENT_NOT_ACTIVE": {},
+			},
+			nil,
+		)
 	}
 	return nil
 }

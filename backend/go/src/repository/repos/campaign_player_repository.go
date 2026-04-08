@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/Brackistar/game-master-notes/backend/go/src/model"
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
@@ -17,26 +16,29 @@ var _ interfaces.CampaignPlayerRepository = (*CampaignPlayerRepository)(nil)
 
 type CampaignPlayerRepository struct {
 	queries *generated.Queries
-	nowFn   func() time.Time
 }
 
 func NewCampaignPlayerRepository(db generated.DBTX) *CampaignPlayerRepository {
 	return &CampaignPlayerRepository{
 		queries: generated.New(db),
-		nowFn:   func() time.Time { return time.Now().UTC() },
 	}
 }
 
 func (r *CampaignPlayerRepository) Create(ctx context.Context, rel model.CampaignPlayer) (model.CampaignPlayer, error) {
 	row, err := r.queries.CreateCampaignPlayer(ctx, generated.CreateCampaignPlayerParams{
-		CampaignID: string(rel.CampaignID),
-		PlayerID:   string(rel.PlayerID),
-		CreatedAt:  toPgTimestamptz(rel.CreatedAt),
-		UpdatedAt:  toPgTimestamptz(rel.UpdatedAt),
-		DeletedAt:  toNullablePgTimestamptz(rel.DeletedAt),
+		PCampaignID: string(rel.CampaignID),
+		PPlayerID:   string(rel.PlayerID),
 	})
 	if err != nil {
-		return model.CampaignPlayer{}, repoerrors.WrapUnknown("campaign_player.create", "campaign_player", err)
+		return model.CampaignPlayer{}, mapFunctionError(err, "campaign_player.create", "campaign_player",
+			map[string]struct{}{
+				"GMN_CAMPAIGN_NOT_FOUND": {},
+				"GMN_PLAYER_NOT_FOUND":   {},
+			},
+			map[string]struct{}{
+				"GMN_CAMPAIGN_PLAYER_ALREADY_ACTIVE": {},
+			},
+		)
 	}
 	return mapCampaignPlayerRow(row), nil
 }
@@ -91,16 +93,17 @@ func (r *CampaignPlayerRepository) ListByPlayer(ctx context.Context, playerID mo
 }
 
 func (r *CampaignPlayerRepository) Delete(ctx context.Context, campaignID, playerID model.ULID) error {
-	affected, err := r.queries.DeleteCampaignPlayer(ctx, generated.DeleteCampaignPlayerParams{
-		CampaignID: string(campaignID),
-		PlayerID:   string(playerID),
-		DeletedAt:  toPgTimestamptz(r.nowFn()),
+	_, err := r.queries.DeleteCampaignPlayer(ctx, generated.DeleteCampaignPlayerParams{
+		PCampaignID: string(campaignID),
+		PPlayerID:   string(playerID),
 	})
 	if err != nil {
-		return repoerrors.WrapUnknown("campaign_player.delete", "campaign_player", err)
-	}
-	if affected == 0 {
-		return repoerrors.NewNotFound("campaign_player.delete", "campaign_player")
+		return mapFunctionError(err, "campaign_player.delete", "campaign_player",
+			map[string]struct{}{
+				"GMN_CAMPAIGN_PLAYER_NOT_ACTIVE": {},
+			},
+			nil,
+		)
 	}
 	return nil
 }

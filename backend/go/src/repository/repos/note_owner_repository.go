@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/Brackistar/game-master-notes/backend/go/src/model"
 	"github.com/Brackistar/game-master-notes/backend/go/src/model/constants"
@@ -18,13 +17,11 @@ var _ interfaces.NoteOwnerRepository = (*NoteOwnerRepository)(nil)
 
 type NoteOwnerRepository struct {
 	queries *generated.Queries
-	nowFn   func() time.Time
 }
 
 func NewNoteOwnerRepository(db generated.DBTX) *NoteOwnerRepository {
 	return &NoteOwnerRepository{
 		queries: generated.New(db),
-		nowFn:   func() time.Time { return time.Now().UTC() },
 	}
 }
 
@@ -34,15 +31,24 @@ func (r *NoteOwnerRepository) Create(ctx context.Context, rel model.NoteOwner) (
 		return model.NoteOwner{}, repoerrors.WrapValidation("note_owner.create", "note_owner", err)
 	}
 	row, err := r.queries.CreateNoteOwner(ctx, generated.CreateNoteOwnerParams{
-		NoteID:    string(rel.NoteID),
-		OwnerType: ownerType,
-		OwnerID:   string(rel.OwnerID),
-		CreatedAt: toPgTimestamptz(rel.CreatedAt),
-		UpdatedAt: toPgTimestamptz(rel.UpdatedAt),
-		DeletedAt: toNullablePgTimestamptz(rel.DeletedAt),
+		PNoteID:    string(rel.NoteID),
+		POwnerType: ownerType,
+		POwnerID:   string(rel.OwnerID),
 	})
 	if err != nil {
-		return model.NoteOwner{}, repoerrors.WrapUnknown("note_owner.create", "note_owner", err)
+		return model.NoteOwner{}, mapFunctionError(err, "note_owner.create", "note_owner",
+			map[string]struct{}{
+				"GMN_NOTE_NOT_FOUND":          {},
+				"GMN_OWNER_NOT_FOUND_WORLD":   {},
+				"GMN_OWNER_NOT_FOUND_PLANE":   {},
+				"GMN_OWNER_NOT_FOUND_CAMPAIGN": {},
+				"GMN_OWNER_NOT_FOUND_SESSION": {},
+				"GMN_OWNER_NOT_FOUND_PLAYER":  {},
+			},
+			map[string]struct{}{
+				"GMN_NOTE_OWNER_ALREADY_ACTIVE": {},
+			},
+		)
 	}
 	return mapNoteOwnerRow(row)
 }
@@ -119,17 +125,18 @@ func (r *NoteOwnerRepository) Delete(ctx context.Context, noteID model.ULID, own
 	if err != nil {
 		return repoerrors.WrapValidation("note_owner.delete", "note_owner", err)
 	}
-	affected, err := r.queries.DeleteNoteOwner(ctx, generated.DeleteNoteOwnerParams{
-		NoteID:    string(noteID),
-		OwnerType: dbOwnerType,
-		OwnerID:   string(ownerID),
-		DeletedAt: toPgTimestamptz(r.nowFn()),
+	_, err = r.queries.DeleteNoteOwner(ctx, generated.DeleteNoteOwnerParams{
+		PNoteID:    string(noteID),
+		POwnerType: dbOwnerType,
+		POwnerID:   string(ownerID),
 	})
 	if err != nil {
-		return repoerrors.WrapUnknown("note_owner.delete", "note_owner", err)
-	}
-	if affected == 0 {
-		return repoerrors.NewNotFound("note_owner.delete", "note_owner")
+		return mapFunctionError(err, "note_owner.delete", "note_owner",
+			map[string]struct{}{
+				"GMN_NOTE_OWNER_NOT_ACTIVE": {},
+			},
+			nil,
+		)
 	}
 	return nil
 }

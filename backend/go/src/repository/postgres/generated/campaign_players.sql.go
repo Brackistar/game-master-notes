@@ -7,35 +7,20 @@ package generated
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createCampaignPlayer = `-- name: CreateCampaignPlayer :one
-INSERT INTO campaign_players (
-  campaign_id, player_id, created_at, updated_at, deleted_at
-) VALUES (
-  $1, $2, $3, $4, $5
-)
-RETURNING campaign_id, player_id, created_at, updated_at, deleted_at
+SELECT campaign_id, player_id, created_at, updated_at, deleted_at
+FROM fn_add_player_to_campaign($1, $2)
 `
 
 type CreateCampaignPlayerParams struct {
-	CampaignID interface{}
-	PlayerID   interface{}
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
-	DeletedAt  pgtype.Timestamptz
+	PCampaignID interface{}
+	PPlayerID   interface{}
 }
 
 func (q *Queries) CreateCampaignPlayer(ctx context.Context, arg CreateCampaignPlayerParams) (CampaignPlayer, error) {
-	row := q.db.QueryRow(ctx, createCampaignPlayer,
-		arg.CampaignID,
-		arg.PlayerID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.DeletedAt,
-	)
+	row := q.db.QueryRow(ctx, createCampaignPlayer, arg.PCampaignID, arg.PPlayerID)
 	var i CampaignPlayer
 	err := row.Scan(
 		&i.CampaignID,
@@ -47,28 +32,27 @@ func (q *Queries) CreateCampaignPlayer(ctx context.Context, arg CreateCampaignPl
 	return i, err
 }
 
-const deleteCampaignPlayer = `-- name: DeleteCampaignPlayer :execrows
-UPDATE campaign_players
-SET
-  deleted_at = $3,
-  updated_at = $3
-WHERE campaign_id = $1
-  AND player_id = $2
-  AND deleted_at IS NULL
+const deleteCampaignPlayer = `-- name: DeleteCampaignPlayer :one
+SELECT campaign_id, player_id, created_at, updated_at, deleted_at
+FROM fn_remove_player_from_campaign($1, $2)
 `
 
 type DeleteCampaignPlayerParams struct {
-	CampaignID interface{}
-	PlayerID   interface{}
-	DeletedAt  pgtype.Timestamptz
+	PCampaignID interface{}
+	PPlayerID   interface{}
 }
 
-func (q *Queries) DeleteCampaignPlayer(ctx context.Context, arg DeleteCampaignPlayerParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteCampaignPlayer, arg.CampaignID, arg.PlayerID, arg.DeletedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) DeleteCampaignPlayer(ctx context.Context, arg DeleteCampaignPlayerParams) (CampaignPlayer, error) {
+	row := q.db.QueryRow(ctx, deleteCampaignPlayer, arg.PCampaignID, arg.PPlayerID)
+	var i CampaignPlayer
+	err := row.Scan(
+		&i.CampaignID,
+		&i.PlayerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const getCampaignPlayer = `-- name: GetCampaignPlayer :one

@@ -12,35 +12,23 @@ import (
 )
 
 const createNoteLink = `-- name: CreateNoteLink :one
-INSERT INTO note_links (
-  id, source_note_id, target_note_id, link_type, created_at, updated_at, deleted_at, version
-) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8
-)
-RETURNING id, source_note_id, target_note_id, link_type, created_at, updated_at, deleted_at, version
+SELECT id, source_note_id, target_note_id, link_type, created_at, updated_at, deleted_at, version
+FROM fn_add_note_link($1, $2, $3, $4)
 `
 
 type CreateNoteLinkParams struct {
-	ID           interface{}
-	SourceNoteID interface{}
-	TargetNoteID interface{}
-	LinkType     NoteLinkType
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
-	DeletedAt    pgtype.Timestamptz
-	Version      int32
+	PID           interface{}
+	PSourceNoteID interface{}
+	PTargetNoteID interface{}
+	PLinkType     NoteLinkType
 }
 
 func (q *Queries) CreateNoteLink(ctx context.Context, arg CreateNoteLinkParams) (NoteLink, error) {
 	row := q.db.QueryRow(ctx, createNoteLink,
-		arg.ID,
-		arg.SourceNoteID,
-		arg.TargetNoteID,
-		arg.LinkType,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.DeletedAt,
-		arg.Version,
+		arg.PID,
+		arg.PSourceNoteID,
+		arg.PTargetNoteID,
+		arg.PLinkType,
 	)
 	var i NoteLink
 	err := row.Scan(
@@ -56,27 +44,31 @@ func (q *Queries) CreateNoteLink(ctx context.Context, arg CreateNoteLinkParams) 
 	return i, err
 }
 
-const deleteNoteLink = `-- name: DeleteNoteLink :execrows
-UPDATE note_links
-SET
-  deleted_at = $2,
-  updated_at = $2,
-  version = version + 1
-WHERE id = $1
-  AND deleted_at IS NULL
+const deleteNoteLink = `-- name: DeleteNoteLink :one
+SELECT id, source_note_id, target_note_id, link_type, created_at, updated_at, deleted_at, version
+FROM fn_remove_note_link($1, $2, $3)
 `
 
 type DeleteNoteLinkParams struct {
-	ID        interface{}
-	DeletedAt pgtype.Timestamptz
+	PSourceNoteID interface{}
+	PTargetNoteID interface{}
+	PLinkType     NoteLinkType
 }
 
-func (q *Queries) DeleteNoteLink(ctx context.Context, arg DeleteNoteLinkParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteNoteLink, arg.ID, arg.DeletedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) DeleteNoteLink(ctx context.Context, arg DeleteNoteLinkParams) (NoteLink, error) {
+	row := q.db.QueryRow(ctx, deleteNoteLink, arg.PSourceNoteID, arg.PTargetNoteID, arg.PLinkType)
+	var i NoteLink
+	err := row.Scan(
+		&i.ID,
+		&i.SourceNoteID,
+		&i.TargetNoteID,
+		&i.LinkType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Version,
+	)
+	return i, err
 }
 
 const getNoteLinkByID = `-- name: GetNoteLinkByID :one

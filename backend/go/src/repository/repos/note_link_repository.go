@@ -34,17 +34,21 @@ func (r *NoteLinkRepository) Create(ctx context.Context, link model.NoteLink) (m
 		return model.NoteLink{}, repoerrors.WrapValidation("note_link.create", "note_link", err)
 	}
 	row, err := r.queries.CreateNoteLink(ctx, generated.CreateNoteLinkParams{
-		ID:           string(link.ID),
-		SourceNoteID: string(link.SourceNoteID),
-		TargetNoteID: string(link.TargetNoteID),
-		LinkType:     linkType,
-		CreatedAt:    toPgTimestamptz(link.AuditFields.CreatedAt),
-		UpdatedAt:    toPgTimestamptz(link.AuditFields.UpdatedAt),
-		DeletedAt:    toNullablePgTimestamptz(link.AuditFields.DeletedAt),
-		Version:      int32(link.AuditFields.Version),
+		PID:           string(link.ID),
+		PSourceNoteID: string(link.SourceNoteID),
+		PTargetNoteID: string(link.TargetNoteID),
+		PLinkType:     linkType,
 	})
 	if err != nil {
-		return model.NoteLink{}, repoerrors.WrapUnknown("note_link.create", "note_link", err)
+		return model.NoteLink{}, mapFunctionError(err, "note_link.create", "note_link",
+			map[string]struct{}{
+				"GMN_SOURCE_NOTE_NOT_FOUND": {},
+				"GMN_TARGET_NOTE_NOT_FOUND": {},
+			},
+			map[string]struct{}{
+				"GMN_NOTE_LINK_ALREADY_ACTIVE": {},
+			},
+		)
 	}
 	return mapNoteLinkRow(row)
 }
@@ -126,15 +130,28 @@ func (r *NoteLinkRepository) Update(ctx context.Context, params interfaces.Updat
 }
 
 func (r *NoteLinkRepository) Delete(ctx context.Context, id model.ULID) error {
-	affected, err := r.queries.DeleteNoteLink(ctx, generated.DeleteNoteLinkParams{
-		ID:        string(id),
-		DeletedAt: toPgTimestamptz(r.nowFn()),
+	current, err := r.GetByID(ctx, id, false)
+	if err != nil {
+		return err
+	}
+
+	dbLinkType, err := toDBNoteLinkType(current.LinkType)
+	if err != nil {
+		return repoerrors.WrapValidation("note_link.delete", "note_link", err)
+	}
+
+	_, err = r.queries.DeleteNoteLink(ctx, generated.DeleteNoteLinkParams{
+		PSourceNoteID: string(current.SourceNoteID),
+		PTargetNoteID: string(current.TargetNoteID),
+		PLinkType:     dbLinkType,
 	})
 	if err != nil {
-		return repoerrors.WrapUnknown("note_link.delete", "note_link", err)
-	}
-	if affected == 0 {
-		return repoerrors.NewNotFound("note_link.delete", "note_link")
+		return mapFunctionError(err, "note_link.delete", "note_link",
+			map[string]struct{}{
+				"GMN_NOTE_LINK_NOT_ACTIVE": {},
+			},
+			nil,
+		)
 	}
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/Brackistar/game-master-notes/backend/go/src/model"
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
@@ -17,26 +16,29 @@ var _ interfaces.NoteTagRepository = (*NoteTagRepository)(nil)
 
 type NoteTagRepository struct {
 	queries *generated.Queries
-	nowFn   func() time.Time
 }
 
 func NewNoteTagRepository(db generated.DBTX) *NoteTagRepository {
 	return &NoteTagRepository{
 		queries: generated.New(db),
-		nowFn:   func() time.Time { return time.Now().UTC() },
 	}
 }
 
 func (r *NoteTagRepository) Create(ctx context.Context, rel model.NoteTag) (model.NoteTag, error) {
 	row, err := r.queries.CreateNoteTag(ctx, generated.CreateNoteTagParams{
-		NoteID:    string(rel.NoteID),
-		TagID:     string(rel.TagID),
-		CreatedAt: toPgTimestamptz(rel.CreatedAt),
-		UpdatedAt: toPgTimestamptz(rel.UpdatedAt),
-		DeletedAt: toNullablePgTimestamptz(rel.DeletedAt),
+		PNoteID: string(rel.NoteID),
+		PTagID:  string(rel.TagID),
 	})
 	if err != nil {
-		return model.NoteTag{}, repoerrors.WrapUnknown("note_tag.create", "note_tag", err)
+		return model.NoteTag{}, mapFunctionError(err, "note_tag.create", "note_tag",
+			map[string]struct{}{
+				"GMN_NOTE_NOT_FOUND": {},
+				"GMN_TAG_NOT_FOUND":  {},
+			},
+			map[string]struct{}{
+				"GMN_NOTE_TAG_ALREADY_ACTIVE": {},
+			},
+		)
 	}
 	return mapNoteTagRow(row), nil
 }
@@ -91,16 +93,17 @@ func (r *NoteTagRepository) ListByTag(ctx context.Context, tagID model.ULID, par
 }
 
 func (r *NoteTagRepository) Delete(ctx context.Context, noteID, tagID model.ULID) error {
-	affected, err := r.queries.DeleteNoteTag(ctx, generated.DeleteNoteTagParams{
-		NoteID:    string(noteID),
-		TagID:     string(tagID),
-		DeletedAt: toPgTimestamptz(r.nowFn()),
+	_, err := r.queries.DeleteNoteTag(ctx, generated.DeleteNoteTagParams{
+		PNoteID: string(noteID),
+		PTagID:  string(tagID),
 	})
 	if err != nil {
-		return repoerrors.WrapUnknown("note_tag.delete", "note_tag", err)
-	}
-	if affected == 0 {
-		return repoerrors.NewNotFound("note_tag.delete", "note_tag")
+		return mapFunctionError(err, "note_tag.delete", "note_tag",
+			map[string]struct{}{
+				"GMN_NOTE_TAG_NOT_ACTIVE": {},
+			},
+			nil,
+		)
 	}
 	return nil
 }

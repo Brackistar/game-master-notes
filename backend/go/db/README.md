@@ -16,6 +16,15 @@ Copy `.env.example` to `.env` and adjust values if needed.
 ./scripts/migrate.ps1 -Action up
 ```
 
+Phase 2 note:
+- Migration order is sequential. `001_init_phase1` runs first, then `002_service_functions`.
+- `./scripts/migrate.ps1 -Action up` now enforces a post-run guard and fails if DB version is below `2`.
+- Verify applied version explicitly with:
+
+```powershell
+./scripts/migrate.ps1 -Action version
+```
+
 ## 3.1) Run repository integration baseline
 
 ```powershell
@@ -53,4 +62,4 @@ This script:
 - `docker-compose.db.yml` uses `pgvector/pgvector:pg16`.
 - DB init scripts run only on first volume initialization.
 - `001_init_phase1` is implemented and validated.
-- `002_service_functions` is pending (Phase 2).
+- `002_service_functions` is part of Phase 2 initialization and is expected after schema init.

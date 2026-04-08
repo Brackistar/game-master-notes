@@ -103,7 +103,7 @@ const listPlayers = `-- name: ListPlayers :many
 SELECT id, name, created_at, updated_at, deleted_at, version
 FROM players
 WHERE ($1::boolean OR deleted_at IS NULL)
-ORDER BY created_at DESC, id DESC
+ORDER BY lower(name) ASC, id ASC
 OFFSET $2
 LIMIT $3
 `
@@ -116,6 +116,85 @@ type ListPlayersParams struct {
 
 func (q *Queries) ListPlayers(ctx context.Context, arg ListPlayersParams) ([]Player, error) {
 	rows, err := q.db.Query(ctx, listPlayers, arg.Column1, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Player
+	for rows.Next() {
+		var i Player
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.Version,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const restorePlayer = `-- name: RestorePlayer :one
+UPDATE players
+SET
+  deleted_at = NULL,
+  updated_at = $2,
+  version = version + 1
+WHERE id = $1
+  AND deleted_at IS NOT NULL
+RETURNING id, name, created_at, updated_at, deleted_at, version
+`
+
+type RestorePlayerParams struct {
+	ID        interface{}
+	UpdatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) RestorePlayer(ctx context.Context, arg RestorePlayerParams) (Player, error) {
+	row := q.db.QueryRow(ctx, restorePlayer, arg.ID, arg.UpdatedAt)
+	var i Player
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Version,
+	)
+	return i, err
+}
+
+const searchPlayersByName = `-- name: SearchPlayersByName :many
+SELECT id, name, created_at, updated_at, deleted_at, version
+FROM players
+WHERE ($1::boolean OR deleted_at IS NULL)
+  AND lower(name) LIKE '%' || lower($2) || '%'
+ORDER BY lower(name) ASC, id ASC
+OFFSET $3
+LIMIT $4
+`
+
+type SearchPlayersByNameParams struct {
+	Column1 bool
+	Lower   string
+	Offset  int32
+	Limit   int32
+}
+
+func (q *Queries) SearchPlayersByName(ctx context.Context, arg SearchPlayersByNameParams) ([]Player, error) {
+	rows, err := q.db.Query(ctx, searchPlayersByName,
+		arg.Column1,
+		arg.Lower,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

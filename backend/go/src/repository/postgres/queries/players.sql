@@ -16,9 +16,18 @@ WHERE id = $1
 SELECT id, name, created_at, updated_at, deleted_at, version
 FROM players
 WHERE ($1::boolean OR deleted_at IS NULL)
-ORDER BY created_at DESC, id DESC
+ORDER BY lower(name) ASC, id ASC
 OFFSET $2
 LIMIT $3;
+
+-- name: SearchPlayersByName :many
+SELECT id, name, created_at, updated_at, deleted_at, version
+FROM players
+WHERE ($1::boolean OR deleted_at IS NULL)
+  AND lower(name) LIKE '%' || lower($2) || '%'
+ORDER BY lower(name) ASC, id ASC
+OFFSET $3
+LIMIT $4;
 
 -- name: UpdatePlayer :one
 UPDATE players
@@ -39,3 +48,13 @@ SET
   version = version + 1
 WHERE id = $1
   AND deleted_at IS NULL;
+
+-- name: RestorePlayer :one
+UPDATE players
+SET
+  deleted_at = NULL,
+  updated_at = $2,
+  version = version + 1
+WHERE id = $1
+  AND deleted_at IS NOT NULL
+RETURNING id, name, created_at, updated_at, deleted_at, version;

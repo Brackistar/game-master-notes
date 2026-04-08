@@ -196,3 +196,81 @@ func TestPlayerRepositoryIntegration_DeleteStrictAndIncludeDeleted(t *testing.T)
 		t.Fatalf("expected not found error on second delete, got %v", err)
 	}
 }
+
+func TestPlayerRepositoryIntegration_RestoreAndSearch(t *testing.T) {
+	ctx := context.Background()
+	conn := openIntegrationConn(t, ctx)
+	defer conn.Close(ctx)
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = tx.Rollback(ctx)
+	})
+
+	repo := repos.NewPlayerRepository(tx)
+	now := time.Now().UTC().Truncate(time.Second)
+
+	alpha, err := repo.Create(ctx, model.Player{
+		ID:   model.ULID(testULID("player-restore-alpha")),
+		Name: "Alpha Prime",
+		AuditFields: model.AuditFields{
+			CreatedAt: now,
+			UpdatedAt: now,
+			Version:   1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create alpha: %v", err)
+	}
+
+	_, err = repo.Create(ctx, model.Player{
+		ID:   model.ULID(testULID("player-restore-beta")),
+		Name: "Beta Hero",
+		AuditFields: model.AuditFields{
+			CreatedAt: now.Add(time.Second),
+			UpdatedAt: now.Add(time.Second),
+			Version:   1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create beta: %v", err)
+	}
+
+	if err := repo.Delete(ctx, alpha.ID); err != nil {
+		t.Fatalf("delete alpha: %v", err)
+	}
+
+	_, err = repo.GetByID(ctx, alpha.ID, false)
+	if !errors.Is(err, repoerror.ErrNotFound) {
+		t.Fatalf("expected not found before restore, got %v", err)
+	}
+
+	restored, err := repo.Restore(ctx, alpha.ID)
+	if err != nil {
+		t.Fatalf("restore alpha: %v", err)
+	}
+	if restored.AuditFields.DeletedAt != nil {
+		t.Fatalf("expected deleted_at nil after restore")
+	}
+
+	_, err = repo.Restore(ctx, alpha.ID)
+	if !errors.Is(err, repoerror.ErrNotFound) {
+		t.Fatalf("expected not found for restore on active player, got %v", err)
+	}
+
+	found, err := repo.SearchByName(ctx, interfaces.SearchPlayersParams{
+		Query:          "hero",
+		Offset:         0,
+		Limit:          10,
+		IncludeDeleted: false,
+	})
+	if err != nil {
+		t.Fatalf("search players: %v", err)
+	}
+	if len(found) != 1 || found[0].Name != "Beta Hero" {
+		t.Fatalf("unexpected search result: %+v", found)
+	}
+}

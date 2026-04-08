@@ -88,6 +88,28 @@ func (r *PlayerRepository) List(ctx context.Context, params interfaces.ListPlaye
 	return players, nil
 }
 
+func (r *PlayerRepository) SearchByName(ctx context.Context, params interfaces.SearchPlayersParams) ([]model.Player, error) {
+	rows, err := r.queries.SearchPlayersByName(ctx, generated.SearchPlayersByNameParams{
+		Column1: params.IncludeDeleted,
+		Lower:   params.Query,
+		Offset:  params.Offset,
+		Limit:   params.Limit,
+	})
+	if err != nil {
+		return nil, repoerrors.WrapUnknown("player.search_by_name", "player", err)
+	}
+
+	players := make([]model.Player, 0, len(rows))
+	for _, row := range rows {
+		p, mapErr := mapPlayerRow(row)
+		if mapErr != nil {
+			return nil, repoerrors.WrapValidation("player.search_by_name", "player", mapErr)
+		}
+		players = append(players, p)
+	}
+	return players, nil
+}
+
 func (r *PlayerRepository) Update(ctx context.Context, params interfaces.UpdatePlayerParams) (model.Player, error) {
 	row, err := r.queries.UpdatePlayer(ctx, generated.UpdatePlayerParams{
 		ID:        string(params.ID),
@@ -121,6 +143,24 @@ func (r *PlayerRepository) Delete(ctx context.Context, id model.ULID) error {
 		return repoerrors.NewNotFound("player.delete", "player")
 	}
 	return nil
+}
+
+func (r *PlayerRepository) Restore(ctx context.Context, id model.ULID) (model.Player, error) {
+	row, err := r.queries.RestorePlayer(ctx, generated.RestorePlayerParams{
+		ID:        string(id),
+		UpdatedAt: toPgTimestamptz(r.nowFn()),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Player{}, repoerrors.NewNotFound("player.restore", "player")
+		}
+		return model.Player{}, repoerrors.WrapUnknown("player.restore", "player", err)
+	}
+	out, mapErr := mapPlayerRow(row)
+	if mapErr != nil {
+		return model.Player{}, repoerrors.WrapValidation("player.restore", "player", mapErr)
+	}
+	return out, nil
 }
 
 func mapPlayerRow(row generated.Player) (model.Player, error) {

@@ -9,6 +9,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/postgres/generated"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/repository/repos/shared"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -25,6 +26,7 @@ func NewCampaignPlayerRepository(db generated.DBTX) *CampaignPlayerRepository {
 }
 
 func (r *CampaignPlayerRepository) Create(ctx context.Context, rel model.CampaignPlayer) (model.CampaignPlayer, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreateCampaignPlayer(ctx, generated.CreateCampaignPlayerParams{
 		PCampaignID: string(rel.CampaignID),
 		PPlayerID:   string(rel.PlayerID),
@@ -44,6 +46,7 @@ func (r *CampaignPlayerRepository) Create(ctx context.Context, rel model.Campaig
 }
 
 func (r *CampaignPlayerRepository) Get(ctx context.Context, campaignID, playerID model.ULID, includeDeleted bool) (model.CampaignPlayer, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetCampaignPlayer(ctx, generated.GetCampaignPlayerParams{
 		CampaignID: string(campaignID),
 		PlayerID:   string(playerID),
@@ -59,6 +62,7 @@ func (r *CampaignPlayerRepository) Get(ctx context.Context, campaignID, playerID
 }
 
 func (r *CampaignPlayerRepository) ListByCampaign(ctx context.Context, campaignID model.ULID, params interfaces.ListCampaignPlayersParams) ([]model.CampaignPlayer, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListCampaignPlayersByCampaign(ctx, generated.ListCampaignPlayersByCampaignParams{
 		CampaignID: string(campaignID),
 		Column2:    params.IncludeDeleted,
@@ -76,6 +80,7 @@ func (r *CampaignPlayerRepository) ListByCampaign(ctx context.Context, campaignI
 }
 
 func (r *CampaignPlayerRepository) ListByPlayer(ctx context.Context, playerID model.ULID, params interfaces.ListCampaignPlayersParams) ([]model.CampaignPlayer, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListCampaignPlayersByPlayer(ctx, generated.ListCampaignPlayersByPlayerParams{
 		PlayerID: string(playerID),
 		Column2:  params.IncludeDeleted,
@@ -93,6 +98,7 @@ func (r *CampaignPlayerRepository) ListByPlayer(ctx context.Context, playerID mo
 }
 
 func (r *CampaignPlayerRepository) Delete(ctx context.Context, campaignID, playerID model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	_, err := r.queries.DeleteCampaignPlayer(ctx, generated.DeleteCampaignPlayerParams{
 		PCampaignID: string(campaignID),
 		PPlayerID:   string(playerID),

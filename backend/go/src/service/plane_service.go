@@ -96,6 +96,7 @@ func NewPlaneServiceWithDeps(deps PlaneServiceDeps) *PlaneService {
 }
 
 func (s *PlaneService) Create(ctx context.Context, params CreatePlaneParams) (model.Plane, error) {
+	defer shared.LogServiceCall()()
 	op := "plane_service.create"
 	if strings.TrimSpace(string(params.WorldID)) == "" {
 		return model.Plane{}, serviceerrors.WrapValidation(op, planeServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "world_id"))
@@ -128,6 +129,7 @@ func (s *PlaneService) Create(ctx context.Context, params CreatePlaneParams) (mo
 }
 
 func (s *PlaneService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Plane, error) {
+	defer shared.LogServiceCall()()
 	op := "plane_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.Plane{}, serviceerrors.WrapValidation(op, planeServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -140,6 +142,7 @@ func (s *PlaneService) GetByID(ctx context.Context, id model.ULID, includeDelete
 }
 
 func (s *PlaneService) List(ctx context.Context, params ListPlanesParams) ([]PlaneListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "plane_service.list"
 	if params.Offset < 0 {
 		return nil, serviceerrors.WrapValidation(op, planeServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
@@ -159,6 +162,7 @@ func (s *PlaneService) List(ctx context.Context, params ListPlanesParams) ([]Pla
 }
 
 func (s *PlaneService) Update(ctx context.Context, params UpdatePlaneParams) (model.Plane, error) {
+	defer shared.LogServiceCall()()
 	op := "plane_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.Plane{}, serviceerrors.WrapValidation(op, planeServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -183,6 +187,7 @@ func (s *PlaneService) Update(ctx context.Context, params UpdatePlaneParams) (mo
 }
 
 func (s *PlaneService) Delete(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "plane_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, planeServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))

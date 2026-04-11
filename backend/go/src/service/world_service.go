@@ -101,6 +101,7 @@ func NewWorldServiceWithDeps(deps WorldServiceDeps) *WorldService {
 }
 
 func (s *WorldService) Create(ctx context.Context, params CreateWorldParams) (model.World, error) {
+	defer shared.LogServiceCall()()
 	op := "world_service.create"
 	name, description, err := s.policy.NormalizeAndValidate(params.Name, params.Description, params.Status)
 	if err != nil {
@@ -131,6 +132,7 @@ func (s *WorldService) Create(ctx context.Context, params CreateWorldParams) (mo
 }
 
 func (s *WorldService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.World, error) {
+	defer shared.LogServiceCall()()
 	op := "world_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -143,6 +145,7 @@ func (s *WorldService) GetByID(ctx context.Context, id model.ULID, includeDelete
 }
 
 func (s *WorldService) List(ctx context.Context, params ListWorldsParams) ([]WorldListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "world_service.list"
 	if params.Offset < 0 {
 		return nil, serviceerrors.WrapValidation(op, worldServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
@@ -163,6 +166,7 @@ func (s *WorldService) List(ctx context.Context, params ListWorldsParams) ([]Wor
 }
 
 func (s *WorldService) Update(ctx context.Context, params UpdateWorldParams) (model.World, error) {
+	defer shared.LogServiceCall()()
 	op := "world_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -190,6 +194,7 @@ func (s *WorldService) Update(ctx context.Context, params UpdateWorldParams) (mo
 }
 
 func (s *WorldService) Delete(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "world_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, worldServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))

@@ -11,6 +11,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/postgres/generated"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/repository/repos/shared"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -29,6 +30,7 @@ func NewNoteLinkRepository(db generated.DBTX) *NoteLinkRepository {
 }
 
 func (r *NoteLinkRepository) Create(ctx context.Context, link model.NoteLink) (model.NoteLink, error) {
+	defer helpers.LogRepositoryCall()()
 	linkType, err := toDBNoteLinkType(link.LinkType)
 	if err != nil {
 		return model.NoteLink{}, repoerrors.WrapValidation("note_link.create", "note_link", err)
@@ -54,6 +56,7 @@ func (r *NoteLinkRepository) Create(ctx context.Context, link model.NoteLink) (m
 }
 
 func (r *NoteLinkRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.NoteLink, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetNoteLinkByID(ctx, generated.GetNoteLinkByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -68,6 +71,7 @@ func (r *NoteLinkRepository) GetByID(ctx context.Context, id model.ULID, include
 }
 
 func (r *NoteLinkRepository) ListBySource(ctx context.Context, sourceNoteID model.ULID, params interfaces.ListNoteLinksParams) ([]model.NoteLink, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListNoteLinksBySource(ctx, generated.ListNoteLinksBySourceParams{
 		SourceNoteID: string(sourceNoteID),
 		Column2:      params.IncludeDeleted,
@@ -89,6 +93,7 @@ func (r *NoteLinkRepository) ListBySource(ctx context.Context, sourceNoteID mode
 }
 
 func (r *NoteLinkRepository) ListByTarget(ctx context.Context, targetNoteID model.ULID, params interfaces.ListNoteLinksParams) ([]model.NoteLink, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListNoteLinksByTarget(ctx, generated.ListNoteLinksByTargetParams{
 		TargetNoteID: string(targetNoteID),
 		Column2:      params.IncludeDeleted,
@@ -110,6 +115,7 @@ func (r *NoteLinkRepository) ListByTarget(ctx context.Context, targetNoteID mode
 }
 
 func (r *NoteLinkRepository) Update(ctx context.Context, params interfaces.UpdateNoteLinkParams) (model.NoteLink, error) {
+	defer helpers.LogRepositoryCall()()
 	linkType, err := toDBNoteLinkType(params.LinkType)
 	if err != nil {
 		return model.NoteLink{}, repoerrors.WrapValidation("note_link.update", "note_link", err)
@@ -130,6 +136,7 @@ func (r *NoteLinkRepository) Update(ctx context.Context, params interfaces.Updat
 }
 
 func (r *NoteLinkRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	current, err := r.GetByID(ctx, id, false)
 	if err != nil {
 		return err

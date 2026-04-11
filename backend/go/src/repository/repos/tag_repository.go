@@ -29,6 +29,7 @@ func NewTagRepository(db generated.DBTX) *TagRepository {
 }
 
 func (r *TagRepository) Create(ctx context.Context, tag model.Tag) (model.Tag, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreateTag(ctx, generated.CreateTagParams{
 		ID:         string(tag.ID),
 		Name:       tag.Name,
@@ -45,6 +46,7 @@ func (r *TagRepository) Create(ctx context.Context, tag model.Tag) (model.Tag, e
 }
 
 func (r *TagRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Tag, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetTagByID(ctx, generated.GetTagByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -59,6 +61,7 @@ func (r *TagRepository) GetByID(ctx context.Context, id model.ULID, includeDelet
 }
 
 func (r *TagRepository) List(ctx context.Context, params interfaces.ListTagsParams) ([]model.Tag, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListTags(ctx, generated.ListTagsParams{
 		Column1: params.IncludeDeleted,
 		Offset:  params.Offset,
@@ -75,6 +78,7 @@ func (r *TagRepository) List(ctx context.Context, params interfaces.ListTagsPara
 }
 
 func (r *TagRepository) Update(ctx context.Context, params interfaces.UpdateTagParams) (model.Tag, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.UpdateTag(ctx, generated.UpdateTagParams{
 		ID:         string(params.ID),
 		Name:       params.Name,
@@ -92,6 +96,7 @@ func (r *TagRepository) Update(ctx context.Context, params interfaces.UpdateTagP
 }
 
 func (r *TagRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeleteTag(ctx, generated.DeleteTagParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),

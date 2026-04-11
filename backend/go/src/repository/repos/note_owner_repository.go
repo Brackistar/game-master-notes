@@ -10,6 +10,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/postgres/generated"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/repository/repos/shared"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -26,6 +27,7 @@ func NewNoteOwnerRepository(db generated.DBTX) *NoteOwnerRepository {
 }
 
 func (r *NoteOwnerRepository) Create(ctx context.Context, rel model.NoteOwner) (model.NoteOwner, error) {
+	defer helpers.LogRepositoryCall()()
 	ownerType, err := toDBOwnerType(rel.OwnerType)
 	if err != nil {
 		return model.NoteOwner{}, repoerrors.WrapValidation("note_owner.create", "note_owner", err)
@@ -54,6 +56,7 @@ func (r *NoteOwnerRepository) Create(ctx context.Context, rel model.NoteOwner) (
 }
 
 func (r *NoteOwnerRepository) Get(ctx context.Context, noteID model.ULID, ownerType constants.OwnerType, ownerID model.ULID, includeDeleted bool) (model.NoteOwner, error) {
+	defer helpers.LogRepositoryCall()()
 	dbOwnerType, err := toDBOwnerType(ownerType)
 	if err != nil {
 		return model.NoteOwner{}, repoerrors.WrapValidation("note_owner.get", "note_owner", err)
@@ -74,6 +77,7 @@ func (r *NoteOwnerRepository) Get(ctx context.Context, noteID model.ULID, ownerT
 }
 
 func (r *NoteOwnerRepository) ListByNote(ctx context.Context, noteID model.ULID, params interfaces.ListNoteOwnersParams) ([]model.NoteOwner, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListNoteOwnersByNote(ctx, generated.ListNoteOwnersByNoteParams{
 		NoteID:  string(noteID),
 		Column2: params.IncludeDeleted,
@@ -95,6 +99,7 @@ func (r *NoteOwnerRepository) ListByNote(ctx context.Context, noteID model.ULID,
 }
 
 func (r *NoteOwnerRepository) ListByOwner(ctx context.Context, ownerType constants.OwnerType, ownerID model.ULID, params interfaces.ListNoteOwnersParams) ([]model.NoteOwner, error) {
+	defer helpers.LogRepositoryCall()()
 	dbOwnerType, err := toDBOwnerType(ownerType)
 	if err != nil {
 		return nil, repoerrors.WrapValidation("note_owner.list_by_owner", "note_owner", err)
@@ -121,6 +126,7 @@ func (r *NoteOwnerRepository) ListByOwner(ctx context.Context, ownerType constan
 }
 
 func (r *NoteOwnerRepository) Delete(ctx context.Context, noteID model.ULID, ownerType constants.OwnerType, ownerID model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	dbOwnerType, err := toDBOwnerType(ownerType)
 	if err != nil {
 		return repoerrors.WrapValidation("note_owner.delete", "note_owner", err)

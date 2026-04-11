@@ -113,6 +113,7 @@ func NewPlayerServiceWithDeps(deps PlayerServiceDeps) *PlayerService {
 }
 
 func (s *PlayerService) Create(ctx context.Context, params CreatePlayerParams) (model.Player, error) {
+	defer shared.LogServiceCall()()
 	op := "player_service.create"
 	name, err := s.namePolicy.NormalizeAndValidate(params.Name)
 	if err != nil {
@@ -140,6 +141,7 @@ func (s *PlayerService) Create(ctx context.Context, params CreatePlayerParams) (
 }
 
 func (s *PlayerService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Player, error) {
+	defer shared.LogServiceCall()()
 	op := "player_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -152,6 +154,7 @@ func (s *PlayerService) GetByID(ctx context.Context, id model.ULID, includeDelet
 }
 
 func (s *PlayerService) List(ctx context.Context, params ListPlayersParams) ([]PlayerListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "player_service.list"
 	if params.Offset < 0 {
 		return nil, serviceerrors.WrapValidation(op, playerServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
@@ -174,6 +177,7 @@ func (s *PlayerService) List(ctx context.Context, params ListPlayersParams) ([]P
 }
 
 func (s *PlayerService) SearchByName(ctx context.Context, params SearchPlayersParams) ([]PlayerListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "player_service.search_by_name"
 	if params.Offset < 0 {
 		return nil, serviceerrors.WrapValidation(op, playerServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
@@ -201,6 +205,7 @@ func (s *PlayerService) SearchByName(ctx context.Context, params SearchPlayersPa
 }
 
 func (s *PlayerService) Update(ctx context.Context, params UpdatePlayerParams) (model.Player, error) {
+	defer shared.LogServiceCall()()
 	op := "player_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -226,6 +231,7 @@ func (s *PlayerService) Update(ctx context.Context, params UpdatePlayerParams) (
 }
 
 func (s *PlayerService) Delete(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "player_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -237,6 +243,7 @@ func (s *PlayerService) Delete(ctx context.Context, id model.ULID) error {
 }
 
 func (s *PlayerService) Restore(ctx context.Context, id model.ULID) (model.Player, error) {
+	defer shared.LogServiceCall()()
 	op := "player_service.restore"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))

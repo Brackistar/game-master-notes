@@ -29,6 +29,7 @@ func NewSessionRepository(db generated.DBTX) *SessionRepository {
 }
 
 func (r *SessionRepository) Create(ctx context.Context, session model.Session) (model.Session, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreateSession(ctx, generated.CreateSessionParams{
 		ID:         string(session.ID),
 		CampaignID: string(session.CampaignID),
@@ -46,6 +47,7 @@ func (r *SessionRepository) Create(ctx context.Context, session model.Session) (
 }
 
 func (r *SessionRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Session, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetSessionByID(ctx, generated.GetSessionByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -60,6 +62,7 @@ func (r *SessionRepository) GetByID(ctx context.Context, id model.ULID, includeD
 }
 
 func (r *SessionRepository) List(ctx context.Context, params interfaces.ListSessionsParams) ([]model.Session, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListSessions(ctx, generated.ListSessionsParams{
 		Column1: params.IncludeDeleted,
 		Offset:  params.Offset,
@@ -76,6 +79,7 @@ func (r *SessionRepository) List(ctx context.Context, params interfaces.ListSess
 }
 
 func (r *SessionRepository) Update(ctx context.Context, params interfaces.UpdateSessionParams) (model.Session, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.UpdateSession(ctx, generated.UpdateSessionParams{
 		ID:        string(params.ID),
 		PlayedOn:  toNullablePgDate(params.PlayedOn),
@@ -93,6 +97,7 @@ func (r *SessionRepository) Update(ctx context.Context, params interfaces.Update
 }
 
 func (r *SessionRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeleteSession(ctx, generated.DeleteSessionParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),

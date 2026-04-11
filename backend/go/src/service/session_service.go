@@ -92,6 +92,7 @@ func NewSessionServiceWithDeps(deps SessionServiceDeps) *SessionService {
 }
 
 func (s *SessionService) Create(ctx context.Context, params CreateSessionParams) (model.Session, error) {
+	defer shared.LogServiceCall()()
 	op := "session_service.create"
 	if strings.TrimSpace(string(params.CampaignID)) == "" {
 		return model.Session{}, serviceerrors.WrapValidation(op, sessionServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "campaign_id"))
@@ -123,6 +124,7 @@ func (s *SessionService) Create(ctx context.Context, params CreateSessionParams)
 }
 
 func (s *SessionService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Session, error) {
+	defer shared.LogServiceCall()()
 	op := "session_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.Session{}, serviceerrors.WrapValidation(op, sessionServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -135,6 +137,7 @@ func (s *SessionService) GetByID(ctx context.Context, id model.ULID, includeDele
 }
 
 func (s *SessionService) List(ctx context.Context, params ListSessionsParams) ([]SessionListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "session_service.list"
 	if params.Offset < 0 {
 		return nil, serviceerrors.WrapValidation(op, sessionServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
@@ -154,6 +157,7 @@ func (s *SessionService) List(ctx context.Context, params ListSessionsParams) ([
 }
 
 func (s *SessionService) Update(ctx context.Context, params UpdateSessionParams) (model.Session, error) {
+	defer shared.LogServiceCall()()
 	op := "session_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.Session{}, serviceerrors.WrapValidation(op, sessionServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -178,6 +182,7 @@ func (s *SessionService) Update(ctx context.Context, params UpdateSessionParams)
 }
 
 func (s *SessionService) Delete(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "session_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, sessionServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))

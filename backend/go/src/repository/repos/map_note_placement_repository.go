@@ -10,6 +10,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/postgres/generated"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/repository/repos/shared"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -28,6 +29,7 @@ func NewMapNotePlacementRepository(db generated.DBTX) *MapNotePlacementRepositor
 }
 
 func (r *MapNotePlacementRepository) Create(ctx context.Context, placement model.MapNotePlacement) (model.MapNotePlacement, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreateMapNotePlacement(ctx, generated.CreateMapNotePlacementParams{
 		PID:           string(placement.ID),
 		PMapNoteID:    string(placement.MapNoteID),
@@ -48,6 +50,7 @@ func (r *MapNotePlacementRepository) Create(ctx context.Context, placement model
 }
 
 func (r *MapNotePlacementRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.MapNotePlacement, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetMapNotePlacementByID(ctx, generated.GetMapNotePlacementByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -62,6 +65,7 @@ func (r *MapNotePlacementRepository) GetByID(ctx context.Context, id model.ULID,
 }
 
 func (r *MapNotePlacementRepository) ListByMapNote(ctx context.Context, mapNoteID model.ULID, params interfaces.ListMapNotePlacementsParams) ([]model.MapNotePlacement, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListMapNotePlacementsByMap(ctx, generated.ListMapNotePlacementsByMapParams{
 		MapNoteID: string(mapNoteID),
 		Column2:   params.IncludeDeleted,
@@ -79,6 +83,7 @@ func (r *MapNotePlacementRepository) ListByMapNote(ctx context.Context, mapNoteI
 }
 
 func (r *MapNotePlacementRepository) ListByTargetNote(ctx context.Context, targetNoteID model.ULID, params interfaces.ListMapNotePlacementsParams) ([]model.MapNotePlacement, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListMapNotePlacementsByTarget(ctx, generated.ListMapNotePlacementsByTargetParams{
 		TargetNoteID: string(targetNoteID),
 		Column2:      params.IncludeDeleted,
@@ -96,6 +101,7 @@ func (r *MapNotePlacementRepository) ListByTargetNote(ctx context.Context, targe
 }
 
 func (r *MapNotePlacementRepository) Update(ctx context.Context, params interfaces.UpdateMapNotePlacementParams) (model.MapNotePlacement, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.UpdateMapNotePlacement(ctx, generated.UpdateMapNotePlacementParams{
 		ID:        string(params.ID),
 		X:         int16(params.X),
@@ -113,6 +119,7 @@ func (r *MapNotePlacementRepository) Update(ctx context.Context, params interfac
 }
 
 func (r *MapNotePlacementRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	current, err := r.GetByID(ctx, id, false)
 	if err != nil {
 		return err

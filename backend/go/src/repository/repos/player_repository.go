@@ -29,6 +29,7 @@ func NewPlayerRepository(db generated.DBTX) *PlayerRepository {
 }
 
 func (r *PlayerRepository) Create(ctx context.Context, player model.Player) (model.Player, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreatePlayer(ctx, generated.CreatePlayerParams{
 		ID:        string(player.ID),
 		Name:      player.Name,
@@ -49,6 +50,7 @@ func (r *PlayerRepository) Create(ctx context.Context, player model.Player) (mod
 }
 
 func (r *PlayerRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Player, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetPlayerByID(ctx, generated.GetPlayerByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -68,6 +70,7 @@ func (r *PlayerRepository) GetByID(ctx context.Context, id model.ULID, includeDe
 }
 
 func (r *PlayerRepository) List(ctx context.Context, params interfaces.ListPlayersParams) ([]model.Player, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListPlayers(ctx, generated.ListPlayersParams{
 		Column1: params.IncludeDeleted,
 		Offset:  params.Offset,
@@ -89,6 +92,7 @@ func (r *PlayerRepository) List(ctx context.Context, params interfaces.ListPlaye
 }
 
 func (r *PlayerRepository) SearchByName(ctx context.Context, params interfaces.SearchPlayersParams) ([]model.Player, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.SearchPlayersByName(ctx, generated.SearchPlayersByNameParams{
 		Column1: params.IncludeDeleted,
 		Lower:   params.Query,
@@ -111,6 +115,7 @@ func (r *PlayerRepository) SearchByName(ctx context.Context, params interfaces.S
 }
 
 func (r *PlayerRepository) Update(ctx context.Context, params interfaces.UpdatePlayerParams) (model.Player, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.UpdatePlayer(ctx, generated.UpdatePlayerParams{
 		ID:        string(params.ID),
 		Name:      params.Name,
@@ -132,6 +137,7 @@ func (r *PlayerRepository) Update(ctx context.Context, params interfaces.UpdateP
 }
 
 func (r *PlayerRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeletePlayer(ctx, generated.DeletePlayerParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),
@@ -146,6 +152,7 @@ func (r *PlayerRepository) Delete(ctx context.Context, id model.ULID) error {
 }
 
 func (r *PlayerRepository) Restore(ctx context.Context, id model.ULID) (model.Player, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.RestorePlayer(ctx, generated.RestorePlayerParams{
 		ID:        string(id),
 		UpdatedAt: toPgTimestamptz(r.nowFn()),

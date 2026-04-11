@@ -9,6 +9,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/postgres/generated"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/repository/repos/shared"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -25,6 +26,7 @@ func NewNoteTagRepository(db generated.DBTX) *NoteTagRepository {
 }
 
 func (r *NoteTagRepository) Create(ctx context.Context, rel model.NoteTag) (model.NoteTag, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreateNoteTag(ctx, generated.CreateNoteTagParams{
 		PNoteID: string(rel.NoteID),
 		PTagID:  string(rel.TagID),
@@ -44,6 +46,7 @@ func (r *NoteTagRepository) Create(ctx context.Context, rel model.NoteTag) (mode
 }
 
 func (r *NoteTagRepository) Get(ctx context.Context, noteID, tagID model.ULID, includeDeleted bool) (model.NoteTag, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetNoteTag(ctx, generated.GetNoteTagParams{
 		NoteID:  string(noteID),
 		TagID:   string(tagID),
@@ -59,6 +62,7 @@ func (r *NoteTagRepository) Get(ctx context.Context, noteID, tagID model.ULID, i
 }
 
 func (r *NoteTagRepository) ListByNote(ctx context.Context, noteID model.ULID, params interfaces.ListNoteTagsParams) ([]model.NoteTag, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListNoteTagsByNote(ctx, generated.ListNoteTagsByNoteParams{
 		NoteID:  string(noteID),
 		Column2: params.IncludeDeleted,
@@ -76,6 +80,7 @@ func (r *NoteTagRepository) ListByNote(ctx context.Context, noteID model.ULID, p
 }
 
 func (r *NoteTagRepository) ListByTag(ctx context.Context, tagID model.ULID, params interfaces.ListNoteTagsParams) ([]model.NoteTag, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListNoteTagsByTag(ctx, generated.ListNoteTagsByTagParams{
 		TagID:   string(tagID),
 		Column2: params.IncludeDeleted,
@@ -93,6 +98,7 @@ func (r *NoteTagRepository) ListByTag(ctx context.Context, tagID model.ULID, par
 }
 
 func (r *NoteTagRepository) Delete(ctx context.Context, noteID, tagID model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	_, err := r.queries.DeleteNoteTag(ctx, generated.DeleteNoteTagParams{
 		PNoteID: string(noteID),
 		PTagID:  string(tagID),

@@ -31,6 +31,7 @@ func NewWorldRepository(db generated.DBTX) *WorldRepository {
 }
 
 func (r *WorldRepository) Create(ctx context.Context, world model.World) (model.World, error) {
+	defer helpers.LogRepositoryCall()()
 	status, err := toDBWorldStatus(world.Status)
 	if err != nil {
 		return model.World{}, repoerrors.WrapValidation("world.create", "world", err)
@@ -58,6 +59,7 @@ func (r *WorldRepository) Create(ctx context.Context, world model.World) (model.
 }
 
 func (r *WorldRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.World, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetWorldByID(ctx, generated.GetWorldByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -77,6 +79,7 @@ func (r *WorldRepository) GetByID(ctx context.Context, id model.ULID, includeDel
 }
 
 func (r *WorldRepository) List(ctx context.Context, params interfaces.ListWorldsParams) ([]model.World, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListWorlds(ctx, generated.ListWorldsParams{
 		Column1: params.IncludeDeleted,
 		Offset:  params.Offset,
@@ -98,6 +101,7 @@ func (r *WorldRepository) List(ctx context.Context, params interfaces.ListWorlds
 }
 
 func (r *WorldRepository) Update(ctx context.Context, params interfaces.UpdateWorldParams) (model.World, error) {
+	defer helpers.LogRepositoryCall()()
 	status, err := toDBWorldStatus(params.Status)
 	if err != nil {
 		return model.World{}, repoerrors.WrapValidation("world.update", "world", err)
@@ -126,6 +130,7 @@ func (r *WorldRepository) Update(ctx context.Context, params interfaces.UpdateWo
 }
 
 func (r *WorldRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeleteWorld(ctx, generated.DeleteWorldParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),

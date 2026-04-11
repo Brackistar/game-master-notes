@@ -111,6 +111,7 @@ func NewCampaignServiceWithDeps(deps CampaignServiceDeps) *CampaignService {
 }
 
 func (s *CampaignService) Create(ctx context.Context, params CreateCampaignParams) (model.Campaign, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.create"
 	if strings.TrimSpace(string(params.WorldID)) == "" {
 		return model.Campaign{}, serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "world_id"))
@@ -149,6 +150,7 @@ func (s *CampaignService) Create(ctx context.Context, params CreateCampaignParam
 }
 
 func (s *CampaignService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Campaign, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.Campaign{}, serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -161,6 +163,7 @@ func (s *CampaignService) GetByID(ctx context.Context, id model.ULID, includeDel
 }
 
 func (s *CampaignService) List(ctx context.Context, params ListCampaignsParams) ([]CampaignListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.list"
 	if params.Offset < 0 {
 		return nil, serviceerrors.WrapValidation(op, campaignServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
@@ -181,6 +184,7 @@ func (s *CampaignService) List(ctx context.Context, params ListCampaignsParams) 
 }
 
 func (s *CampaignService) Update(ctx context.Context, params UpdateCampaignParams) (model.Campaign, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.Campaign{}, serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -211,6 +215,7 @@ func (s *CampaignService) Update(ctx context.Context, params UpdateCampaignParam
 }
 
 func (s *CampaignService) Delete(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -222,6 +227,7 @@ func (s *CampaignService) Delete(ctx context.Context, id model.ULID) error {
 }
 
 func (s *CampaignService) AddPlayer(ctx context.Context, campaignID, playerID model.ULID) (model.CampaignPlayer, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.add_player"
 	if strings.TrimSpace(string(campaignID)) == "" {
 		return model.CampaignPlayer{}, serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "campaign_id"))
@@ -240,6 +246,7 @@ func (s *CampaignService) AddPlayer(ctx context.Context, campaignID, playerID mo
 }
 
 func (s *CampaignService) RemovePlayer(ctx context.Context, campaignID, playerID model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.remove_player"
 	if strings.TrimSpace(string(campaignID)) == "" {
 		return serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "campaign_id"))
@@ -254,6 +261,7 @@ func (s *CampaignService) RemovePlayer(ctx context.Context, campaignID, playerID
 }
 
 func (s *CampaignService) GetPlayerRelation(ctx context.Context, campaignID, playerID model.ULID, includeDeleted bool) (model.CampaignPlayer, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.get_player_relation"
 	if strings.TrimSpace(string(campaignID)) == "" {
 		return model.CampaignPlayer{}, serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "campaign_id"))
@@ -269,6 +277,7 @@ func (s *CampaignService) GetPlayerRelation(ctx context.Context, campaignID, pla
 }
 
 func (s *CampaignService) ListPlayers(ctx context.Context, campaignID model.ULID, params ListCampaignsParams) ([]model.CampaignPlayer, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.list_players"
 	if strings.TrimSpace(string(campaignID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "campaign_id"))
@@ -291,6 +300,7 @@ func (s *CampaignService) ListPlayers(ctx context.Context, campaignID model.ULID
 }
 
 func (s *CampaignService) ListCampaignsForPlayer(ctx context.Context, playerID model.ULID, params ListCampaignsParams) ([]model.CampaignPlayer, error) {
+	defer shared.LogServiceCall()()
 	op := "campaign_service.list_campaigns_for_player"
 	if strings.TrimSpace(string(playerID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, campaignServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "player_id"))

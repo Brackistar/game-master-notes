@@ -30,6 +30,7 @@ func NewCampaignRepository(db generated.DBTX) *CampaignRepository {
 }
 
 func (r *CampaignRepository) Create(ctx context.Context, campaign model.Campaign) (model.Campaign, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreateCampaign(ctx, generated.CreateCampaignParams{
 		ID:        string(campaign.ID),
 		WorldID:   string(campaign.WorldID),
@@ -53,6 +54,7 @@ func (r *CampaignRepository) Create(ctx context.Context, campaign model.Campaign
 }
 
 func (r *CampaignRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Campaign, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetCampaignByID(ctx, generated.GetCampaignByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -72,6 +74,7 @@ func (r *CampaignRepository) GetByID(ctx context.Context, id model.ULID, include
 }
 
 func (r *CampaignRepository) List(ctx context.Context, params interfaces.ListCampaignsParams) ([]model.Campaign, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListCampaigns(ctx, generated.ListCampaignsParams{
 		Column1: params.IncludeDeleted,
 		Offset:  params.Offset,
@@ -93,6 +96,7 @@ func (r *CampaignRepository) List(ctx context.Context, params interfaces.ListCam
 }
 
 func (r *CampaignRepository) Update(ctx context.Context, params interfaces.UpdateCampaignParams) (model.Campaign, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.UpdateCampaign(ctx, generated.UpdateCampaignParams{
 		ID:        string(params.ID),
 		Name:      params.Name,
@@ -116,6 +120,7 @@ func (r *CampaignRepository) Update(ctx context.Context, params interfaces.Updat
 }
 
 func (r *CampaignRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeleteCampaign(ctx, generated.DeleteCampaignParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),

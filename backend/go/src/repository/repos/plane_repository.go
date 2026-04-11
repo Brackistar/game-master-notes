@@ -29,6 +29,7 @@ func NewPlaneRepository(db generated.DBTX) *PlaneRepository {
 }
 
 func (r *PlaneRepository) Create(ctx context.Context, plane model.Plane) (model.Plane, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreatePlane(ctx, generated.CreatePlaneParams{
 		ID:          string(plane.ID),
 		WorldID:     string(plane.WorldID),
@@ -47,6 +48,7 @@ func (r *PlaneRepository) Create(ctx context.Context, plane model.Plane) (model.
 }
 
 func (r *PlaneRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Plane, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetPlaneByID(ctx, generated.GetPlaneByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -62,6 +64,7 @@ func (r *PlaneRepository) GetByID(ctx context.Context, id model.ULID, includeDel
 }
 
 func (r *PlaneRepository) List(ctx context.Context, params interfaces.ListPlanesParams) ([]model.Plane, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListPlanes(ctx, generated.ListPlanesParams{
 		Column1: params.IncludeDeleted,
 		Offset:  params.Offset,
@@ -79,6 +82,7 @@ func (r *PlaneRepository) List(ctx context.Context, params interfaces.ListPlanes
 }
 
 func (r *PlaneRepository) Update(ctx context.Context, params interfaces.UpdatePlaneParams) (model.Plane, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.UpdatePlane(ctx, generated.UpdatePlaneParams{
 		ID:          string(params.ID),
 		Name:        params.Name,
@@ -96,6 +100,7 @@ func (r *PlaneRepository) Update(ctx context.Context, params interfaces.UpdatePl
 }
 
 func (r *PlaneRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeletePlane(ctx, generated.DeletePlaneParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),

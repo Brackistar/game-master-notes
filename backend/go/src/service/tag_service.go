@@ -94,6 +94,7 @@ func NewTagServiceWithDeps(deps TagServiceDeps) *TagService {
 }
 
 func (s *TagService) Create(ctx context.Context, params CreateTagParams) (model.Tag, error) {
+	defer shared.LogServiceCall()()
 	op := "tag_service.create"
 	name, err := s.namePolicy.NormalizeAndValidate(params.Name)
 	if err != nil {
@@ -124,6 +125,7 @@ func (s *TagService) Create(ctx context.Context, params CreateTagParams) (model.
 }
 
 func (s *TagService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Tag, error) {
+	defer shared.LogServiceCall()()
 	op := "tag_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.Tag{}, serviceerrors.WrapValidation(op, tagServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -136,6 +138,7 @@ func (s *TagService) GetByID(ctx context.Context, id model.ULID, includeDeleted 
 }
 
 func (s *TagService) List(ctx context.Context, params ListTagsParams) ([]TagListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "tag_service.list"
 	if params.Offset < 0 {
 		return nil, serviceerrors.WrapValidation(op, tagServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
@@ -155,6 +158,7 @@ func (s *TagService) List(ctx context.Context, params ListTagsParams) ([]TagList
 }
 
 func (s *TagService) Update(ctx context.Context, params UpdateTagParams) (model.Tag, error) {
+	defer shared.LogServiceCall()()
 	op := "tag_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.Tag{}, serviceerrors.WrapValidation(op, tagServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -182,6 +186,7 @@ func (s *TagService) Update(ctx context.Context, params UpdateTagParams) (model.
 }
 
 func (s *TagService) Delete(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "tag_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, tagServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))

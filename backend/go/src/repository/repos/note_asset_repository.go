@@ -11,6 +11,7 @@ import (
 	repoerrors "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/postgres/generated"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/repository/repos/shared"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -29,6 +30,7 @@ func NewNoteAssetRepository(db generated.DBTX) *NoteAssetRepository {
 }
 
 func (r *NoteAssetRepository) Create(ctx context.Context, asset model.NoteAsset) (model.NoteAsset, error) {
+	defer helpers.LogRepositoryCall()()
 	assetType, err := toDBAssetType(asset.AssetType)
 	if err != nil {
 		return model.NoteAsset{}, repoerrors.WrapValidation("note_asset.create", "note_asset", err)
@@ -51,6 +53,7 @@ func (r *NoteAssetRepository) Create(ctx context.Context, asset model.NoteAsset)
 }
 
 func (r *NoteAssetRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.NoteAsset, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetNoteAssetByID(ctx, generated.GetNoteAssetByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -65,6 +68,7 @@ func (r *NoteAssetRepository) GetByID(ctx context.Context, id model.ULID, includ
 }
 
 func (r *NoteAssetRepository) ListByNote(ctx context.Context, noteID model.ULID, params interfaces.ListNoteAssetsParams) ([]model.NoteAsset, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListNoteAssetsByNote(ctx, generated.ListNoteAssetsByNoteParams{
 		NoteID:  string(noteID),
 		Column2: params.IncludeDeleted,
@@ -86,6 +90,7 @@ func (r *NoteAssetRepository) ListByNote(ctx context.Context, noteID model.ULID,
 }
 
 func (r *NoteAssetRepository) Update(ctx context.Context, params interfaces.UpdateNoteAssetParams) (model.NoteAsset, error) {
+	defer helpers.LogRepositoryCall()()
 	assetType, err := toDBAssetType(params.AssetType)
 	if err != nil {
 		return model.NoteAsset{}, repoerrors.WrapValidation("note_asset.update", "note_asset", err)
@@ -108,6 +113,7 @@ func (r *NoteAssetRepository) Update(ctx context.Context, params interfaces.Upda
 }
 
 func (r *NoteAssetRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeleteNoteAsset(ctx, generated.DeleteNoteAssetParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),

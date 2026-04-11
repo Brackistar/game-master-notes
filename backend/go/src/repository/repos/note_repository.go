@@ -30,6 +30,7 @@ func NewNoteRepository(db generated.DBTX) *NoteRepository {
 }
 
 func (r *NoteRepository) Create(ctx context.Context, note model.Note) (model.Note, error) {
+	defer helpers.LogRepositoryCall()()
 	noteType, err := toDBNoteType(note.NoteType)
 	if err != nil {
 		return model.Note{}, repoerrors.WrapValidation("note.create", "note", err)
@@ -58,6 +59,7 @@ func (r *NoteRepository) Create(ctx context.Context, note model.Note) (model.Not
 }
 
 func (r *NoteRepository) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Note, error) {
+	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.GetNoteByID(ctx, generated.GetNoteByIDParams{
 		ID:      string(id),
 		Column2: includeDeleted,
@@ -77,6 +79,7 @@ func (r *NoteRepository) GetByID(ctx context.Context, id model.ULID, includeDele
 }
 
 func (r *NoteRepository) List(ctx context.Context, params interfaces.ListNotesParams) ([]model.Note, error) {
+	defer helpers.LogRepositoryCall()()
 	rows, err := r.queries.ListNotes(ctx, generated.ListNotesParams{
 		Column1: params.IncludeDeleted,
 		Offset:  params.Offset,
@@ -98,6 +101,7 @@ func (r *NoteRepository) List(ctx context.Context, params interfaces.ListNotesPa
 }
 
 func (r *NoteRepository) Update(ctx context.Context, params interfaces.UpdateNoteParams) (model.Note, error) {
+	defer helpers.LogRepositoryCall()()
 	noteType, err := toDBNoteType(params.NoteType)
 	if err != nil {
 		return model.Note{}, repoerrors.WrapValidation("note.update", "note", err)
@@ -127,6 +131,7 @@ func (r *NoteRepository) Update(ctx context.Context, params interfaces.UpdateNot
 }
 
 func (r *NoteRepository) Delete(ctx context.Context, id model.ULID) error {
+	defer helpers.LogRepositoryCall()()
 	affected, err := r.queries.DeleteNote(ctx, generated.DeleteNoteParams{
 		ID:        string(id),
 		DeletedAt: toPgTimestamptz(r.nowFn()),

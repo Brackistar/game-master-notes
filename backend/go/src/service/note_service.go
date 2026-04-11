@@ -202,6 +202,7 @@ func NewNoteServiceWithDeps(deps NoteServiceDeps) *NoteService {
 }
 
 func (s *NoteService) Create(ctx context.Context, params CreateNoteParams) (model.Note, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.create"
 	title, contentMD, metadataJSON, err := s.policy.NormalizeAndValidate(params.Title, params.ContentMD, params.NoteType, params.MetadataJSON)
 	if err != nil {
@@ -231,6 +232,7 @@ func (s *NoteService) Create(ctx context.Context, params CreateNoteParams) (mode
 }
 
 func (s *NoteService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Note, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.Note{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -243,6 +245,7 @@ func (s *NoteService) GetByID(ctx context.Context, id model.ULID, includeDeleted
 }
 
 func (s *NoteService) List(ctx context.Context, params ListNotesParams) ([]NoteListItem, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list"
 	if err := validateOffsetLimit(params.Offset, params.Limit); err != nil {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -259,6 +262,7 @@ func (s *NoteService) List(ctx context.Context, params ListNotesParams) ([]NoteL
 }
 
 func (s *NoteService) Update(ctx context.Context, params UpdateNoteParams) (model.Note, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.Note{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -285,6 +289,7 @@ func (s *NoteService) Update(ctx context.Context, params UpdateNoteParams) (mode
 }
 
 func (s *NoteService) Delete(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "note_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -296,6 +301,7 @@ func (s *NoteService) Delete(ctx context.Context, id model.ULID) error {
 }
 
 func (s *NoteService) AddOwner(ctx context.Context, params AddNoteOwnerParams) (model.NoteOwner, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.add_owner"
 	if err := validateNoteOwnerIDs(params.NoteID, params.OwnerID); err != nil {
 		return model.NoteOwner{}, serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -315,6 +321,7 @@ func (s *NoteService) AddOwner(ctx context.Context, params AddNoteOwnerParams) (
 }
 
 func (s *NoteService) RemoveOwner(ctx context.Context, noteID model.ULID, ownerType constants.OwnerType, ownerID model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "note_service.remove_owner"
 	if err := validateNoteOwnerIDs(noteID, ownerID); err != nil {
 		return serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -329,6 +336,7 @@ func (s *NoteService) RemoveOwner(ctx context.Context, noteID model.ULID, ownerT
 }
 
 func (s *NoteService) GetOwner(ctx context.Context, noteID model.ULID, ownerType constants.OwnerType, ownerID model.ULID, includeDeleted bool) (model.NoteOwner, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.get_owner"
 	if err := validateNoteOwnerIDs(noteID, ownerID); err != nil {
 		return model.NoteOwner{}, serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -344,6 +352,7 @@ func (s *NoteService) GetOwner(ctx context.Context, noteID model.ULID, ownerType
 }
 
 func (s *NoteService) ListOwnersByNote(ctx context.Context, noteID model.ULID, params RelationListParams) ([]model.NoteOwner, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_owners_by_note"
 	if strings.TrimSpace(string(noteID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "note_id"))
@@ -363,6 +372,7 @@ func (s *NoteService) ListOwnersByNote(ctx context.Context, noteID model.ULID, p
 }
 
 func (s *NoteService) ListNotesByOwner(ctx context.Context, ownerType constants.OwnerType, ownerID model.ULID, params RelationListParams) ([]model.NoteOwner, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_notes_by_owner"
 	if strings.TrimSpace(string(ownerID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "owner_id"))
@@ -385,6 +395,7 @@ func (s *NoteService) ListNotesByOwner(ctx context.Context, ownerType constants.
 }
 
 func (s *NoteService) AddTag(ctx context.Context, params AddNoteTagParams) (model.NoteTag, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.add_tag"
 	if err := validateTwoIDs(params.NoteID, "note_id", params.TagID, "tag_id"); err != nil {
 		return model.NoteTag{}, serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -400,6 +411,7 @@ func (s *NoteService) AddTag(ctx context.Context, params AddNoteTagParams) (mode
 }
 
 func (s *NoteService) RemoveTag(ctx context.Context, noteID, tagID model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "note_service.remove_tag"
 	if err := validateTwoIDs(noteID, "note_id", tagID, "tag_id"); err != nil {
 		return serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -411,6 +423,7 @@ func (s *NoteService) RemoveTag(ctx context.Context, noteID, tagID model.ULID) e
 }
 
 func (s *NoteService) GetTag(ctx context.Context, noteID, tagID model.ULID, includeDeleted bool) (model.NoteTag, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.get_tag"
 	if err := validateTwoIDs(noteID, "note_id", tagID, "tag_id"); err != nil {
 		return model.NoteTag{}, serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -423,6 +436,7 @@ func (s *NoteService) GetTag(ctx context.Context, noteID, tagID model.ULID, incl
 }
 
 func (s *NoteService) ListTagsByNote(ctx context.Context, noteID model.ULID, params RelationListParams) ([]model.NoteTag, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_tags_by_note"
 	if strings.TrimSpace(string(noteID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "note_id"))
@@ -442,6 +456,7 @@ func (s *NoteService) ListTagsByNote(ctx context.Context, noteID model.ULID, par
 }
 
 func (s *NoteService) ListNotesByTag(ctx context.Context, tagID model.ULID, params RelationListParams) ([]model.NoteTag, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_notes_by_tag"
 	if strings.TrimSpace(string(tagID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "tag_id"))
@@ -461,6 +476,7 @@ func (s *NoteService) ListNotesByTag(ctx context.Context, tagID model.ULID, para
 }
 
 func (s *NoteService) CreateLink(ctx context.Context, params CreateNoteLinkParams) (model.NoteLink, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.create_link"
 	if err := validateTwoIDs(params.SourceNoteID, "source_note_id", params.TargetNoteID, "target_note_id"); err != nil {
 		return model.NoteLink{}, serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -488,6 +504,7 @@ func (s *NoteService) CreateLink(ctx context.Context, params CreateNoteLinkParam
 }
 
 func (s *NoteService) GetLinkByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.NoteLink, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.get_link_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.NoteLink{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -500,6 +517,7 @@ func (s *NoteService) GetLinkByID(ctx context.Context, id model.ULID, includeDel
 }
 
 func (s *NoteService) ListLinksBySource(ctx context.Context, sourceNoteID model.ULID, params RelationListParams) ([]model.NoteLink, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_links_by_source"
 	if strings.TrimSpace(string(sourceNoteID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "source_note_id"))
@@ -519,6 +537,7 @@ func (s *NoteService) ListLinksBySource(ctx context.Context, sourceNoteID model.
 }
 
 func (s *NoteService) ListLinksByTarget(ctx context.Context, targetNoteID model.ULID, params RelationListParams) ([]model.NoteLink, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_links_by_target"
 	if strings.TrimSpace(string(targetNoteID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "target_note_id"))
@@ -538,6 +557,7 @@ func (s *NoteService) ListLinksByTarget(ctx context.Context, targetNoteID model.
 }
 
 func (s *NoteService) UpdateLink(ctx context.Context, params UpdateNoteLinkParams) (model.NoteLink, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.update_link"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.NoteLink{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -560,6 +580,7 @@ func (s *NoteService) UpdateLink(ctx context.Context, params UpdateNoteLinkParam
 }
 
 func (s *NoteService) DeleteLink(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "note_service.delete_link"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -571,6 +592,7 @@ func (s *NoteService) DeleteLink(ctx context.Context, id model.ULID) error {
 }
 
 func (s *NoteService) CreateAsset(ctx context.Context, params CreateNoteAssetParams) (model.NoteAsset, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.create_asset"
 	if strings.TrimSpace(string(params.NoteID)) == "" {
 		return model.NoteAsset{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "note_id"))
@@ -608,6 +630,7 @@ func (s *NoteService) CreateAsset(ctx context.Context, params CreateNoteAssetPar
 }
 
 func (s *NoteService) GetAssetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.NoteAsset, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.get_asset_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.NoteAsset{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -620,6 +643,7 @@ func (s *NoteService) GetAssetByID(ctx context.Context, id model.ULID, includeDe
 }
 
 func (s *NoteService) ListAssetsByNote(ctx context.Context, noteID model.ULID, params RelationListParams) ([]model.NoteAsset, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_assets_by_note"
 	if strings.TrimSpace(string(noteID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "note_id"))
@@ -639,6 +663,7 @@ func (s *NoteService) ListAssetsByNote(ctx context.Context, noteID model.ULID, p
 }
 
 func (s *NoteService) UpdateAsset(ctx context.Context, params UpdateNoteAssetParams) (model.NoteAsset, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.update_asset"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.NoteAsset{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -669,6 +694,7 @@ func (s *NoteService) UpdateAsset(ctx context.Context, params UpdateNoteAssetPar
 }
 
 func (s *NoteService) DeleteAsset(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "note_service.delete_asset"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -680,6 +706,7 @@ func (s *NoteService) DeleteAsset(ctx context.Context, id model.ULID) error {
 }
 
 func (s *NoteService) UpsertMapPlacement(ctx context.Context, params UpsertMapNotePlacementParams) (model.MapNotePlacement, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.upsert_map_placement"
 	if err := validateTwoIDs(params.MapNoteID, "map_note_id", params.TargetNoteID, "target_note_id"); err != nil {
 		return model.MapNotePlacement{}, serviceerrors.WrapValidation(op, noteServiceName, err)
@@ -705,6 +732,7 @@ func (s *NoteService) UpsertMapPlacement(ctx context.Context, params UpsertMapNo
 }
 
 func (s *NoteService) GetMapPlacementByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.MapNotePlacement, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.get_map_placement_by_id"
 	if strings.TrimSpace(string(id)) == "" {
 		return model.MapNotePlacement{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -717,6 +745,7 @@ func (s *NoteService) GetMapPlacementByID(ctx context.Context, id model.ULID, in
 }
 
 func (s *NoteService) ListMapPlacementsByMap(ctx context.Context, mapNoteID model.ULID, params RelationListParams) ([]model.MapNotePlacement, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_map_placements_by_map"
 	if strings.TrimSpace(string(mapNoteID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "map_note_id"))
@@ -736,6 +765,7 @@ func (s *NoteService) ListMapPlacementsByMap(ctx context.Context, mapNoteID mode
 }
 
 func (s *NoteService) ListMapPlacementsByTarget(ctx context.Context, targetNoteID model.ULID, params RelationListParams) ([]model.MapNotePlacement, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.list_map_placements_by_target"
 	if strings.TrimSpace(string(targetNoteID)) == "" {
 		return nil, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "target_note_id"))
@@ -755,6 +785,7 @@ func (s *NoteService) ListMapPlacementsByTarget(ctx context.Context, targetNoteI
 }
 
 func (s *NoteService) UpdateMapPlacement(ctx context.Context, params UpdateMapNotePlacementParams) (model.MapNotePlacement, error) {
+	defer shared.LogServiceCall()()
 	op := "note_service.update_map_placement"
 	if strings.TrimSpace(string(params.ID)) == "" {
 		return model.MapNotePlacement{}, serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
@@ -778,6 +809,7 @@ func (s *NoteService) UpdateMapPlacement(ctx context.Context, params UpdateMapNo
 }
 
 func (s *NoteService) DeleteMapPlacement(ctx context.Context, id model.ULID) error {
+	defer shared.LogServiceCall()()
 	op := "note_service.delete_map_placement"
 	if strings.TrimSpace(string(id)) == "" {
 		return serviceerrors.WrapValidation(op, noteServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))

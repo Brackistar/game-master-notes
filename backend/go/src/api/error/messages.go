@@ -5,6 +5,7 @@ const (
 	APIINVALIDREQUESTBODY      = "invalid request body"
 	APIQUERYREQUIREDMESSAGE    = "query is required"
 	APIFIELDVALIDINTEGER       = "%s must be a valid integer"
+	APIFIELDVALIDDATE          = "%s must be a valid date"
 	APIBODYEMPTYMESSAGE        = "body is empty"
 	APIINVALIDJSONPAYLOAD      = "invalid json payload"
 	APIINVALIDREQUESTMESSAGE   = "invalid request"

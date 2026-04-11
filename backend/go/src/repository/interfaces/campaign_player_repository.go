@@ -19,4 +19,3 @@ type CampaignPlayerRepository interface {
 	ListByPlayer(ctx context.Context, playerID model.ULID, params ListCampaignPlayersParams) ([]model.CampaignPlayer, error)
 	Delete(ctx context.Context, campaignID, playerID model.ULID) error
 }
-

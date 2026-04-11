@@ -27,4 +27,3 @@ type MapNotePlacementRepository interface {
 	Update(ctx context.Context, params UpdateMapNotePlacementParams) (model.MapNotePlacement, error)
 	Delete(ctx context.Context, id model.ULID) error
 }
-

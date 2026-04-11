@@ -1,0 +1,1674 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Game Master Notes Backend API",
+    "version": "0.1.0",
+    "description": "HTTP API for Game Master Notes domain services."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Default local server (runtime metadata is dynamically injected)."
+    }
+  ],
+  "tags": [
+    { "name": "Meta" },
+    { "name": "Players" },
+    { "name": "Worlds" },
+    { "name": "Planes" },
+    { "name": "Campaigns" },
+    { "name": "Sessions" },
+    { "name": "Tags" },
+    { "name": "Notes" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Meta"],
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    },
+    "/players": {
+      "get": {
+        "tags": ["Players"],
+        "summary": "List players",
+        "parameters": [
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListPlayersResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Players"],
+        "summary": "Create player",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePlayerRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlayerResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/search": {
+      "get": {
+        "tags": ["Players"],
+        "summary": "Search players by name",
+        "parameters": [
+          { "$ref": "#/components/parameters/Query" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListPlayersResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{id}": {
+      "get": {
+        "tags": ["Players"],
+        "summary": "Get player by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlayerResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Players"],
+        "summary": "Update player",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdatePlayerRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlayerResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Players"],
+        "summary": "Delete player",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/players/{id}/restore": {
+      "post": {
+        "tags": ["Players"],
+        "summary": "Restore player",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlayerResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/worlds": {
+      "get": {
+        "tags": ["Worlds"],
+        "summary": "List worlds",
+        "parameters": [
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListWorldsResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Worlds"],
+        "summary": "Create world",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateWorldRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorldResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/worlds/{id}": {
+      "get": {
+        "tags": ["Worlds"],
+        "summary": "Get world by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorldResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Worlds"],
+        "summary": "Update world",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateWorldRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorldResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Worlds"],
+        "summary": "Delete world",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/planes": {
+      "get": {
+        "tags": ["Planes"],
+        "summary": "List planes",
+        "parameters": [
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListPlanesResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Planes"],
+        "summary": "Create plane",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePlaneRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlaneResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/planes/{id}": {
+      "get": {
+        "tags": ["Planes"],
+        "summary": "Get plane by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlaneResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Planes"],
+        "summary": "Update plane",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdatePlaneRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlaneResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Planes"],
+        "summary": "Delete plane",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/campaigns": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "List campaigns",
+        "parameters": [
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListCampaignsResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Campaigns"],
+        "summary": "Create campaign",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateCampaignRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CampaignResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/campaigns/{id}": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "Get campaign by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CampaignResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Campaigns"],
+        "summary": "Update campaign",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateCampaignRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CampaignResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Campaigns"],
+        "summary": "Delete campaign",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/campaigns/{id}/players": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "List players in campaign",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListCampaignPlayersResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/campaigns/{id}/players/{player_id}": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "Get campaign-player relation",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/PlayerID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CampaignPlayerResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Campaigns"],
+        "summary": "Add player to campaign",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/PlayerID" }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CampaignPlayerResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Campaigns"],
+        "summary": "Remove player from campaign",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/PlayerID" }
+        ],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/players/{id}/campaigns": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "List campaigns for player",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListCampaignPlayersResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "get": {
+        "tags": ["Sessions"],
+        "summary": "List sessions",
+        "parameters": [
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListSessionsResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Sessions"],
+        "summary": "Create session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateSessionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{id}": {
+      "get": {
+        "tags": ["Sessions"],
+        "summary": "Get session by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Sessions"],
+        "summary": "Update session",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateSessionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Sessions"],
+        "summary": "Delete session",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/tags": {
+      "get": {
+        "tags": ["Tags"],
+        "summary": "List tags",
+        "parameters": [
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListTagsResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Tags"],
+        "summary": "Create tag",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateTagRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TagResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{id}": {
+      "get": {
+        "tags": ["Tags"],
+        "summary": "Get tag by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TagResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Tags"],
+        "summary": "Update tag",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateTagRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TagResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Tags"],
+        "summary": "Delete tag",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/notes": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List notes",
+        "parameters": [
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNotesResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Notes"],
+        "summary": "Create note",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateNoteRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "Get note by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Notes"],
+        "summary": "Update note",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateNoteRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Notes"],
+        "summary": "Delete note",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/notes/{id}/owners": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List note owners",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNoteOwnersResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Notes"],
+        "summary": "Add note owner",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddNoteOwnerRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteOwnerResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}/owners/{owner_type}/{owner_id}": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "Get note owner relation",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/OwnerType" },
+          { "$ref": "#/components/parameters/OwnerID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteOwnerResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Notes"],
+        "summary": "Remove note owner",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/OwnerType" },
+          { "$ref": "#/components/parameters/OwnerID" }
+        ],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/owners/{owner_type}/{owner_id}/notes": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List notes by owner",
+        "parameters": [
+          { "$ref": "#/components/parameters/OwnerType" },
+          { "$ref": "#/components/parameters/OwnerID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNoteOwnersResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}/tags": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List note tags",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNoteTagsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}/tags/{tag_id}": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "Get note-tag relation",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/TagID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteTagResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Notes"],
+        "summary": "Add note tag",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/TagID" }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteTagResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Notes"],
+        "summary": "Remove note tag",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/TagID" }
+        ],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/tags/{id}/notes": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List notes by tag",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNoteTagsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/note-links": {
+      "post": {
+        "tags": ["Notes"],
+        "summary": "Create note link",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateNoteLinkRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteLinkResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/note-links/{id}": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "Get note link",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteLinkResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Notes"],
+        "summary": "Update note link",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateNoteLinkRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteLinkResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Notes"],
+        "summary": "Delete note link",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/notes/{id}/outgoing-links": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List outgoing links for note",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNoteLinksResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}/incoming-links": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List incoming links for note",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNoteLinksResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}/assets": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List note assets",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListNoteAssetsResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Notes"],
+        "summary": "Create note asset",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateNoteAssetRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteAssetResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/note-assets/{id}": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "Get note asset",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteAssetResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Notes"],
+        "summary": "Update note asset",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateNoteAssetRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NoteAssetResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Notes"],
+        "summary": "Delete note asset",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/map-note-placements": {
+      "post": {
+        "tags": ["Notes"],
+        "summary": "Upsert map note placement",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpsertMapNotePlacementRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MapNotePlacementResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/map-note-placements/{id}": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "Get map note placement",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MapNotePlacementResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Notes"],
+        "summary": "Update map note placement",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateMapNotePlacementRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MapNotePlacementResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Notes"],
+        "summary": "Delete map note placement",
+        "parameters": [{ "$ref": "#/components/parameters/ID" }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/notes/{id}/map-placements/as-map": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List map placements by map note",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListMapNotePlacementsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}/map-placements/as-target": {
+      "get": {
+        "tags": ["Notes"],
+        "summary": "List map placements by target note",
+        "parameters": [
+          { "$ref": "#/components/parameters/ID" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/IncludeDeleted" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListMapNotePlacementsResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "ID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Resource identifier (ULID string)."
+      },
+      "PlayerID": {
+        "name": "player_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "TagID": {
+        "name": "tag_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "OwnerType": {
+        "name": "owner_type",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": ["world", "plane", "campaign", "session", "player"]
+        }
+      },
+      "OwnerID": {
+        "name": "owner_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "Offset": {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1,
+          "default": 20
+        }
+      },
+      "IncludeDeleted": {
+        "name": "include_deleted",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "Query": {
+        "name": "query",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
+      },
+      "CreatePlayerRequest": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"]
+      },
+      "UpdatePlayerRequest": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"]
+      },
+      "PlayerResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListPlayersResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/PlayerResponse" } },
+          "offset": { "type": "integer", "format": "int32" },
+          "limit": { "type": "integer", "format": "int32" },
+          "include_deleted": { "type": "boolean" }
+        }
+      },
+      "CreateWorldRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "type": "string", "enum": ["draft", "active", "archived"] }
+        }
+      },
+      "UpdateWorldRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "type": "string", "enum": ["draft", "active", "archived"] }
+        }
+      },
+      "WorldResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListWorldsResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/WorldResponse" } },
+          "offset": { "type": "integer", "format": "int32" },
+          "limit": { "type": "integer", "format": "int32" },
+          "include_deleted": { "type": "boolean" }
+        }
+      },
+      "CreatePlaneRequest": {
+        "type": "object",
+        "properties": {
+          "world_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "UpdatePlaneRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "PlaneResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "world_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListPlanesResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/PlaneResponse" } },
+          "offset": { "type": "integer", "format": "int32" },
+          "limit": { "type": "integer", "format": "int32" },
+          "include_deleted": { "type": "boolean" }
+        }
+      },
+      "CreateCampaignRequest": {
+        "type": "object",
+        "properties": {
+          "world_id": { "type": "string" },
+          "name": { "type": "string" },
+          "start_date": { "type": "string", "format": "date", "nullable": true },
+          "end_date": { "type": "string", "format": "date", "nullable": true }
+        }
+      },
+      "UpdateCampaignRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "start_date": { "type": "string", "format": "date", "nullable": true },
+          "end_date": { "type": "string", "format": "date", "nullable": true }
+        }
+      },
+      "CampaignResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "world_id": { "type": "string" },
+          "name": { "type": "string" },
+          "start_date": { "type": "string", "format": "date", "nullable": true },
+          "end_date": { "type": "string", "format": "date", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListCampaignsResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CampaignResponse" } },
+          "offset": { "type": "integer", "format": "int32" },
+          "limit": { "type": "integer", "format": "int32" },
+          "include_deleted": { "type": "boolean" }
+        }
+      },
+      "CampaignPlayerResponse": {
+        "type": "object",
+        "properties": {
+          "campaign_id": { "type": "string" },
+          "player_id": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "ListCampaignPlayersResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CampaignPlayerResponse" } },
+          "offset": { "type": "integer", "format": "int32" },
+          "limit": { "type": "integer", "format": "int32" },
+          "include_deleted": { "type": "boolean" }
+        }
+      },
+      "CreateSessionRequest": {
+        "type": "object",
+        "properties": {
+          "campaign_id": { "type": "string" },
+          "played_on": { "type": "string", "format": "date", "nullable": true },
+          "summary_md": { "type": "string" }
+        }
+      },
+      "UpdateSessionRequest": {
+        "type": "object",
+        "properties": {
+          "played_on": { "type": "string", "format": "date", "nullable": true },
+          "summary_md": { "type": "string" }
+        }
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "campaign_id": { "type": "string" },
+          "played_on": { "type": "string", "format": "date", "nullable": true },
+          "summary_md": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListSessionsResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/SessionResponse" } },
+          "offset": { "type": "integer", "format": "int32" },
+          "limit": { "type": "integer", "format": "int32" },
+          "include_deleted": { "type": "boolean" }
+        }
+      },
+      "CreateTagRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "campaign_id": { "type": "string", "nullable": true }
+        }
+      },
+      "UpdateTagRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "campaign_id": { "type": "string", "nullable": true }
+        }
+      },
+      "TagResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "campaign_id": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListTagsResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/TagResponse" } },
+          "offset": { "type": "integer", "format": "int32" },
+          "limit": { "type": "integer", "format": "int32" },
+          "include_deleted": { "type": "boolean" }
+        }
+      },
+      "CreateNoteRequest": { "type": "object", "properties": { "title": { "type": "string" }, "content_md": { "type": "string" }, "note_type": { "type": "string" }, "metadata_json": { "type": "object" } } },
+      "UpdateNoteRequest": { "type": "object", "properties": { "title": { "type": "string" }, "content_md": { "type": "string" }, "note_type": { "type": "string" }, "metadata_json": { "type": "object" } } },
+      "NoteResponse": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "content_md": { "type": "string" }, "note_type": { "type": "string" }, "metadata_json": { "type": "object" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "deleted_at": { "type": "string", "format": "date-time", "nullable": true }, "version": { "type": "integer", "format": "int32" } } },
+      "ListNotesResponse": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/NoteResponse" } }, "offset": { "type": "integer", "format": "int32" }, "limit": { "type": "integer", "format": "int32" }, "include_deleted": { "type": "boolean" } } },
+      "AddNoteOwnerRequest": { "type": "object", "properties": { "owner_type": { "type": "string" }, "owner_id": { "type": "string" } } },
+      "NoteOwnerResponse": { "type": "object", "properties": { "note_id": { "type": "string" }, "owner_type": { "type": "string" }, "owner_id": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "deleted_at": { "type": "string", "format": "date-time", "nullable": true } } },
+      "ListNoteOwnersResponse": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/NoteOwnerResponse" } }, "offset": { "type": "integer", "format": "int32" }, "limit": { "type": "integer", "format": "int32" }, "include_deleted": { "type": "boolean" } } },
+      "NoteTagResponse": { "type": "object", "properties": { "note_id": { "type": "string" }, "tag_id": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "deleted_at": { "type": "string", "format": "date-time", "nullable": true } } },
+      "ListNoteTagsResponse": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/NoteTagResponse" } }, "offset": { "type": "integer", "format": "int32" }, "limit": { "type": "integer", "format": "int32" }, "include_deleted": { "type": "boolean" } } },
+      "CreateNoteLinkRequest": { "type": "object", "properties": { "source_note_id": { "type": "string" }, "target_note_id": { "type": "string" }, "link_type": { "type": "string" } } },
+      "UpdateNoteLinkRequest": { "type": "object", "properties": { "link_type": { "type": "string" } } },
+      "NoteLinkResponse": { "type": "object", "properties": { "id": { "type": "string" }, "source_note_id": { "type": "string" }, "target_note_id": { "type": "string" }, "link_type": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "deleted_at": { "type": "string", "format": "date-time", "nullable": true }, "version": { "type": "integer", "format": "int32" } } },
+      "ListNoteLinksResponse": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/NoteLinkResponse" } }, "offset": { "type": "integer", "format": "int32" }, "limit": { "type": "integer", "format": "int32" }, "include_deleted": { "type": "boolean" } } },
+      "CreateNoteAssetRequest": { "type": "object", "properties": { "asset_type": { "type": "string" }, "storage_path": { "type": "string" }, "mime_type": { "type": "string" } } },
+      "UpdateNoteAssetRequest": { "type": "object", "properties": { "asset_type": { "type": "string" }, "storage_path": { "type": "string" }, "mime_type": { "type": "string" } } },
+      "NoteAssetResponse": { "type": "object", "properties": { "id": { "type": "string" }, "note_id": { "type": "string" }, "asset_type": { "type": "string" }, "storage_path": { "type": "string" }, "mime_type": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "deleted_at": { "type": "string", "format": "date-time", "nullable": true }, "version": { "type": "integer", "format": "int32" } } },
+      "ListNoteAssetsResponse": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/NoteAssetResponse" } }, "offset": { "type": "integer", "format": "int32" }, "limit": { "type": "integer", "format": "int32" }, "include_deleted": { "type": "boolean" } } },
+      "UpsertMapNotePlacementRequest": { "type": "object", "properties": { "map_note_id": { "type": "string" }, "target_note_id": { "type": "string" }, "x": { "type": "integer" }, "y": { "type": "integer" } } },
+      "UpdateMapNotePlacementRequest": { "type": "object", "properties": { "x": { "type": "integer" }, "y": { "type": "integer" } } },
+      "MapNotePlacementResponse": { "type": "object", "properties": { "id": { "type": "string" }, "map_note_id": { "type": "string" }, "target_note_id": { "type": "string" }, "x": { "type": "integer" }, "y": { "type": "integer" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "deleted_at": { "type": "string", "format": "date-time", "nullable": true }, "version": { "type": "integer", "format": "int32" } } },
+      "ListMapNotePlacementsResponse": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/MapNotePlacementResponse" } }, "offset": { "type": "integer", "format": "int32" }, "limit": { "type": "integer", "format": "int32" }, "include_deleted": { "type": "boolean" } } }
+    }
+  }
+}

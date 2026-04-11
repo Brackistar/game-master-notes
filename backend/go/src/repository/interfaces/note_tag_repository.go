@@ -19,4 +19,3 @@ type NoteTagRepository interface {
 	ListByTag(ctx context.Context, tagID model.ULID, params ListNoteTagsParams) ([]model.NoteTag, error)
 	Delete(ctx context.Context, noteID, tagID model.ULID) error
 }
-

@@ -28,4 +28,3 @@ type NoteAssetRepository interface {
 	Update(ctx context.Context, params UpdateNoteAssetParams) (model.NoteAsset, error)
 	Delete(ctx context.Context, id model.ULID) error
 }
-

@@ -27,4 +27,3 @@ type NoteLinkRepository interface {
 	Update(ctx context.Context, params UpdateNoteLinkParams) (model.NoteLink, error)
 	Delete(ctx context.Context, id model.ULID) error
 }
-

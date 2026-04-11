@@ -43,4 +43,3 @@ func mapFunctionError(
 
 	return repoerrors.WrapUnknown(op, entity, err)
 }
-

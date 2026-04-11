@@ -20,4 +20,3 @@ type NoteOwnerRepository interface {
 	ListByOwner(ctx context.Context, ownerType constants.OwnerType, ownerID model.ULID, params ListNoteOwnersParams) ([]model.NoteOwner, error)
 	Delete(ctx context.Context, noteID model.ULID, ownerType constants.OwnerType, ownerID model.ULID) error
 }
-

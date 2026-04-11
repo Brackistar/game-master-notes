@@ -52,4 +52,3 @@ func TestGMNContractMatchesMigrationTokens(t *testing.T) {
 		t.Fatalf("GMN token contract drift detected; missingInContract=%v missingInMigration=%v", missingInContract, missingInMigration)
 	}
 }
-

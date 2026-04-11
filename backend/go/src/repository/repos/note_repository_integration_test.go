@@ -83,4 +83,3 @@ func TestNoteRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 		t.Fatalf("expected not found after delete, got %v", err)
 	}
 }
-

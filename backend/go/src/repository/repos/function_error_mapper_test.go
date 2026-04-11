@@ -77,4 +77,3 @@ func TestMapFunctionError(t *testing.T) {
 		})
 	}
 }
-

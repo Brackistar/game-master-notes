@@ -10,10 +10,10 @@ const (
 	GMNCampaignPlayerAlreadyOpen = "GMN_CAMPAIGN_PLAYER_ALREADY_ACTIVE"
 	GMNCampaignPlayerNotActive   = "GMN_CAMPAIGN_PLAYER_NOT_ACTIVE"
 
-	GMNNoteNotFound  = "GMN_NOTE_NOT_FOUND"
-	GMNNoteDeleted   = "GMN_NOTE_DELETED"
-	GMNTagNotFound   = "GMN_TAG_NOT_FOUND"
-	GMNTagDeleted    = "GMN_TAG_DELETED"
+	GMNNoteNotFound    = "GMN_NOTE_NOT_FOUND"
+	GMNNoteDeleted     = "GMN_NOTE_DELETED"
+	GMNTagNotFound     = "GMN_TAG_NOT_FOUND"
+	GMNTagDeleted      = "GMN_TAG_DELETED"
 	GMNMapNoteNotFound = "GMN_MAP_NOTE_NOT_FOUND"
 	GMNMapNoteDeleted  = "GMN_MAP_NOTE_DELETED"
 

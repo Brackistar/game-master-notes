@@ -48,6 +48,16 @@ For backend local startup (database, migrations, and integration test baseline),
 
 - [`backend/go/db/README.md`](backend/go/db/README.md)
 
+After DB setup is complete, start the Go backend from `backend/go`:
+
+- `go run .`
+
+Then open:
+
+- Swagger UI: `http://localhost:8080/swagger`
+- OpenAPI JSON: `http://localhost:8080/openapi.json`
+- Health check: `http://localhost:8080/health`
+
 ## AI and Cost Strategy
 
 The bread-and-butter workflow is live transcription, so the system is being designed with that as the primary AI cost driver. More advanced council-style assistance is manual by design, which helps keep usage predictable and prevents unnecessary background model calls.

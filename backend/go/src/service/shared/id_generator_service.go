@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/Brackistar/game-master-notes/backend/go/src/model"
+	serviceerrors "github.com/Brackistar/game-master-notes/backend/go/src/service/error"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -20,7 +21,7 @@ func NewOklogULIDGenerator() *OklogULIDGenerator {
 func (g *OklogULIDGenerator) NewULID() (model.ULID, error) {
 	id := ulid.Make()
 	if id.Compare(ulid.ULID{}) == 0 {
-		return "", errors.New("failed to generate ULID")
+		return "", errors.New(serviceerrors.SERVULIDGENFAILEDMESSAGE)
 	}
 	return model.ULID(id.String()), nil
 }

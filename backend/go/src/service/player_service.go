@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	playerMinNameLen        = 3
-	playerMaxNameLen        = 50
-	serviceName      string = "player"
+	playerMinNameLen         = 3
+	playerMaxNameLen         = 50
+	playerServiceName string = "player"
 )
 
 var playerAllowedNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 '\-]*[A-Za-z0-9]$`)
@@ -32,13 +32,13 @@ type DefaultPlayerNamePolicy struct{}
 func (DefaultPlayerNamePolicy) NormalizeAndValidate(name string) (string, error) {
 	normalized := shared.NormalizeSpaces(name)
 	if len(normalized) < playerMinNameLen {
-		return "", fmt.Errorf("name must be at least %d characters", playerMinNameLen)
+		return "", fmt.Errorf(serviceerrors.SERVFIELDMINCHARSMESSAGE, "name", playerMinNameLen)
 	}
 	if len(normalized) > playerMaxNameLen {
-		return "", fmt.Errorf("name must be at most %d characters", playerMaxNameLen)
+		return "", fmt.Errorf(serviceerrors.SERVFIELDMAXCHARSMESSAGE, "name", playerMaxNameLen)
 	}
 	if !playerAllowedNamePattern.MatchString(normalized) {
-		return "", errors.New("name contains unsupported characters")
+		return "", errors.New(serviceerrors.SERVNAMEUNSUPPORTEDCHARSMESSAGE)
 	}
 	return normalized, nil
 }
@@ -99,10 +99,10 @@ func NewPlayerService(repo repo.PlayerRepository, idGenerator shared.IDGenerator
 }
 
 func NewPlayerServiceWithDeps(deps PlayerServiceDeps) *PlayerService {
-	shared.PanicIfNilDependency(serviceName, "repo", deps.Repo)
-	shared.PanicIfNilDependency(serviceName, "Clock", deps.Clock)
-	shared.PanicIfNilDependency(serviceName, "NamePolicy", deps.NamePolicy)
-	shared.PanicIfNilDependency(serviceName, "IDGenerator", deps.IDGenerator)
+	shared.PanicIfNilDependency(playerServiceName, "repo", deps.Repo)
+	shared.PanicIfNilDependency(playerServiceName, "Clock", deps.Clock)
+	shared.PanicIfNilDependency(playerServiceName, "NamePolicy", deps.NamePolicy)
+	shared.PanicIfNilDependency(playerServiceName, "IDGenerator", deps.IDGenerator)
 
 	return &PlayerService{
 		repo:        deps.Repo,
@@ -116,11 +116,11 @@ func (s *PlayerService) Create(ctx context.Context, params CreatePlayerParams) (
 	op := "player_service.create"
 	name, err := s.namePolicy.NormalizeAndValidate(params.Name)
 	if err != nil {
-		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, err)
+		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, err)
 	}
 	id, err := s.idGenerator.NewULID()
 	if err != nil {
-		return model.Player{}, serviceerrors.WrapUnknown(op, serviceName, err)
+		return model.Player{}, serviceerrors.WrapUnknown(op, playerServiceName, err)
 	}
 
 	now := s.clock.Now()
@@ -134,7 +134,7 @@ func (s *PlayerService) Create(ctx context.Context, params CreatePlayerParams) (
 		},
 	})
 	if repoErr != nil {
-		return model.Player{}, shared.MapRepositoryError(repoErr, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(repoErr, op, playerServiceName)
 	}
 	return player, nil
 }
@@ -142,11 +142,11 @@ func (s *PlayerService) Create(ctx context.Context, params CreatePlayerParams) (
 func (s *PlayerService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.Player, error) {
 	op := "player_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
-		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, errors.New("id is required"))
+		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
 	}
 	player, err := s.repo.GetByID(ctx, id, includeDeleted)
 	if err != nil {
-		return model.Player{}, shared.MapRepositoryError(err, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(err, op, playerServiceName)
 	}
 	return player, nil
 }
@@ -154,10 +154,10 @@ func (s *PlayerService) GetByID(ctx context.Context, id model.ULID, includeDelet
 func (s *PlayerService) List(ctx context.Context, params ListPlayersParams) ([]PlayerListItem, error) {
 	op := "player_service.list"
 	if params.Offset < 0 {
-		return nil, serviceerrors.WrapValidation(op, serviceName, errors.New("offset must be >= 0"))
+		return nil, serviceerrors.WrapValidation(op, playerServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
 	}
 	if params.Limit <= 0 {
-		return nil, serviceerrors.WrapValidation(op, serviceName, errors.New("limit must be > 0"))
+		return nil, serviceerrors.WrapValidation(op, playerServiceName, errors.New(serviceerrors.SERVLIMITGTZEROMESSAGE))
 	}
 
 	rows, err := s.repo.List(ctx, repo.ListPlayersParams{
@@ -166,7 +166,7 @@ func (s *PlayerService) List(ctx context.Context, params ListPlayersParams) ([]P
 		IncludeDeleted: params.IncludeDeleted,
 	})
 	if err != nil {
-		return nil, shared.MapRepositoryError(err, op, serviceName)
+		return nil, shared.MapRepositoryError(err, op, playerServiceName)
 	}
 	out := toPlayerListItems(rows)
 	sortPlayerItems(out)
@@ -176,14 +176,14 @@ func (s *PlayerService) List(ctx context.Context, params ListPlayersParams) ([]P
 func (s *PlayerService) SearchByName(ctx context.Context, params SearchPlayersParams) ([]PlayerListItem, error) {
 	op := "player_service.search_by_name"
 	if params.Offset < 0 {
-		return nil, serviceerrors.WrapValidation(op, serviceName, errors.New("offset must be >= 0"))
+		return nil, serviceerrors.WrapValidation(op, playerServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
 	}
 	if params.Limit <= 0 {
-		return nil, serviceerrors.WrapValidation(op, serviceName, errors.New("limit must be > 0"))
+		return nil, serviceerrors.WrapValidation(op, playerServiceName, errors.New(serviceerrors.SERVLIMITGTZEROMESSAGE))
 	}
 	query := shared.NormalizeSpaces(params.Query)
 	if len(query) < playerMinNameLen {
-		return nil, serviceerrors.WrapValidation(op, serviceName, fmt.Errorf("search query must be at least %d characters", playerMinNameLen))
+		return nil, serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDMINCHARSMESSAGE, "search query", playerMinNameLen))
 	}
 
 	rows, err := s.repo.SearchByName(ctx, repo.SearchPlayersParams{
@@ -193,7 +193,7 @@ func (s *PlayerService) SearchByName(ctx context.Context, params SearchPlayersPa
 		IncludeDeleted: params.IncludeDeleted,
 	})
 	if err != nil {
-		return nil, shared.MapRepositoryError(err, op, serviceName)
+		return nil, shared.MapRepositoryError(err, op, playerServiceName)
 	}
 	out := toPlayerListItems(rows)
 	sortPlayerItems(out)
@@ -203,15 +203,15 @@ func (s *PlayerService) SearchByName(ctx context.Context, params SearchPlayersPa
 func (s *PlayerService) Update(ctx context.Context, params UpdatePlayerParams) (model.Player, error) {
 	op := "player_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
-		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, errors.New("id is required"))
+		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
 	}
 	if params.ExpectedVersion <= 0 {
-		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, errors.New("expected_version must be > 0"))
+		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, errors.New(serviceerrors.SERVEXPECTEDVERSIONGTZEROMESSAGE))
 	}
 
 	name, err := s.namePolicy.NormalizeAndValidate(params.Name)
 	if err != nil {
-		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, err)
+		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, err)
 	}
 
 	player, repoErr := s.repo.Update(ctx, repo.UpdatePlayerParams{
@@ -220,7 +220,7 @@ func (s *PlayerService) Update(ctx context.Context, params UpdatePlayerParams) (
 		ExpectedVersion: params.ExpectedVersion,
 	})
 	if repoErr != nil {
-		return model.Player{}, shared.MapRepositoryError(repoErr, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(repoErr, op, playerServiceName)
 	}
 	return player, nil
 }
@@ -228,10 +228,10 @@ func (s *PlayerService) Update(ctx context.Context, params UpdatePlayerParams) (
 func (s *PlayerService) Delete(ctx context.Context, id model.ULID) error {
 	op := "player_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
-		return serviceerrors.WrapValidation(op, serviceName, errors.New("id is required"))
+		return serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
 	}
 	if err := s.repo.Delete(ctx, id); err != nil {
-		return shared.MapRepositoryError(err, op, serviceName)
+		return shared.MapRepositoryError(err, op, playerServiceName)
 	}
 	return nil
 }
@@ -239,20 +239,20 @@ func (s *PlayerService) Delete(ctx context.Context, id model.ULID) error {
 func (s *PlayerService) Restore(ctx context.Context, id model.ULID) (model.Player, error) {
 	op := "player_service.restore"
 	if strings.TrimSpace(string(id)) == "" {
-		return model.Player{}, serviceerrors.WrapValidation(op, serviceName, errors.New("id is required"))
+		return model.Player{}, serviceerrors.WrapValidation(op, playerServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
 	}
 
 	current, err := s.repo.GetByID(ctx, id, true)
 	if err != nil {
-		return model.Player{}, shared.MapRepositoryError(err, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(err, op, playerServiceName)
 	}
 	if current.AuditFields.DeletedAt == nil {
-		return model.Player{}, serviceerrors.NewConflict(op, serviceName)
+		return model.Player{}, serviceerrors.NewConflict(op, playerServiceName)
 	}
 
 	restored, err := s.repo.Restore(ctx, id)
 	if err != nil {
-		return model.Player{}, shared.MapRepositoryError(err, op, serviceName)
+		return model.Player{}, shared.MapRepositoryError(err, op, playerServiceName)
 	}
 	return restored, nil
 }
@@ -282,4 +282,3 @@ func sortPlayerItems(items []PlayerListItem) {
 		return left < right
 	})
 }
-

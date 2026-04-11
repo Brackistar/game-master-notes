@@ -27,4 +27,3 @@ func WrapValidation(op, entity string, cause error) error {
 func WrapUnknown(op, entity string, cause error) error {
 	return fmt.Errorf("%w: op=%s entity=%s cause=%v", ErrUnknown, op, entity, cause)
 }
-

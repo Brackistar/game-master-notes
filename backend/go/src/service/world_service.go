@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -24,10 +25,10 @@ type DefaultWorldPolicy struct{}
 func (DefaultWorldPolicy) NormalizeAndValidate(name, description string, status constants.WorldStatus) (string, string, error) {
 	normalizedName := shared.NormalizeSpaces(name)
 	if normalizedName == "" {
-		return "", "", errors.New("name is required")
+		return "", "", fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "name")
 	}
 	if !isValidWorldStatus(status) {
-		return "", "", errors.New("invalid world status")
+		return "", "", fmt.Errorf(serviceerrors.SERVINVALIDFIELDMESSAGE, "world_status")
 	}
 	return normalizedName, strings.TrimSpace(description), nil
 }
@@ -132,7 +133,7 @@ func (s *WorldService) Create(ctx context.Context, params CreateWorldParams) (mo
 func (s *WorldService) GetByID(ctx context.Context, id model.ULID, includeDeleted bool) (model.World, error) {
 	op := "world_service.get_by_id"
 	if strings.TrimSpace(string(id)) == "" {
-		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, errors.New("id is required"))
+		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
 	}
 	world, err := s.repo.GetByID(ctx, id, includeDeleted)
 	if err != nil {
@@ -144,10 +145,10 @@ func (s *WorldService) GetByID(ctx context.Context, id model.ULID, includeDelete
 func (s *WorldService) List(ctx context.Context, params ListWorldsParams) ([]WorldListItem, error) {
 	op := "world_service.list"
 	if params.Offset < 0 {
-		return nil, serviceerrors.WrapValidation(op, worldServiceName, errors.New("offset must be >= 0"))
+		return nil, serviceerrors.WrapValidation(op, worldServiceName, errors.New(serviceerrors.SERVOFFSETGTEZEROMESSAGE))
 	}
 	if params.Limit <= 0 {
-		return nil, serviceerrors.WrapValidation(op, worldServiceName, errors.New("limit must be > 0"))
+		return nil, serviceerrors.WrapValidation(op, worldServiceName, errors.New(serviceerrors.SERVLIMITGTZEROMESSAGE))
 	}
 
 	rows, err := s.repo.List(ctx, repo.ListWorldsParams{
@@ -164,10 +165,10 @@ func (s *WorldService) List(ctx context.Context, params ListWorldsParams) ([]Wor
 func (s *WorldService) Update(ctx context.Context, params UpdateWorldParams) (model.World, error) {
 	op := "world_service.update"
 	if strings.TrimSpace(string(params.ID)) == "" {
-		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, errors.New("id is required"))
+		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
 	}
 	if params.ExpectedVersion <= 0 {
-		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, errors.New("expected_version must be > 0"))
+		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, errors.New(serviceerrors.SERVEXPECTEDVERSIONGTZEROMESSAGE))
 	}
 
 	name, description, err := s.policy.NormalizeAndValidate(params.Name, params.Description, params.Status)
@@ -191,7 +192,7 @@ func (s *WorldService) Update(ctx context.Context, params UpdateWorldParams) (mo
 func (s *WorldService) Delete(ctx context.Context, id model.ULID) error {
 	op := "world_service.delete"
 	if strings.TrimSpace(string(id)) == "" {
-		return serviceerrors.WrapValidation(op, worldServiceName, errors.New("id is required"))
+		return serviceerrors.WrapValidation(op, worldServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "id"))
 	}
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return shared.MapRepositoryError(err, op, worldServiceName)

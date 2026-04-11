@@ -2,24 +2,15 @@ package api
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/Brackistar/game-master-notes/backend/go/src/api/dto"
 	apierrors "github.com/Brackistar/game-master-notes/backend/go/src/api/error"
+	helpers "github.com/Brackistar/game-master-notes/backend/go/src/api/shared"
 	"github.com/Brackistar/game-master-notes/backend/go/src/model"
 	service "github.com/Brackistar/game-master-notes/backend/go/src/service"
-	serviceerrors "github.com/Brackistar/game-master-notes/backend/go/src/service/error"
-)
-
-const (
-	defaultListOffset int32 = 0
-	defaultListLimit  int32 = 20
 )
 
 type PlayerService interface {
@@ -55,8 +46,8 @@ func (a *PlayerAPI) Register(mux *http.ServeMux) {
 
 func (a *PlayerAPI) create(w http.ResponseWriter, r *http.Request) {
 	var payload dto.CreatePlayerRequest
-	if err := decodeJSONBody(r, &payload); err != nil {
-		writeBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
+	if err := helpers.DecodeJSONBody(r, &payload); err != nil {
+		helpers.WriteBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
 		return
 	}
 
@@ -64,30 +55,30 @@ func (a *PlayerAPI) create(w http.ResponseWriter, r *http.Request) {
 		Name: payload.Name,
 	})
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, mapPlayerToDTO(created))
+	helpers.WriteJSON(w, http.StatusCreated, helpers.MapPlayerToDTO(created))
 }
 
 func (a *PlayerAPI) getByID(w http.ResponseWriter, r *http.Request) {
 	id := model.ULID(r.PathValue("id"))
-	includeDeleted := parseBool(r.URL.Query().Get("include_deleted"), false)
+	includeDeleted := helpers.ParseBool(r.URL.Query().Get("include_deleted"), false)
 
 	item, err := a.service.GetByID(r.Context(), id, includeDeleted)
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, mapPlayerToDTO(item))
+	helpers.WriteJSON(w, http.StatusOK, helpers.MapPlayerToDTO(item))
 }
 
 func (a *PlayerAPI) list(w http.ResponseWriter, r *http.Request) {
-	offset, limit, includeDeleted, err := parseListQuery(r)
+	offset, limit, includeDeleted, err := helpers.ParseListQuery(r)
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 
@@ -97,7 +88,7 @@ func (a *PlayerAPI) list(w http.ResponseWriter, r *http.Request) {
 		IncludeDeleted: includeDeleted,
 	})
 	if svcErr != nil {
-		writeServiceError(w, svcErr)
+		helpers.WriteServiceError(w, svcErr)
 		return
 	}
 
@@ -113,7 +104,7 @@ func (a *PlayerAPI) list(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	writeJSON(w, http.StatusOK, dto.ListPlayersResponse{
+	helpers.WriteJSON(w, http.StatusOK, dto.ListPlayersResponse{
 		Items:          out,
 		Offset:         offset,
 		Limit:          limit,
@@ -122,14 +113,14 @@ func (a *PlayerAPI) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *PlayerAPI) search(w http.ResponseWriter, r *http.Request) {
-	offset, limit, includeDeleted, err := parseListQuery(r)
+	offset, limit, includeDeleted, err := helpers.ParseListQuery(r)
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 	query := strings.TrimSpace(r.URL.Query().Get("query"))
 	if query == "" {
-		writeBadRequest(w, apierrors.APIQUERYREQUIREDMESSAGE)
+		helpers.WriteBadRequest(w, apierrors.APIQUERYREQUIREDMESSAGE)
 		return
 	}
 
@@ -140,7 +131,7 @@ func (a *PlayerAPI) search(w http.ResponseWriter, r *http.Request) {
 		IncludeDeleted: includeDeleted,
 	})
 	if svcErr != nil {
-		writeServiceError(w, svcErr)
+		helpers.WriteServiceError(w, svcErr)
 		return
 	}
 
@@ -156,7 +147,7 @@ func (a *PlayerAPI) search(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	writeJSON(w, http.StatusOK, dto.ListPlayersResponse{
+	helpers.WriteJSON(w, http.StatusOK, dto.ListPlayersResponse{
 		Items:          out,
 		Offset:         offset,
 		Limit:          limit,
@@ -168,14 +159,14 @@ func (a *PlayerAPI) update(w http.ResponseWriter, r *http.Request) {
 	id := model.ULID(r.PathValue("id"))
 
 	var payload dto.UpdatePlayerRequest
-	if err := decodeJSONBody(r, &payload); err != nil {
-		writeBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
+	if err := helpers.DecodeJSONBody(r, &payload); err != nil {
+		helpers.WriteBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
 		return
 	}
 
 	current, err := a.service.GetByID(r.Context(), id, false)
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
@@ -185,18 +176,18 @@ func (a *PlayerAPI) update(w http.ResponseWriter, r *http.Request) {
 		ExpectedVersion: current.AuditFields.Version,
 	})
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, mapPlayerToDTO(updated))
+	helpers.WriteJSON(w, http.StatusOK, helpers.MapPlayerToDTO(updated))
 }
 
 func (a *PlayerAPI) delete(w http.ResponseWriter, r *http.Request) {
 	id := model.ULID(r.PathValue("id"))
 
 	if err := a.service.Delete(r.Context(), id); err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
@@ -208,99 +199,9 @@ func (a *PlayerAPI) restore(w http.ResponseWriter, r *http.Request) {
 
 	restored, err := a.service.Restore(r.Context(), id)
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, mapPlayerToDTO(restored))
-}
-
-func mapPlayerToDTO(player model.Player) dto.PlayerResponse {
-	return dto.PlayerResponse{
-		ID:        string(player.ID),
-		Name:      player.Name,
-		CreatedAt: player.AuditFields.CreatedAt,
-		UpdatedAt: player.AuditFields.UpdatedAt,
-		DeletedAt: player.AuditFields.DeletedAt,
-		Version:   int32(player.AuditFields.Version),
-	}
-}
-
-func parseListQuery(r *http.Request) (int32, int32, bool, error) {
-	offset, err := parseInt32OrDefault(r.URL.Query().Get("offset"), defaultListOffset, "offset")
-	if err != nil {
-		return 0, 0, false, err
-	}
-	limit, err := parseInt32OrDefault(r.URL.Query().Get("limit"), defaultListLimit, "limit")
-	if err != nil {
-		return 0, 0, false, err
-	}
-	includeDeleted := parseBool(r.URL.Query().Get("include_deleted"), false)
-	return offset, limit, includeDeleted, nil
-}
-
-func parseInt32OrDefault(value string, fallback int32, field string) (int32, error) {
-	if strings.TrimSpace(value) == "" {
-		return fallback, nil
-	}
-	parsed, err := strconv.ParseInt(value, 10, 32)
-	if err != nil {
-		return 0, fmt.Errorf(apierrors.APIFIELDVALIDINTEGER, field)
-	}
-	return int32(parsed), nil
-}
-
-func parseBool(value string, fallback bool) bool {
-	if strings.TrimSpace(value) == "" {
-		return fallback
-	}
-	parsed, err := strconv.ParseBool(value)
-	if err != nil {
-		return fallback
-	}
-	return parsed
-}
-
-func decodeJSONBody(r *http.Request, out any) error {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	trimmed := strings.TrimSpace(string(body))
-	if trimmed == "" || strings.EqualFold(trimmed, "null") {
-		return errors.New(apierrors.APIBODYEMPTYMESSAGE)
-	}
-
-	decoder := json.NewDecoder(strings.NewReader(trimmed))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(out); err != nil {
-		return err
-	}
-	if decoder.More() {
-		return errors.New(apierrors.APIINVALIDJSONPAYLOAD)
-	}
-	return nil
-}
-
-func writeServiceError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, serviceerrors.ErrValidation):
-		writeJSON(w, http.StatusBadRequest, dto.ErrorResponse{Message: apierrors.APIINVALIDREQUESTMESSAGE})
-	case errors.Is(err, serviceerrors.ErrNotFound):
-		writeJSON(w, http.StatusNotFound, dto.ErrorResponse{Message: apierrors.APIRESOURCENOTFOUNDMESSAGE})
-	case errors.Is(err, serviceerrors.ErrConflict):
-		writeJSON(w, http.StatusConflict, dto.ErrorResponse{Message: apierrors.APIREQUESTCONFLICTMESSAGE})
-	default:
-		writeJSON(w, http.StatusInternalServerError, dto.ErrorResponse{Message: apierrors.APIINTERNALSERVERERROR})
-	}
-}
-
-func writeBadRequest(w http.ResponseWriter, message string) {
-	writeJSON(w, http.StatusBadRequest, dto.ErrorResponse{Message: message})
-}
-
-func writeJSON(w http.ResponseWriter, statusCode int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(payload)
+	helpers.WriteJSON(w, http.StatusOK, helpers.MapPlayerToDTO(restored))
 }

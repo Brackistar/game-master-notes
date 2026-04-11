@@ -53,19 +53,19 @@ func (a *CampaignAPI) Register(mux *http.ServeMux) {
 
 func (a *CampaignAPI) create(w http.ResponseWriter, r *http.Request) {
 	var payload dto.CreateCampaignRequest
-	if err := decodeJSONBody(r, &payload); err != nil {
-		writeBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
+	if err := helpers.DecodeJSONBody(r, &payload); err != nil {
+		helpers.WriteBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
 		return
 	}
 
 	startDate, err := helpers.ParseDatePointer(payload.StartDate, "start_date")
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 	endDate, err := helpers.ParseDatePointer(payload.EndDate, "end_date")
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 
@@ -76,29 +76,29 @@ func (a *CampaignAPI) create(w http.ResponseWriter, r *http.Request) {
 		EndDate:   endDate,
 	})
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, mapCampaignToDTO(created))
+	helpers.WriteJSON(w, http.StatusCreated, helpers.MapCampaignToDTO(created))
 }
 
 func (a *CampaignAPI) getByID(w http.ResponseWriter, r *http.Request) {
 	id := model.ULID(r.PathValue("id"))
-	includeDeleted := parseBool(r.URL.Query().Get("include_deleted"), false)
+	includeDeleted := helpers.ParseBool(r.URL.Query().Get("include_deleted"), false)
 
 	item, err := a.service.GetByID(r.Context(), id, includeDeleted)
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, mapCampaignToDTO(item))
+	helpers.WriteJSON(w, http.StatusOK, helpers.MapCampaignToDTO(item))
 }
 
 func (a *CampaignAPI) list(w http.ResponseWriter, r *http.Request) {
-	offset, limit, includeDeleted, err := parseListQuery(r)
+	offset, limit, includeDeleted, err := helpers.ParseListQuery(r)
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 
@@ -108,7 +108,7 @@ func (a *CampaignAPI) list(w http.ResponseWriter, r *http.Request) {
 		IncludeDeleted: includeDeleted,
 	})
 	if svcErr != nil {
-		writeServiceError(w, svcErr)
+		helpers.WriteServiceError(w, svcErr)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (a *CampaignAPI) list(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	writeJSON(w, http.StatusOK, dto.ListCampaignsResponse{
+	helpers.WriteJSON(w, http.StatusOK, dto.ListCampaignsResponse{
 		Items:          out,
 		Offset:         offset,
 		Limit:          limit,
@@ -139,25 +139,25 @@ func (a *CampaignAPI) update(w http.ResponseWriter, r *http.Request) {
 	id := model.ULID(r.PathValue("id"))
 
 	var payload dto.UpdateCampaignRequest
-	if err := decodeJSONBody(r, &payload); err != nil {
-		writeBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
+	if err := helpers.DecodeJSONBody(r, &payload); err != nil {
+		helpers.WriteBadRequest(w, apierrors.APIINVALIDREQUESTBODY)
 		return
 	}
 
 	startDate, err := helpers.ParseDatePointer(payload.StartDate, "start_date")
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 	endDate, err := helpers.ParseDatePointer(payload.EndDate, "end_date")
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 
 	current, err := a.service.GetByID(r.Context(), id, false)
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 
@@ -169,16 +169,16 @@ func (a *CampaignAPI) update(w http.ResponseWriter, r *http.Request) {
 		ExpectedVersion: current.AuditFields.Version,
 	})
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, mapCampaignToDTO(updated))
+	helpers.WriteJSON(w, http.StatusOK, helpers.MapCampaignToDTO(updated))
 }
 
 func (a *CampaignAPI) delete(w http.ResponseWriter, r *http.Request) {
 	id := model.ULID(r.PathValue("id"))
 	if err := a.service.Delete(r.Context(), id); err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -190,10 +190,10 @@ func (a *CampaignAPI) addPlayer(w http.ResponseWriter, r *http.Request) {
 
 	rel, err := a.service.AddPlayer(r.Context(), campaignID, playerID)
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, mapCampaignPlayerToDTO(rel))
+	helpers.WriteJSON(w, http.StatusCreated, helpers.MapCampaignPlayerToDTO(rel))
 }
 
 func (a *CampaignAPI) removePlayer(w http.ResponseWriter, r *http.Request) {
@@ -201,7 +201,7 @@ func (a *CampaignAPI) removePlayer(w http.ResponseWriter, r *http.Request) {
 	playerID := model.ULID(r.PathValue("player_id"))
 
 	if err := a.service.RemovePlayer(r.Context(), campaignID, playerID); err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -210,21 +210,21 @@ func (a *CampaignAPI) removePlayer(w http.ResponseWriter, r *http.Request) {
 func (a *CampaignAPI) getPlayerRelation(w http.ResponseWriter, r *http.Request) {
 	campaignID := model.ULID(r.PathValue("id"))
 	playerID := model.ULID(r.PathValue("player_id"))
-	includeDeleted := parseBool(r.URL.Query().Get("include_deleted"), false)
+	includeDeleted := helpers.ParseBool(r.URL.Query().Get("include_deleted"), false)
 
 	rel, err := a.service.GetPlayerRelation(r.Context(), campaignID, playerID, includeDeleted)
 	if err != nil {
-		writeServiceError(w, err)
+		helpers.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, mapCampaignPlayerToDTO(rel))
+	helpers.WriteJSON(w, http.StatusOK, helpers.MapCampaignPlayerToDTO(rel))
 }
 
 func (a *CampaignAPI) listPlayersByCampaign(w http.ResponseWriter, r *http.Request) {
 	campaignID := model.ULID(r.PathValue("id"))
-	offset, limit, includeDeleted, err := parseListQuery(r)
+	offset, limit, includeDeleted, err := helpers.ParseListQuery(r)
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 
@@ -234,15 +234,15 @@ func (a *CampaignAPI) listPlayersByCampaign(w http.ResponseWriter, r *http.Reque
 		IncludeDeleted: includeDeleted,
 	})
 	if svcErr != nil {
-		writeServiceError(w, svcErr)
+		helpers.WriteServiceError(w, svcErr)
 		return
 	}
 
 	out := make([]dto.CampaignPlayerResponse, 0, len(items))
 	for _, item := range items {
-		out = append(out, mapCampaignPlayerToDTO(item))
+		out = append(out, helpers.MapCampaignPlayerToDTO(item))
 	}
-	writeJSON(w, http.StatusOK, dto.ListCampaignPlayersResponse{
+	helpers.WriteJSON(w, http.StatusOK, dto.ListCampaignPlayersResponse{
 		Items:          out,
 		Offset:         offset,
 		Limit:          limit,
@@ -252,9 +252,9 @@ func (a *CampaignAPI) listPlayersByCampaign(w http.ResponseWriter, r *http.Reque
 
 func (a *CampaignAPI) listCampaignsByPlayer(w http.ResponseWriter, r *http.Request) {
 	playerID := model.ULID(r.PathValue("id"))
-	offset, limit, includeDeleted, err := parseListQuery(r)
+	offset, limit, includeDeleted, err := helpers.ParseListQuery(r)
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		helpers.WriteBadRequest(w, err.Error())
 		return
 	}
 
@@ -264,42 +264,18 @@ func (a *CampaignAPI) listCampaignsByPlayer(w http.ResponseWriter, r *http.Reque
 		IncludeDeleted: includeDeleted,
 	})
 	if svcErr != nil {
-		writeServiceError(w, svcErr)
+		helpers.WriteServiceError(w, svcErr)
 		return
 	}
 
 	out := make([]dto.CampaignPlayerResponse, 0, len(items))
 	for _, item := range items {
-		out = append(out, mapCampaignPlayerToDTO(item))
+		out = append(out, helpers.MapCampaignPlayerToDTO(item))
 	}
-	writeJSON(w, http.StatusOK, dto.ListCampaignPlayersResponse{
+	helpers.WriteJSON(w, http.StatusOK, dto.ListCampaignPlayersResponse{
 		Items:          out,
 		Offset:         offset,
 		Limit:          limit,
 		IncludeDeleted: includeDeleted,
 	})
-}
-
-func mapCampaignToDTO(campaign model.Campaign) dto.CampaignResponse {
-	return dto.CampaignResponse{
-		ID:        string(campaign.ID),
-		WorldID:   string(campaign.WorldID),
-		Name:      campaign.Name,
-		StartDate: helpers.FormatDatePointer(campaign.StartDate),
-		EndDate:   helpers.FormatDatePointer(campaign.EndDate),
-		CreatedAt: campaign.AuditFields.CreatedAt,
-		UpdatedAt: campaign.AuditFields.UpdatedAt,
-		DeletedAt: campaign.AuditFields.DeletedAt,
-		Version:   int32(campaign.AuditFields.Version),
-	}
-}
-
-func mapCampaignPlayerToDTO(rel model.CampaignPlayer) dto.CampaignPlayerResponse {
-	return dto.CampaignPlayerResponse{
-		CampaignID: string(rel.CampaignID),
-		PlayerID:   string(rel.PlayerID),
-		CreatedAt:  rel.CreatedAt,
-		UpdatedAt:  rel.UpdatedAt,
-		DeletedAt:  rel.DeletedAt,
-	}
 }

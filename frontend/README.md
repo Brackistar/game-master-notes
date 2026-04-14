@@ -25,3 +25,16 @@ npm run test
   - Center main panel placeholder with create-campaign mode
   - Right context placeholder panel
   - Bottom global tools bar
+
+## Data Source Injection
+
+Campaign data origin is isolated behind classes:
+
+- `MockCampaignDataSource` for development/local workflow
+- `ApiCampaignDataSource` for backend integration
+
+Environment switches:
+
+- `VITE_CAMPAIGN_DATA_SOURCE=mock|api`
+- `VITE_API_BASE_URL=/api/v1` (default)
+- `VITE_DEFAULT_WORLD_ID=<world-ulid>` for campaign create payloads in API mode

@@ -20,6 +20,52 @@
 }
 
 .centerCard p {
-  margin: 0;
+  margin: 0 0 12px;
   color: var(--color-text-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formLabel {
+  font-weight: 600;
+}
+
+.form input {
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.formHint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.formError {
+  margin: 0;
+  color: #ff9a9a;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.formActions button {
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
 }

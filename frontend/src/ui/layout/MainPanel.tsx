@@ -1,7 +1,10 @@
+import { CreateCampaignForm } from "../../features/campaigns/CreateCampaignForm";
 import styles from "./MainPanel.module.css";
 
 type MainPanelProps = {
   mode: "empty" | "create-campaign";
+  onCreateCampaign: (name: string) => Promise<void>;
+  onCancelCreateCampaign: () => void;
 };
 
 export function MainPanel(props: MainPanelProps) {
@@ -10,7 +13,11 @@ export function MainPanel(props: MainPanelProps) {
       <main className={styles.mainPanel}>
         <div className={styles.centerCard}>
           <h2>Create Campaign</h2>
-          <p>This first baseline switches the center workspace into create mode.</p>
+          <p>Set campaign name to add it into the left panel workflow.</p>
+          <CreateCampaignForm
+            onCreate={props.onCreateCampaign}
+            onCancel={props.onCancelCreateCampaign}
+          />
         </div>
       </main>
     );

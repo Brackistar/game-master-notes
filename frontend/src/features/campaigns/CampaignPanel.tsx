@@ -14,15 +14,15 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
-import type { CampaignItem } from "../../App";
+import type { CampaignViewModel } from "./model";
 import { SortableCampaignRow } from "./SortableCampaignRow";
 import styles from "./CampaignPanel.module.css";
 
 type CampaignPanelProps = {
-  campaigns: CampaignItem[];
+  campaigns: CampaignViewModel[];
   selectedCampaignId: string | null;
   onSelectCampaign: (id: string) => void;
-  onReorderCampaigns: (campaigns: CampaignItem[]) => void;
+  onReorderCampaigns: (idsInOrder: string[]) => void;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   onAddCampaign: () => void;
@@ -44,17 +44,40 @@ export function CampaignPanel(props: CampaignPanelProps) {
     [props.campaigns, deleteCandidateId]
   );
 
+  const filteredCampaigns = useMemo(() => {
+    const query = props.searchQuery.trim().toLowerCase();
+    if (query === "") {
+      return props.campaigns;
+    }
+    return props.campaigns.filter((campaign) =>
+      campaign.name.toLowerCase().includes(query)
+    );
+  }, [props.campaigns, props.searchQuery]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) {
       return;
     }
-    const oldIndex = props.campaigns.findIndex((item) => item.id === active.id);
-    const newIndex = props.campaigns.findIndex((item) => item.id === over.id);
+    const oldIndex = filteredCampaigns.findIndex((item) => item.id === active.id);
+    const newIndex = filteredCampaigns.findIndex((item) => item.id === over.id);
     if (oldIndex < 0 || newIndex < 0) {
       return;
     }
-    props.onReorderCampaigns(arrayMove(props.campaigns, oldIndex, newIndex));
+    const nextVisible = arrayMove(filteredCampaigns, oldIndex, newIndex).map(
+      (item) => item.id
+    );
+    const visibleSet = new Set(filteredCampaigns.map((item) => item.id));
+    const allIds = props.campaigns.map((item) => item.id);
+    const positions = allIds
+      .map((id, index) => ({ id, index }))
+      .filter((item) => visibleSet.has(item.id))
+      .map((item) => item.index);
+    const merged = [...allIds];
+    positions.forEach((position, index) => {
+      merged[position] = nextVisible[index];
+    });
+    props.onReorderCampaigns(merged);
   };
 
   return (
@@ -98,11 +121,11 @@ export function CampaignPanel(props: CampaignPanelProps) {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={props.campaigns.map((item) => item.id)}
+            items={filteredCampaigns.map((item) => item.id)}
             strategy={verticalListSortingStrategy}
           >
             <ul className={styles.campaignList}>
-              {props.campaigns.map((campaign) => (
+              {filteredCampaigns.map((campaign) => (
                 <SortableCampaignRow
                   key={campaign.id}
                   campaign={campaign}

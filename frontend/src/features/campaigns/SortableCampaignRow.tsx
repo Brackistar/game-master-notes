@@ -1,10 +1,10 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { CampaignItem } from "../../App";
+import type { CampaignViewModel } from "./model";
 import styles from "./CampaignPanel.module.css";
 
 type SortableCampaignRowProps = {
-  campaign: CampaignItem;
+  campaign: CampaignViewModel;
   selected: boolean;
   onSelect: (id: string) => void;
 };

@@ -32,3 +32,8 @@ go.work.sum
 # .idea/
 .vscode/
 .codex
+
+# Frontend (Vite/React)
+node_modules/
+dist/
+coverage/

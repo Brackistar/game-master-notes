@@ -1,0 +1,18 @@
+.appShell {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 1fr 62px;
+  background: var(--color-app-bg);
+}
+
+.workspaceRow {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) 1fr minmax(220px, 280px);
+}
+
+@media (max-width: 1100px) {
+  .workspaceRow {
+    grid-template-columns: 260px 1fr;
+  }
+}

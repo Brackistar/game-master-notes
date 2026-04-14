@@ -58,6 +58,16 @@ Then open:
 - OpenAPI JSON: `http://localhost:8080/openapi.json`
 - Health check: `http://localhost:8080/health`
 
+To start the frontend baseline from `frontend`:
+
+- `npm install`
+- `npm run dev`
+
+Frontend tests/build:
+
+- `npm run test`
+- `npm run build`
+
 ## AI and Cost Strategy
 
 The bread-and-butter workflow is live transcription, so the system is being designed with that as the primary AI cost driver. More advanced council-style assistance is manual by design, which helps keep usage predictable and prevents unnecessary background model calls.

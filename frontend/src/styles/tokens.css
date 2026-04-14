@@ -1,0 +1,14 @@
+:root {
+  color-scheme: dark;
+  --color-app-bg: #0f1520;
+  --color-panel-left: #121b29;
+  --color-panel-main: #0f1723;
+  --color-panel-right: #121927;
+  --color-bottom-bar: #101723;
+  --color-border: #2a3a4d;
+  --color-input-bg: #172334;
+  --color-item-bg: #192638;
+  --color-accent: #5eb5e0;
+  --color-text-primary: #e8f1fb;
+  --color-text-muted: #a4b8cc;
+}

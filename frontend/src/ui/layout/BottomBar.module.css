@@ -1,0 +1,35 @@
+.bottomBar {
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bottom-bar);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.searchLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.searchLabel input {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  padding: 8px 10px;
+}
+
+.bottomBar button {
+  border-radius: 8px;
+  border: 1px solid var(--color-accent);
+  background: #274966;
+  color: #f6fbff;
+  padding: 8px 12px;
+  cursor: pointer;
+}

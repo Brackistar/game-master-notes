@@ -43,6 +43,7 @@ func MapCampaignPlayerToDTO(rel model.CampaignPlayer) dto.CampaignPlayerResponse
 func MapWorldToDTO(world model.World) dto.WorldResponse {
 	return dto.WorldResponse{
 		ID:          string(world.ID),
+		PlaneID:     string(world.PlaneID),
 		Name:        world.Name,
 		Description: world.Description,
 		Status:      world.Status.String(),
@@ -56,7 +57,6 @@ func MapWorldToDTO(world model.World) dto.WorldResponse {
 func MapPlaneToDTO(plane model.Plane) dto.PlaneResponse {
 	return dto.PlaneResponse{
 		ID:          string(plane.ID),
-		WorldID:     string(plane.WorldID),
 		Name:        plane.Name,
 		Description: plane.Description,
 		CreatedAt:   plane.AuditFields.CreatedAt,

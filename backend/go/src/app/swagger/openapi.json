@@ -1445,6 +1445,7 @@
       "CreateWorldRequest": {
         "type": "object",
         "properties": {
+          "plane_id": { "type": "string" },
           "name": { "type": "string" },
           "description": { "type": "string" },
           "status": { "type": "string", "enum": ["draft", "active", "archived"] }
@@ -1462,6 +1463,7 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
+          "plane_id": { "type": "string" },
           "name": { "type": "string" },
           "description": { "type": "string" },
           "status": { "type": "string" },
@@ -1483,7 +1485,6 @@
       "CreatePlaneRequest": {
         "type": "object",
         "properties": {
-          "world_id": { "type": "string" },
           "name": { "type": "string" },
           "description": { "type": "string" }
         }
@@ -1499,7 +1500,6 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
-          "world_id": { "type": "string" },
           "name": { "type": "string" },
           "description": { "type": "string" },
           "created_at": { "type": "string", "format": "date-time" },

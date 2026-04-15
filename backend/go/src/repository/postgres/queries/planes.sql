@@ -1,19 +1,19 @@
 -- name: CreatePlane :one
 INSERT INTO planes (
-  id, world_id, name, description, created_at, updated_at, deleted_at, version
+  id, name, description, created_at, updated_at, deleted_at, version
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8
+  $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING id, world_id, name, description, created_at, updated_at, deleted_at, version;
+RETURNING id, name, description, created_at, updated_at, deleted_at, version;
 
 -- name: GetPlaneByID :one
-SELECT id, world_id, name, description, created_at, updated_at, deleted_at, version
+SELECT id, name, description, created_at, updated_at, deleted_at, version
 FROM planes
 WHERE id = $1
   AND ($2::boolean OR deleted_at IS NULL);
 
 -- name: ListPlanes :many
-SELECT id, world_id, name, description, created_at, updated_at, deleted_at, version
+SELECT id, name, description, created_at, updated_at, deleted_at, version
 FROM planes
 WHERE ($1::boolean OR deleted_at IS NULL)
 ORDER BY created_at DESC, id DESC
@@ -30,7 +30,7 @@ SET
 WHERE id = $1
   AND deleted_at IS NULL
   AND version = $5
-RETURNING id, world_id, name, description, created_at, updated_at, deleted_at, version;
+RETURNING id, name, description, created_at, updated_at, deleted_at, version;
 
 -- name: DeletePlane :execrows
 UPDATE planes

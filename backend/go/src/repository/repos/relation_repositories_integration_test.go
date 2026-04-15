@@ -23,12 +23,14 @@ func TestCampaignPlayerRepositoryIntegration_BasicFlow(t *testing.T) {
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 
 	worldRepo := repos.NewWorldRepository(tx)
+	planeRepo := repos.NewPlaneRepository(tx)
 	campaignRepo := repos.NewCampaignRepository(tx)
 	playerRepo := repos.NewPlayerRepository(tx)
 	relRepo := repos.NewCampaignPlayerRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane, _ := planeRepo.Create(ctx, model.Plane{ID: model.ULID(testULID("cp-plane")), Name: "plane", Description: "d", AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
 
-	world, _ := worldRepo.Create(ctx, model.World{ID: model.ULID(testULID("cp-world")), Name: "w", Description: "d", Status: constants.Active, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
+	world, _ := worldRepo.Create(ctx, model.World{ID: model.ULID(testULID("cp-world")), PlaneID: plane.ID, Name: "w", Description: "d", Status: constants.Active, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
 	campaign, _ := campaignRepo.Create(ctx, model.Campaign{ID: model.ULID(testULID("cp-campaign")), WorldID: world.ID, Name: "c", AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
 	player, _ := playerRepo.Create(ctx, model.Player{ID: model.ULID(testULID("cp-player")), Name: "p", AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
 
@@ -58,11 +60,13 @@ func TestNoteOwnerRepositoryIntegration_BasicFlow(t *testing.T) {
 
 	noteRepo := repos.NewNoteRepository(tx)
 	worldRepo := repos.NewWorldRepository(tx)
+	planeRepo := repos.NewPlaneRepository(tx)
 	ownerRepo := repos.NewNoteOwnerRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
 
 	note, _ := noteRepo.Create(ctx, model.Note{ID: model.ULID(testULID("no-note")), Title: "n", ContentMD: "c", NoteType: constants.General, MetadataJSON: []byte(`{}`), AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
-	world, _ := worldRepo.Create(ctx, model.World{ID: model.ULID(testULID("no-owner")), Name: "owner-world", Description: "d", Status: constants.Active, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
+	plane, _ := planeRepo.Create(ctx, model.Plane{ID: model.ULID(testULID("no-plane")), Name: "owner-plane", Description: "d", AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
+	world, _ := worldRepo.Create(ctx, model.World{ID: model.ULID(testULID("no-owner")), PlaneID: plane.ID, Name: "owner-world", Description: "d", Status: constants.Active, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}})
 
 	created, err := ownerRepo.Create(ctx, model.NoteOwner{NoteID: note.ID, OwnerType: constants.World, OwnerID: world.ID, CreatedAt: now, UpdatedAt: now})
 	if err != nil {

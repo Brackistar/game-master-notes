@@ -34,6 +34,7 @@ func (DefaultWorldPolicy) NormalizeAndValidate(name, description string, status 
 }
 
 type CreateWorldParams struct {
+	PlaneID     model.ULID
 	Name        string
 	Description string
 	Status      constants.WorldStatus
@@ -55,6 +56,7 @@ type ListWorldsParams struct {
 
 type WorldListItem struct {
 	ID          model.ULID
+	PlaneID     model.ULID
 	Name        string
 	Description string
 	Status      constants.WorldStatus
@@ -103,6 +105,9 @@ func NewWorldServiceWithDeps(deps WorldServiceDeps) *WorldService {
 func (s *WorldService) Create(ctx context.Context, params CreateWorldParams) (model.World, error) {
 	defer shared.LogServiceCall()()
 	op := "world_service.create"
+	if strings.TrimSpace(string(params.PlaneID)) == "" {
+		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "plane_id"))
+	}
 	name, description, err := s.policy.NormalizeAndValidate(params.Name, params.Description, params.Status)
 	if err != nil {
 		return model.World{}, serviceerrors.WrapValidation(op, worldServiceName, err)
@@ -116,6 +121,7 @@ func (s *WorldService) Create(ctx context.Context, params CreateWorldParams) (mo
 	now := s.clock.Now()
 	world, repoErr := s.repo.Create(ctx, model.World{
 		ID:          id,
+		PlaneID:     params.PlaneID,
 		Name:        name,
 		Description: description,
 		Status:      params.Status,
@@ -210,6 +216,7 @@ func toWorldListItems(worlds []model.World) []WorldListItem {
 	for _, world := range worlds {
 		out = append(out, WorldListItem{
 			ID:          world.ID,
+			PlaneID:     world.PlaneID,
 			Name:        world.Name,
 			Description: world.Description,
 			Status:      world.Status,

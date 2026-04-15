@@ -39,6 +39,7 @@ func (r *WorldRepository) Create(ctx context.Context, world model.World) (model.
 
 	row, err := r.queries.CreateWorld(ctx, generated.CreateWorldParams{
 		ID:          string(world.ID),
+		PlaneID:     string(world.PlaneID),
 		Name:        world.Name,
 		Description: world.Description,
 		Status:      status,
@@ -152,6 +153,7 @@ func mapWorldRow(row generated.World) (model.World, error) {
 
 	return model.World{
 		ID:          model.ULID(fmt.Sprint(row.ID)),
+		PlaneID:     model.ULID(fmt.Sprint(row.PlaneID)),
 		Name:        row.Name,
 		Description: row.Description,
 		Status:      status,

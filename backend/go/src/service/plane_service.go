@@ -30,7 +30,6 @@ func (DefaultPlanePolicy) NormalizeAndValidate(name, description string) (string
 }
 
 type CreatePlaneParams struct {
-	WorldID     model.ULID
 	Name        string
 	Description string
 }
@@ -50,7 +49,6 @@ type ListPlanesParams struct {
 
 type PlaneListItem struct {
 	ID          model.ULID
-	WorldID     model.ULID
 	Name        string
 	Description string
 	CreatedAt   time.Time
@@ -98,9 +96,6 @@ func NewPlaneServiceWithDeps(deps PlaneServiceDeps) *PlaneService {
 func (s *PlaneService) Create(ctx context.Context, params CreatePlaneParams) (model.Plane, error) {
 	defer shared.LogServiceCall()()
 	op := "plane_service.create"
-	if strings.TrimSpace(string(params.WorldID)) == "" {
-		return model.Plane{}, serviceerrors.WrapValidation(op, planeServiceName, fmt.Errorf(serviceerrors.SERVFIELDREQUIREDMESSAGE, "world_id"))
-	}
 	name, description, err := s.policy.NormalizeAndValidate(params.Name, params.Description)
 	if err != nil {
 		return model.Plane{}, serviceerrors.WrapValidation(op, planeServiceName, err)
@@ -113,7 +108,6 @@ func (s *PlaneService) Create(ctx context.Context, params CreatePlaneParams) (mo
 	now := s.clock.Now()
 	plane, repoErr := s.repo.Create(ctx, model.Plane{
 		ID:          id,
-		WorldID:     params.WorldID,
 		Name:        name,
 		Description: description,
 		AuditFields: model.AuditFields{
@@ -203,7 +197,6 @@ func toPlaneListItems(planes []model.Plane) []PlaneListItem {
 	for _, plane := range planes {
 		out = append(out, PlaneListItem{
 			ID:          plane.ID,
-			WorldID:     plane.WorldID,
 			Name:        plane.Name,
 			Description: plane.Description,
 			CreatedAt:   plane.AuditFields.CreatedAt,

@@ -46,7 +46,6 @@ func (a *PlaneAPI) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	created, err := a.service.Create(r.Context(), service.CreatePlaneParams{
-		WorldID:     model.ULID(payload.WorldID),
 		Name:        payload.Name,
 		Description: payload.Description,
 	})
@@ -87,7 +86,6 @@ func (a *PlaneAPI) list(w http.ResponseWriter, r *http.Request) {
 	for _, item := range items {
 		out = append(out, dto.PlaneResponse{
 			ID:          string(item.ID),
-			WorldID:     string(item.WorldID),
 			Name:        item.Name,
 			Description: item.Description,
 			CreatedAt:   item.CreatedAt,

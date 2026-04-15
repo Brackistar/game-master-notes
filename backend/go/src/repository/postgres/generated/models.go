@@ -316,7 +316,6 @@ type NoteTag struct {
 
 type Plane struct {
 	ID          interface{}
-	WorldID     interface{}
 	Name        string
 	Description string
 	CreatedAt   pgtype.Timestamptz
@@ -357,6 +356,7 @@ type Tag struct {
 
 type World struct {
 	ID          interface{}
+	PlaneID     interface{}
 	Name        string
 	Description string
 	Status      WorldStatus

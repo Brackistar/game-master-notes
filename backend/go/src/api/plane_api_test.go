@@ -41,22 +41,22 @@ func TestPlaneAPIEndpoints(t *testing.T) {
 	now := time.Date(2026, 1, 4, 0, 0, 0, 0, time.UTC)
 	svc := &fakePlaneService{
 		createFn: func(_ context.Context, params service.CreatePlaneParams) (model.Plane, error) {
-			return model.Plane{ID: "01PL", WorldID: params.WorldID, Name: params.Name, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}}, nil
+			return model.Plane{ID: "01PL", Name: params.Name, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}}, nil
 		},
 		getFn: func(_ context.Context, id model.ULID, _ bool) (model.Plane, error) {
 			if id == "missing" {
 				return model.Plane{}, serviceerrors.NewNotFound("x", "plane")
 			}
-			return model.Plane{ID: id, WorldID: "01W", Name: "P", AuditFields: model.AuditFields{Version: 2}}, nil
+			return model.Plane{ID: id, Name: "P", AuditFields: model.AuditFields{Version: 2}}, nil
 		},
 		listFn: func(_ context.Context, _ service.ListPlanesParams) ([]service.PlaneListItem, error) {
-			return []service.PlaneListItem{{ID: "01PL", WorldID: "01W", Name: "P", Version: 1}}, nil
+			return []service.PlaneListItem{{ID: "01PL", Name: "P", Version: 1}}, nil
 		},
 		updateFn: func(_ context.Context, params service.UpdatePlaneParams) (model.Plane, error) {
 			if params.ID == "conflict" {
 				return model.Plane{}, serviceerrors.NewConflict("x", "plane")
 			}
-			return model.Plane{ID: params.ID, WorldID: "01W", Name: params.Name, AuditFields: model.AuditFields{Version: params.ExpectedVersion + 1}}, nil
+			return model.Plane{ID: params.ID, Name: params.Name, AuditFields: model.AuditFields{Version: params.ExpectedVersion + 1}}, nil
 		},
 		deleteFn: func(_ context.Context, _ model.ULID) error { return nil },
 	}
@@ -66,7 +66,7 @@ func TestPlaneAPIEndpoints(t *testing.T) {
 	api.Register(mux)
 
 	t.Run("create success", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/planes", bytes.NewBufferString(`{"world_id":"01W","name":"P","description":"D"}`))
+		req := httptest.NewRequest(http.MethodPost, "/planes", bytes.NewBufferString(`{"name":"P","description":"D"}`))
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		if rec.Code != http.StatusCreated {

@@ -23,6 +23,7 @@ CREATE TYPE note_link_type AS ENUM ('related', 'contains', 'mentions', 'depends_
 
 CREATE TABLE worlds (
     id          ulid PRIMARY KEY,
+    plane_id    ulid NOT NULL,
     name        TEXT NOT NULL CHECK (char_length(trim(name)) > 0),
     description TEXT NOT NULL DEFAULT '',
     status      world_status NOT NULL DEFAULT 'draft',
@@ -34,7 +35,6 @@ CREATE TABLE worlds (
 
 CREATE TABLE planes (
     id          ulid PRIMARY KEY,
-    world_id    ulid NOT NULL REFERENCES worlds(id) ON DELETE RESTRICT,
     name        TEXT NOT NULL CHECK (char_length(trim(name)) > 0),
     description TEXT NOT NULL DEFAULT '',
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -42,6 +42,10 @@ CREATE TABLE planes (
     deleted_at  TIMESTAMPTZ,
     version     INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
 );
+
+ALTER TABLE worlds
+    ADD CONSTRAINT worlds_plane_id_fkey
+    FOREIGN KEY (plane_id) REFERENCES planes(id) ON DELETE RESTRICT;
 
 CREATE TABLE campaigns (
     id          ulid PRIMARY KEY,
@@ -172,9 +176,9 @@ CREATE TABLE note_links (
 
 CREATE INDEX idx_worlds_deleted_at ON worlds (deleted_at);
 
-CREATE INDEX idx_planes_world_id ON planes (world_id);
 CREATE INDEX idx_planes_deleted_at ON planes (deleted_at);
 
+CREATE INDEX idx_worlds_plane_id ON worlds (plane_id);
 CREATE INDEX idx_campaigns_world_id ON campaigns (world_id);
 CREATE INDEX idx_campaigns_deleted_at ON campaigns (deleted_at);
 

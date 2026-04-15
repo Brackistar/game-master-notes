@@ -13,16 +13,15 @@ import (
 
 const createPlane = `-- name: CreatePlane :one
 INSERT INTO planes (
-  id, world_id, name, description, created_at, updated_at, deleted_at, version
+  id, name, description, created_at, updated_at, deleted_at, version
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8
+  $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING id, world_id, name, description, created_at, updated_at, deleted_at, version
+RETURNING id, name, description, created_at, updated_at, deleted_at, version
 `
 
 type CreatePlaneParams struct {
 	ID          interface{}
-	WorldID     interface{}
 	Name        string
 	Description string
 	CreatedAt   pgtype.Timestamptz
@@ -34,7 +33,6 @@ type CreatePlaneParams struct {
 func (q *Queries) CreatePlane(ctx context.Context, arg CreatePlaneParams) (Plane, error) {
 	row := q.db.QueryRow(ctx, createPlane,
 		arg.ID,
-		arg.WorldID,
 		arg.Name,
 		arg.Description,
 		arg.CreatedAt,
@@ -45,7 +43,6 @@ func (q *Queries) CreatePlane(ctx context.Context, arg CreatePlaneParams) (Plane
 	var i Plane
 	err := row.Scan(
 		&i.ID,
-		&i.WorldID,
 		&i.Name,
 		&i.Description,
 		&i.CreatedAt,
@@ -80,7 +77,7 @@ func (q *Queries) DeletePlane(ctx context.Context, arg DeletePlaneParams) (int64
 }
 
 const getPlaneByID = `-- name: GetPlaneByID :one
-SELECT id, world_id, name, description, created_at, updated_at, deleted_at, version
+SELECT id, name, description, created_at, updated_at, deleted_at, version
 FROM planes
 WHERE id = $1
   AND ($2::boolean OR deleted_at IS NULL)
@@ -96,7 +93,6 @@ func (q *Queries) GetPlaneByID(ctx context.Context, arg GetPlaneByIDParams) (Pla
 	var i Plane
 	err := row.Scan(
 		&i.ID,
-		&i.WorldID,
 		&i.Name,
 		&i.Description,
 		&i.CreatedAt,
@@ -108,7 +104,7 @@ func (q *Queries) GetPlaneByID(ctx context.Context, arg GetPlaneByIDParams) (Pla
 }
 
 const listPlanes = `-- name: ListPlanes :many
-SELECT id, world_id, name, description, created_at, updated_at, deleted_at, version
+SELECT id, name, description, created_at, updated_at, deleted_at, version
 FROM planes
 WHERE ($1::boolean OR deleted_at IS NULL)
 ORDER BY created_at DESC, id DESC
@@ -133,7 +129,6 @@ func (q *Queries) ListPlanes(ctx context.Context, arg ListPlanesParams) ([]Plane
 		var i Plane
 		if err := rows.Scan(
 			&i.ID,
-			&i.WorldID,
 			&i.Name,
 			&i.Description,
 			&i.CreatedAt,
@@ -161,7 +156,7 @@ SET
 WHERE id = $1
   AND deleted_at IS NULL
   AND version = $5
-RETURNING id, world_id, name, description, created_at, updated_at, deleted_at, version
+RETURNING id, name, description, created_at, updated_at, deleted_at, version
 `
 
 type UpdatePlaneParams struct {
@@ -183,7 +178,6 @@ func (q *Queries) UpdatePlane(ctx context.Context, arg UpdatePlaneParams) (Plane
 	var i Plane
 	err := row.Scan(
 		&i.ID,
-		&i.WorldID,
 		&i.Name,
 		&i.Description,
 		&i.CreatedAt,

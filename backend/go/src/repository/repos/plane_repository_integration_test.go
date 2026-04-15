@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Brackistar/game-master-notes/backend/go/src/model"
-	"github.com/Brackistar/game-master-notes/backend/go/src/model/constants"
 	repoerror "github.com/Brackistar/game-master-notes/backend/go/src/repository/error"
 	interfaces "github.com/Brackistar/game-master-notes/backend/go/src/repository/interfaces"
 	"github.com/Brackistar/game-master-notes/backend/go/src/repository/repos"
@@ -26,24 +25,11 @@ func TestPlaneRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 
-	worldRepo := repos.NewWorldRepository(tx)
 	planeRepo := repos.NewPlaneRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
 
-	world, err := worldRepo.Create(ctx, model.World{
-		ID:          model.ULID(testULID("plane-world")),
-		Name:        "Plane World",
-		Description: "w",
-		Status:      constants.Active,
-		AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1},
-	})
-	if err != nil {
-		t.Fatalf("create world: %v", err)
-	}
-
 	created, err := planeRepo.Create(ctx, model.Plane{
 		ID:          model.ULID(testULID("plane-create")),
-		WorldID:     world.ID,
 		Name:        "Plane One",
 		Description: "desc",
 		AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1},
@@ -62,7 +48,6 @@ func TestPlaneRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 
 	_, _ = planeRepo.Create(ctx, model.Plane{
 		ID:          model.ULID(testULID("plane-list")),
-		WorldID:     world.ID,
 		Name:        "Plane Two",
 		Description: "desc2",
 		AuditFields: model.AuditFields{CreatedAt: now.Add(time.Minute), UpdatedAt: now.Add(time.Minute), Version: 1},

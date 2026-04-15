@@ -37,8 +37,10 @@ func TestWorldRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 	repo := repos.NewWorldRepository(tx)
 
 	now := time.Now().UTC().Truncate(time.Second)
+	plane := createIntegrationPlane(t, ctx, tx, "world-plane-create", now)
 	worldIn := model.World{
 		ID:          model.ULID(testULID("world-create")),
+		PlaneID:     plane.ID,
 		Name:        "World One",
 		Description: "first world",
 		Status:      constants.Draft,
@@ -70,6 +72,7 @@ func TestWorldRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 
 	second := model.World{
 		ID:          model.ULID(testULID("world-list")),
+		PlaneID:     plane.ID,
 		Name:        "World Two",
 		Description: "second world",
 		Status:      constants.Active,
@@ -128,9 +131,11 @@ func TestWorldRepositoryIntegration_UpdateConflict(t *testing.T) {
 
 	repo := repos.NewWorldRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane := createIntegrationPlane(t, ctx, tx, "world-plane-conflict", now)
 
 	created, err := repo.Create(ctx, model.World{
 		ID:          model.ULID(testULID("world-conflict")),
+		PlaneID:     plane.ID,
 		Name:        "Conflict World",
 		Description: "conflict",
 		Status:      constants.Active,
@@ -174,9 +179,11 @@ func TestWorldRepositoryIntegration_DeleteStrictAndIncludeDeleted(t *testing.T) 
 
 	repo := repos.NewWorldRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane := createIntegrationPlane(t, ctx, tx, "world-plane-delete", now)
 
 	created, err := repo.Create(ctx, model.World{
 		ID:          model.ULID(testULID("world-delete")),
+		PlaneID:     plane.ID,
 		Name:        "Delete World",
 		Description: "to delete",
 		Status:      constants.Active,
@@ -297,4 +304,23 @@ func testULID(seed string) string {
 		return base[:26]
 	}
 	return base
+}
+
+func createIntegrationPlane(t *testing.T, ctx context.Context, tx pgx.Tx, seed string, now time.Time) model.Plane {
+	t.Helper()
+	planeRepo := repos.NewPlaneRepository(tx)
+	plane, err := planeRepo.Create(ctx, model.Plane{
+		ID:          model.ULID(testULID(seed)),
+		Name:        "Seed Plane " + seed,
+		Description: "seed",
+		AuditFields: model.AuditFields{
+			CreatedAt: now,
+			UpdatedAt: now,
+			Version:   1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create seed plane: %v", err)
+	}
+	return plane
 }

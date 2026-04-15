@@ -27,12 +27,20 @@ func TestTagRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 
 	worldRepo := repos.NewWorldRepository(tx)
+	planeRepo := repos.NewPlaneRepository(tx)
 	campaignRepo := repos.NewCampaignRepository(tx)
 	tagRepo := repos.NewTagRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane, _ := planeRepo.Create(ctx, model.Plane{
+		ID:          model.ULID(testULID("tag-plane")),
+		Name:        "Tag Plane",
+		Description: "p",
+		AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1},
+	})
 
 	world, _ := worldRepo.Create(ctx, model.World{
 		ID:          model.ULID(testULID("tag-world")),
+		PlaneID:     plane.ID,
 		Name:        "Tag World",
 		Description: "w",
 		Status:      constants.Active,

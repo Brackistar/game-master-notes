@@ -31,9 +31,11 @@ func TestCampaignRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 	worldRepo := repos.NewWorldRepository(tx)
 	campaignRepo := repos.NewCampaignRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane := createIntegrationPlane(t, ctx, tx, "campaign-plane", now)
 
 	world, err := worldRepo.Create(ctx, model.World{
 		ID:          model.ULID(testULID("campaign-world")),
+		PlaneID:     plane.ID,
 		Name:        "Campaign World",
 		Description: "w",
 		Status:      constants.Active,
@@ -142,9 +144,11 @@ func TestCampaignRepositoryIntegration_UpdateConflict(t *testing.T) {
 	worldRepo := repos.NewWorldRepository(tx)
 	campaignRepo := repos.NewCampaignRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane := createIntegrationPlane(t, ctx, tx, "campaign-conflict-plane", now)
 
 	world, err := worldRepo.Create(ctx, model.World{
 		ID:          model.ULID(testULID("campaign-conflict-world")),
+		PlaneID:     plane.ID,
 		Name:        "Conflict World",
 		Description: "w",
 		Status:      constants.Active,
@@ -201,9 +205,11 @@ func TestCampaignRepositoryIntegration_DeleteStrictAndIncludeDeleted(t *testing.
 	worldRepo := repos.NewWorldRepository(tx)
 	campaignRepo := repos.NewCampaignRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane := createIntegrationPlane(t, ctx, tx, "campaign-delete-plane", now)
 
 	world, err := worldRepo.Create(ctx, model.World{
 		ID:          model.ULID(testULID("campaign-delete-world")),
+		PlaneID:     plane.ID,
 		Name:        "Delete World",
 		Description: "w",
 		Status:      constants.Active,

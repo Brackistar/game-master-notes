@@ -3,6 +3,7 @@ package dto
 import "time"
 
 type CreateWorldRequest struct {
+	PlaneID     string `json:"plane_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Status      string `json:"status"`
@@ -16,6 +17,7 @@ type UpdateWorldRequest struct {
 
 type WorldResponse struct {
 	ID          string     `json:"id"`
+	PlaneID     string     `json:"plane_id"`
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	Status      string     `json:"status"`

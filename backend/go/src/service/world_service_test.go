@@ -127,6 +127,7 @@ func TestWorldServiceCreateUsesPolicyAndGeneratedID(t *testing.T) {
 	})
 
 	out, err := svc.Create(ctx, CreateWorldParams{
+		PlaneID:     "01HPPPPPPPPPPPPPPPPPPPPPPP",
 		Name:        "ignored",
 		Description: "ignored",
 		Status:      constants.Draft,
@@ -163,7 +164,7 @@ func TestWorldServiceCreateValidationAndIdGeneratorErrors(t *testing.T) {
 			newULIDFn: func() (model.ULID, error) { return "01HZZZZZZZZZZZZZZZZZZZZZZZ", nil },
 		},
 	})
-	_, err := svcValidation.Create(ctx, CreateWorldParams{Name: "x", Status: constants.Draft})
+	_, err := svcValidation.Create(ctx, CreateWorldParams{PlaneID: "01HPPPPPPPPPPPPPPPPPPPPPPP", Name: "x", Status: constants.Draft})
 	if !errors.Is(err, serviceerrors.ErrValidation) {
 		t.Fatalf("expected validation error, got %v", err)
 	}
@@ -180,7 +181,7 @@ func TestWorldServiceCreateValidationAndIdGeneratorErrors(t *testing.T) {
 			newULIDFn: func() (model.ULID, error) { return "", errors.New("idgen down") },
 		},
 	})
-	_, err = svcIDErr.Create(ctx, CreateWorldParams{Name: "x", Status: constants.Draft})
+	_, err = svcIDErr.Create(ctx, CreateWorldParams{PlaneID: "01HPPPPPPPPPPPPPPPPPPPPPPP", Name: "x", Status: constants.Draft})
 	if !errors.Is(err, serviceerrors.ErrUnknown) {
 		t.Fatalf("expected unknown on idgen failure, got %v", err)
 	}

@@ -98,7 +98,7 @@ func TestPlaneServiceCreateAndMappings(t *testing.T) {
 		IDGenerator: fakeIDGenerator{newULIDFn: func() (model.ULID, error) { return "01HZZZZZZZZZZZZZZZZZZZZZZZ", nil }},
 	})
 
-	plane, err := svc.Create(ctx, CreatePlaneParams{WorldID: "01HWWWWWWWWWWWWWWWWWWWWWWW", Name: "ok"})
+	plane, err := svc.Create(ctx, CreatePlaneParams{Name: "ok"})
 	if err != nil || plane.ID == "" {
 		t.Fatalf("expected create success, err=%v", err)
 	}
@@ -106,11 +106,7 @@ func TestPlaneServiceCreateAndMappings(t *testing.T) {
 		t.Fatalf("expected normalized create payload")
 	}
 
-	_, err = svc.Create(ctx, CreatePlaneParams{Name: "ok"})
-	if !errors.Is(err, serviceerrors.ErrValidation) {
-		t.Fatalf("expected validation for missing world_id")
-	}
-	_, err = svc.Create(ctx, CreatePlaneParams{WorldID: "01HWWWWWWWWWWWWWWWWWWWWWWW", Name: "bad"})
+	_, err = svc.Create(ctx, CreatePlaneParams{Name: "bad"})
 	if !errors.Is(err, serviceerrors.ErrValidation) {
 		t.Fatalf("expected validation from policy")
 	}
@@ -120,7 +116,7 @@ func TestPlaneServiceCreateAndMappings(t *testing.T) {
 		Policy:      DefaultPlanePolicy{},
 		IDGenerator: fakeIDGenerator{newULIDFn: func() (model.ULID, error) { return "", errors.New("idgen") }},
 	})
-	_, err = svcIDErr.Create(ctx, CreatePlaneParams{WorldID: "01HWWWWWWWWWWWWWWWWWWWWWWW", Name: "name"})
+	_, err = svcIDErr.Create(ctx, CreatePlaneParams{Name: "name"})
 	if !errors.Is(err, serviceerrors.ErrUnknown) {
 		t.Fatalf("expected unknown on idgen failure")
 	}

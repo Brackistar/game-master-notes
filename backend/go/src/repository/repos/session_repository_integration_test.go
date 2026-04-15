@@ -27,12 +27,20 @@ func TestSessionRepositoryIntegration_CreateGetListUpdateDelete(t *testing.T) {
 	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 
 	worldRepo := repos.NewWorldRepository(tx)
+	planeRepo := repos.NewPlaneRepository(tx)
 	campaignRepo := repos.NewCampaignRepository(tx)
 	sessionRepo := repos.NewSessionRepository(tx)
 	now := time.Now().UTC().Truncate(time.Second)
+	plane, _ := planeRepo.Create(ctx, model.Plane{
+		ID:          model.ULID(testULID("session-plane")),
+		Name:        "Session Plane",
+		Description: "p",
+		AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1},
+	})
 
 	world, _ := worldRepo.Create(ctx, model.World{
 		ID:          model.ULID(testULID("session-world")),
+		PlaneID:     plane.ID,
 		Name:        "Session World",
 		Description: "w",
 		Status:      constants.Active,

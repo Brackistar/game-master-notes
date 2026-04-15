@@ -43,22 +43,22 @@ func TestWorldAPIEndpoints(t *testing.T) {
 	now := time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC)
 	svc := &fakeWorldService{
 		createFn: func(_ context.Context, params service.CreateWorldParams) (model.World, error) {
-			return model.World{ID: "01W", Name: params.Name, Description: params.Description, Status: params.Status, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}}, nil
+			return model.World{ID: "01W", PlaneID: params.PlaneID, Name: params.Name, Description: params.Description, Status: params.Status, AuditFields: model.AuditFields{CreatedAt: now, UpdatedAt: now, Version: 1}}, nil
 		},
 		getFn: func(_ context.Context, id model.ULID, _ bool) (model.World, error) {
 			if id == "missing" {
 				return model.World{}, serviceerrors.NewNotFound("x", "world")
 			}
-			return model.World{ID: id, Name: "W", Status: constants.Active, AuditFields: model.AuditFields{Version: 3}}, nil
+			return model.World{ID: id, PlaneID: "01P", Name: "W", Status: constants.Active, AuditFields: model.AuditFields{Version: 3}}, nil
 		},
 		listFn: func(_ context.Context, _ service.ListWorldsParams) ([]service.WorldListItem, error) {
-			return []service.WorldListItem{{ID: "01W", Name: "W", Status: constants.Draft, Version: 1}}, nil
+			return []service.WorldListItem{{ID: "01W", PlaneID: "01P", Name: "W", Status: constants.Draft, Version: 1}}, nil
 		},
 		updateFn: func(_ context.Context, params service.UpdateWorldParams) (model.World, error) {
 			if params.ID == "conflict" {
 				return model.World{}, serviceerrors.NewConflict("x", "world")
 			}
-			return model.World{ID: params.ID, Name: params.Name, Status: params.Status, AuditFields: model.AuditFields{Version: params.ExpectedVersion + 1}}, nil
+			return model.World{ID: params.ID, PlaneID: "01P", Name: params.Name, Status: params.Status, AuditFields: model.AuditFields{Version: params.ExpectedVersion + 1}}, nil
 		},
 		deleteFn: func(_ context.Context, id model.ULID) error {
 			if id == "boom" {
@@ -73,7 +73,7 @@ func TestWorldAPIEndpoints(t *testing.T) {
 	api.Register(mux)
 
 	t.Run("create success", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/worlds", bytes.NewBufferString(`{"name":"A","description":"D","status":"active"}`))
+		req := httptest.NewRequest(http.MethodPost, "/worlds", bytes.NewBufferString(`{"plane_id":"01P","name":"A","description":"D","status":"active"}`))
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		if rec.Code != http.StatusCreated {
@@ -82,7 +82,7 @@ func TestWorldAPIEndpoints(t *testing.T) {
 	})
 
 	t.Run("create invalid status", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/worlds", bytes.NewBufferString(`{"name":"A","description":"D","status":"bad"}`))
+		req := httptest.NewRequest(http.MethodPost, "/worlds", bytes.NewBufferString(`{"plane_id":"01P","name":"A","description":"D","status":"bad"}`))
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		if rec.Code != http.StatusBadRequest {

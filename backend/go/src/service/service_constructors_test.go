@@ -182,8 +182,8 @@ func TestDefaultPoliciesAndConstructors(t *testing.T) {
 		t.Fatalf("expected note constructor service")
 	}
 
-	planeItems := toPlaneListItems([]model.Plane{{ID: "1", WorldID: "2"}})
-	if len(planeItems) != 1 || planeItems[0].WorldID != "2" {
+	planeItems := toPlaneListItems([]model.Plane{{ID: "1"}})
+	if len(planeItems) != 1 || planeItems[0].ID != "1" {
 		t.Fatalf("unexpected plane list mapping")
 	}
 }

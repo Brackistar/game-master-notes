@@ -32,7 +32,6 @@ func (r *PlaneRepository) Create(ctx context.Context, plane model.Plane) (model.
 	defer helpers.LogRepositoryCall()()
 	row, err := r.queries.CreatePlane(ctx, generated.CreatePlaneParams{
 		ID:          string(plane.ID),
-		WorldID:     string(plane.WorldID),
 		Name:        plane.Name,
 		Description: plane.Description,
 		CreatedAt:   toPgTimestamptz(plane.AuditFields.CreatedAt),
@@ -117,7 +116,6 @@ func (r *PlaneRepository) Delete(ctx context.Context, id model.ULID) error {
 func mapPlaneRow(row generated.Plane) model.Plane {
 	return model.Plane{
 		ID:          model.ULID(fmt.Sprint(row.ID)),
-		WorldID:     model.ULID(fmt.Sprint(row.WorldID)),
 		Name:        row.Name,
 		Description: row.Description,
 		AuditFields: model.AuditFields{

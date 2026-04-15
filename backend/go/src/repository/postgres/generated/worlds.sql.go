@@ -13,15 +13,16 @@ import (
 
 const createWorld = `-- name: CreateWorld :one
 INSERT INTO worlds (
-  id, name, description, status, created_at, updated_at, deleted_at, version
+  id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8
+  $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, name, description, status, created_at, updated_at, deleted_at, version
+RETURNING id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 `
 
 type CreateWorldParams struct {
 	ID          interface{}
+	PlaneID     interface{}
 	Name        string
 	Description string
 	Status      WorldStatus
@@ -34,6 +35,7 @@ type CreateWorldParams struct {
 func (q *Queries) CreateWorld(ctx context.Context, arg CreateWorldParams) (World, error) {
 	row := q.db.QueryRow(ctx, createWorld,
 		arg.ID,
+		arg.PlaneID,
 		arg.Name,
 		arg.Description,
 		arg.Status,
@@ -45,6 +47,7 @@ func (q *Queries) CreateWorld(ctx context.Context, arg CreateWorldParams) (World
 	var i World
 	err := row.Scan(
 		&i.ID,
+		&i.PlaneID,
 		&i.Name,
 		&i.Description,
 		&i.Status,
@@ -80,7 +83,7 @@ func (q *Queries) DeleteWorld(ctx context.Context, arg DeleteWorldParams) (int64
 }
 
 const getWorldByID = `-- name: GetWorldByID :one
-SELECT id, name, description, status, created_at, updated_at, deleted_at, version
+SELECT id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 FROM worlds
 WHERE id = $1
   AND ($2::boolean OR deleted_at IS NULL)
@@ -96,6 +99,7 @@ func (q *Queries) GetWorldByID(ctx context.Context, arg GetWorldByIDParams) (Wor
 	var i World
 	err := row.Scan(
 		&i.ID,
+		&i.PlaneID,
 		&i.Name,
 		&i.Description,
 		&i.Status,
@@ -108,7 +112,7 @@ func (q *Queries) GetWorldByID(ctx context.Context, arg GetWorldByIDParams) (Wor
 }
 
 const listWorlds = `-- name: ListWorlds :many
-SELECT id, name, description, status, created_at, updated_at, deleted_at, version
+SELECT id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 FROM worlds
 WHERE ($1::boolean OR deleted_at IS NULL)
 ORDER BY created_at DESC, id DESC
@@ -133,6 +137,7 @@ func (q *Queries) ListWorlds(ctx context.Context, arg ListWorldsParams) ([]World
 		var i World
 		if err := rows.Scan(
 			&i.ID,
+			&i.PlaneID,
 			&i.Name,
 			&i.Description,
 			&i.Status,
@@ -162,7 +167,7 @@ SET
 WHERE id = $1
   AND deleted_at IS NULL
   AND version = $6
-RETURNING id, name, description, status, created_at, updated_at, deleted_at, version
+RETURNING id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 `
 
 type UpdateWorldParams struct {
@@ -186,6 +191,7 @@ func (q *Queries) UpdateWorld(ctx context.Context, arg UpdateWorldParams) (World
 	var i World
 	err := row.Scan(
 		&i.ID,
+		&i.PlaneID,
 		&i.Name,
 		&i.Description,
 		&i.Status,

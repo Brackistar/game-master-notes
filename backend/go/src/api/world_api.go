@@ -53,6 +53,7 @@ func (a *WorldAPI) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	created, err := a.service.Create(r.Context(), service.CreateWorldParams{
+		PlaneID:     model.ULID(payload.PlaneID),
 		Name:        payload.Name,
 		Description: payload.Description,
 		Status:      status,
@@ -97,6 +98,7 @@ func (a *WorldAPI) list(w http.ResponseWriter, r *http.Request) {
 	for _, item := range items {
 		out = append(out, dto.WorldResponse{
 			ID:          string(item.ID),
+			PlaneID:     string(item.PlaneID),
 			Name:        item.Name,
 			Description: item.Description,
 			Status:      item.Status.String(),

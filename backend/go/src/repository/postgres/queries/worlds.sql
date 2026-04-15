@@ -1,19 +1,19 @@
 -- name: CreateWorld :one
 INSERT INTO worlds (
-  id, name, description, status, created_at, updated_at, deleted_at, version
+  id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8
+  $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, name, description, status, created_at, updated_at, deleted_at, version;
+RETURNING id, plane_id, name, description, status, created_at, updated_at, deleted_at, version;
 
 -- name: GetWorldByID :one
-SELECT id, name, description, status, created_at, updated_at, deleted_at, version
+SELECT id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 FROM worlds
 WHERE id = $1
   AND ($2::boolean OR deleted_at IS NULL);
 
 -- name: ListWorlds :many
-SELECT id, name, description, status, created_at, updated_at, deleted_at, version
+SELECT id, plane_id, name, description, status, created_at, updated_at, deleted_at, version
 FROM worlds
 WHERE ($1::boolean OR deleted_at IS NULL)
 ORDER BY created_at DESC, id DESC
@@ -31,7 +31,7 @@ SET
 WHERE id = $1
   AND deleted_at IS NULL
   AND version = $6
-RETURNING id, name, description, status, created_at, updated_at, deleted_at, version;
+RETURNING id, plane_id, name, description, status, created_at, updated_at, deleted_at, version;
 
 -- name: DeleteWorld :execrows
 UPDATE worlds

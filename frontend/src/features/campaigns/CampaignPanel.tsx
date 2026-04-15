@@ -14,7 +14,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
-import type { CampaignViewModel } from "./model";
+import type { CampaignViewModel } from "../../models/communication/campaign_models";
 import { SortableCampaignRow } from "./SortableCampaignRow";
 import styles from "./CampaignPanel.module.css";
 

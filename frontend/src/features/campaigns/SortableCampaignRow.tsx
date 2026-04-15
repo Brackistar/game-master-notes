@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { CampaignViewModel } from "./model";
+import type { CampaignViewModel } from "../../models/communication/campaign_models";
 import styles from "./CampaignPanel.module.css";
 
 type SortableCampaignRowProps = {

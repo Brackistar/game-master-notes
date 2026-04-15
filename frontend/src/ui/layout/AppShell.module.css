@@ -1,7 +1,7 @@
 .appShell {
   height: 100dvh;
   display: grid;
-  grid-template-rows: 1fr auto 62px;
+  grid-template-rows: 1fr auto auto;
   background: var(--color-app-bg);
 }
 

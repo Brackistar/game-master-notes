@@ -1,10 +1,15 @@
 .bottomBar {
   border-top: 1px solid var(--color-border);
   background: var(--color-bottom-bar);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 4px 10px;
+}
+
+.leftSection {
+  min-width: 0;
 }
 
 .searchLabel {
@@ -12,24 +17,98 @@
   align-items: center;
   gap: 8px;
   color: var(--color-text-muted);
-  flex: 1;
 }
 
 .searchLabel input {
   width: 100%;
-  max-width: 420px;
+  max-width: 280px;
   border-radius: 8px;
   border: 1px solid var(--color-border);
   background: var(--color-input-bg);
   color: var(--color-text-primary);
-  padding: 8px 10px;
+  padding: 5px 10px;
 }
 
 .bottomBar button {
+  border-radius: 7px;
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.centerSection {
+  justify-self: center;
+}
+
+.rightSection {
+  justify-self: end;
+  border-left: 3px solid var(--color-border);
+  padding-left: 30px;
+  margin-left: 12px;
+}
+
+.contextActionGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.contextActionGroup {
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  padding: 3px;
+  background: rgba(9, 13, 19, 0.6);
+}
+
+.contextActionGroup button {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-primary);
+  padding: 4px 8px;
+}
+
+.contextActionGroup button:hover {
+  border-color: var(--color-border);
+  background: var(--color-item-bg);
+}
+
+.contextAction {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-primary);
+  padding: 4px 8px;
+}
+
+.contextActionGroup .contextActionActive {
+  position: relative;
+  border-radius: 6px;
+  border: 1px solid var(--color-accent);
+  background: linear-gradient(180deg, #1c4361 0%, #17344b 100%);
+  color: #f6fbff;
+  font-weight: 600;
+  padding: 4px 8px;
+  box-shadow: 0 0 0 1px rgba(94, 181, 224, 0.35) inset;
+}
+
+.contextActionGroup .contextActionActive::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -2px;
+  height: 2px;
+  background: var(--color-accent);
+  border-radius: 99px;
+}
+
+.quickAction {
   border-radius: 8px;
   border: 1px solid var(--color-accent);
   background: #274966;
   color: #f6fbff;
-  padding: 8px 12px;
-  cursor: pointer;
+  padding: 5px 10px;
 }

@@ -103,6 +103,21 @@ def build(
             help="Remove repeated lines and repair hyphenation before chunking.",
         ),
     ] = None,
+    remove_toc_pages: Annotated[
+        bool | None,
+        typer.Option(
+            "--remove-toc-pages/--keep-toc-pages",
+            help="Remove early table-of-contents shaped pages before chunking.",
+        ),
+    ] = None,
+    toc_max_page: Annotated[
+        int | None,
+        typer.Option(
+            "--toc-max-page",
+            min=0,
+            help="Only remove TOC-shaped pages up to this page number.",
+        ),
+    ] = None,
     deduplicate_chunks: Annotated[
         bool | None,
         typer.Option(
@@ -146,6 +161,8 @@ def build(
                 max_chars_per_chunk=max_chars_per_chunk,
                 chunk_overlap_chars=chunk_overlap_chars,
                 clean_text=clean_text,
+                remove_toc_pages=remove_toc_pages,
+                toc_max_page=toc_max_page,
                 deduplicate_chunks=deduplicate_chunks,
                 force=force,
                 dry_run=dry_run,
@@ -203,6 +220,8 @@ def run_build(options: BuildOptions):
                 extractor=pdf_extractor,
                 max_chars_per_chunk=options.max_chars_per_chunk,
                 clean_text=options.clean_text,
+                remove_toc_pages=options.remove_toc_pages,
+                toc_max_page=options.toc_max_page,
                 deduplicate_chunks=options.deduplicate_chunks,
                 chunk_overlap_chars=options.chunk_overlap_chars,
             )
@@ -223,6 +242,8 @@ def run_build(options: BuildOptions):
             embedding_provider=embeddings,
             max_chars_per_chunk=options.max_chars_per_chunk,
             clean_text=options.clean_text,
+            remove_toc_pages=options.remove_toc_pages,
+            toc_max_page=options.toc_max_page,
             deduplicate_chunks=options.deduplicate_chunks,
             chunk_overlap_chars=options.chunk_overlap_chars,
         )

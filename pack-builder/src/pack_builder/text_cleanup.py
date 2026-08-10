@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from pack_builder.models import ExtractedDocument, ExtractedPage
+from pack_builder.models import ExtractedDocument, ExtractedPage, replace_document_pages
 
 
 def clean_documents(
@@ -27,16 +27,7 @@ def clean_documents(
                 )
             )
         removed_lines[document.document_id] = sorted(repeated_lines)
-        cleaned_documents.append(
-            ExtractedDocument(
-                document_id=document.document_id,
-                source_path=document.source_path,
-                source_filename=document.source_filename,
-                source_checksum=document.source_checksum,
-                page_count=document.page_count,
-                pages=cleaned_pages,
-            )
-        )
+        cleaned_documents.append(replace_document_pages(document, cleaned_pages))
 
     return cleaned_documents, {
         "enabled": True,

@@ -30,7 +30,7 @@ Useful build options:
 
 ```bash
 uv run pack-builder build --force --max-chars-per-chunk 1200 --report-out report.json --verbose --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
-uv run pack-builder build --chunk-overlap-chars 200 --no-clean-text --no-deduplicate-chunks --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
+uv run pack-builder build --chunk-overlap-chars 200 --keep-toc-pages --no-clean-text --no-deduplicate-chunks --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --dry-run --report-out report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --config build-config.json
 uv run pack-builder report example.gmnpack
@@ -46,6 +46,8 @@ uv run pack-builder validate --json example.gmnpack
 - `--max-chars-per-chunk` controls retrieval chunk size.
 - `--chunk-overlap-chars` prepends trailing context from the previous chunk.
 - `--clean-text/--no-clean-text` toggles repeated-line removal and hyphen repair.
+- `--remove-toc-pages/--keep-toc-pages` toggles early table-of-contents cleanup.
+- `--toc-max-page` limits TOC cleanup to early book pages.
 - `--deduplicate-chunks/--no-deduplicate-chunks` toggles duplicate chunk removal.
 - `--report-out` writes the extraction quality report as standalone JSON.
 - `--verbose` prints empty, suspicious, duplicate, and warning counts.
@@ -67,6 +69,8 @@ Example `build-config.json`:
   "max_chars_per_chunk": 1200,
   "chunk_overlap_chars": 200,
   "clean_text": true,
+  "remove_toc_pages": true,
+  "toc_max_page": 20,
   "deduplicate_chunks": true,
   "report_out": "C:/path/to/report.json"
 }
@@ -93,6 +97,17 @@ Each `.gmnpack` is a ZIP archive containing:
 - `embeddings.npy`
 - `extraction-report.json`
 
-The extraction report records chunking settings, cleanup actions, chunk quality actions, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.
+The extraction report records chunking settings, cleanup actions, TOC cleanup actions, chunk quality actions, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.
 
 Advanced extraction diagnostics flag likely OCR-needed pages, table-shaped text, and multi-column-shaped text. Password-protected PDF handling is intentionally out of scope.
+
+## Internal Structure
+
+- `cli.py` owns Typer commands and user-facing output.
+- `build_config.py` resolves JSON config files and CLI overrides.
+- `pdf_extract.py` owns extractor adapters for PyMuPDF and pdfplumber.
+- `pack_pipeline.py` coordinates extraction, cleanup, TOC removal, chunking, and chunk quality.
+- `pack_writer.py` writes manifests, document metadata, embeddings, and ZIP archives.
+- `pack_reader.py` reads existing packs for inspection commands.
+- `extraction_report.py` builds extraction quality reports.
+- `validate.py` verifies `.gmnpack` archive contracts.

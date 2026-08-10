@@ -21,6 +21,20 @@ class ExtractedDocument:
     pages: list[ExtractedPage]
 
 
+def replace_document_pages(
+    document: ExtractedDocument,
+    pages: list[ExtractedPage],
+) -> ExtractedDocument:
+    return ExtractedDocument(
+        document_id=document.document_id,
+        source_path=document.source_path,
+        source_filename=document.source_filename,
+        source_checksum=document.source_checksum,
+        page_count=document.page_count,
+        pages=pages,
+    )
+
+
 @dataclass(frozen=True)
 class SourceChunk:
     chunk_id: str

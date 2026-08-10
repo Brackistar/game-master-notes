@@ -116,6 +116,18 @@ def test_resolve_build_options_rejects_invalid_overlap(
         resolve_build_options(config, BuildOverrides())
 
 
+def test_resolve_build_options_rejects_negative_toc_max_page(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    config = tmp_path / "bad-toc.json"
+    payload = base_config(synthetic_pdf, tmp_path / "out.gmnpack")
+    payload["toc_max_page"] = -1
+    write_config(config, payload)
+
+    with pytest.raises(ValueError, match="must be zero or greater"):
+        resolve_build_options(config, BuildOverrides())
+
+
 def test_resolve_build_options_uses_cli_overrides(
     synthetic_pdf: Path, tmp_path: Path
 ) -> None:

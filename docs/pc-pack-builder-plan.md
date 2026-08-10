@@ -41,13 +41,23 @@ Current structure:
 
 - `src/pack_builder/build_config.py`
 - `src/pack_builder/cli.py`
-- `src/pack_builder/pdf_extract.py`
 - `src/pack_builder/chunking.py`
+- `src/pack_builder/chunk_quality.py`
 - `src/pack_builder/embeddings.py`
+- `src/pack_builder/extraction_diagnostics.py`
+- `src/pack_builder/extraction_report.py`
+- `src/pack_builder/extractor_compare.py`
+- `src/pack_builder/pdf_extract.py`
+- `src/pack_builder/pack_pipeline.py`
 - `src/pack_builder/pack_reader.py`
 - `src/pack_builder/pack_writer.py`
+- `src/pack_builder/schema_contract.py`
+- `src/pack_builder/text_cleanup.py`
+- `src/pack_builder/toc_cleanup.py`
 - `src/pack_builder/validate.py`
 - `tests/`
+
+The current code keeps the CLI, pack preparation pipeline, archive writing, and extraction report generation in separate modules to keep file size and cognitive complexity under control.
 
 Implemented commands:
 
@@ -58,6 +68,8 @@ Implemented commands:
 - `build --chunk-overlap-chars <int>`
 - `build --max-chars-per-chunk <int>`
 - `build --no-clean-text`
+- `build --keep-toc-pages`
+- `build --toc-max-page <int>`
 - `build --no-deduplicate-chunks`
 - `build --report-out <json>`
 - `inspect <pack>`
@@ -82,6 +94,7 @@ Implemented quality controls:
 - Sample chunk inspection for real-world PDF review.
 - Repeated-line cleanup for common headers and footers.
 - Hyphenated line repair.
+- Early table-of-contents cleanup with a max-page guard, including dense inline TOC text extracted from complex PDFs.
 - Optional chunk overlap for retrieval continuity.
 - Duplicate normalized chunk removal.
 - Duplicate normalized page detection.
@@ -201,6 +214,7 @@ pack-builder validate mage-core.gmnpack
 - Unit test build config validation and CLI override behavior.
 - Unit test report and sample-chunk CLI output.
 - Unit test repeated-line cleanup and hyphen repair.
+- Unit test table-of-contents cleanup.
 - Unit test chunk overlap and duplicate chunk removal.
 - Unit test advanced extraction diagnostics.
 - Unit test schema contract output.

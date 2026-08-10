@@ -64,6 +64,10 @@ Implemented commands:
 - `inspect --json <pack>`
 - `report <pack>`
 - `report --json <pack>`
+- `compare-extractors <pdf>`
+- `compare-extractors --json <pdf>`
+- `schema`
+- `schema --json`
 - `sample-chunks <pack>`
 - `sample-chunks --contains <text> --limit <n> <pack>`
 - `validate <pack>`
@@ -81,6 +85,11 @@ Implemented quality controls:
 - Optional chunk overlap for retrieval continuity.
 - Duplicate normalized chunk removal.
 - Duplicate normalized page detection.
+- OCR-needed page diagnostics for image-only extraction results.
+- Table-shaped and multi-column-shaped text diagnostics.
+- Extractor comparison between PyMuPDF and pdfplumber.
+- Schema contract output for Android importer planning.
+- Password-protected PDF handling is intentionally excluded.
 - Focused config validation for invalid JSON, bad `pdfs`, missing required values, missing PDFs, and too-small chunks.
 
 Implemented archive layout:
@@ -136,6 +145,8 @@ Initial commands:
 - `build`: convert PDF files into a pack archive.
 - `inspect`: print pack metadata and extraction stats.
 - `report`: print extraction quality metrics.
+- `compare-extractors`: compare PyMuPDF and pdfplumber output for one PDF.
+- `schema`: print the current `.gmnpack` contract.
 - `sample-chunks`: inspect representative chunks for manual quality review.
 - `validate`: verify manifest, chunk count, embedding count, and required fields.
 
@@ -145,6 +156,8 @@ Example shape:
 pack-builder build --system "Mage" --edition "20th" --title "Core Rulebook" --out mage-core.gmnpack book.pdf
 pack-builder build --config mage-core-build.json
 pack-builder report mage-core.gmnpack
+pack-builder compare-extractors book.pdf
+pack-builder schema --json
 pack-builder sample-chunks --limit 5 mage-core.gmnpack
 pack-builder inspect mage-core.gmnpack
 pack-builder validate mage-core.gmnpack
@@ -189,12 +202,16 @@ pack-builder validate mage-core.gmnpack
 - Unit test report and sample-chunk CLI output.
 - Unit test repeated-line cleanup and hyphen repair.
 - Unit test chunk overlap and duplicate chunk removal.
+- Unit test advanced extraction diagnostics.
+- Unit test schema contract output.
+- Unit test extractor comparison CLI output.
 - Use tiny synthetic PDFs in the repo for tests, not copyrighted sourcebooks.
 - Manually test with real owned books outside the repo.
 
 ## Risks
 
 - PDFs with scanned images may need OCR later.
+- Password-protected PDFs are not handled by design.
 - Rulebooks with complex tables may extract poorly.
 - Embedding model choice affects Android search compatibility.
 - Very large packs may stress tablet import time and storage.

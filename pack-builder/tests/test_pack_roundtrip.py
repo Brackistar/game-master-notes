@@ -86,3 +86,4 @@ def test_build_pack_records_cleanup_and_chunk_quality(
 
     assert build_result.extraction_report["cleanup"]["enabled"] is True
     assert build_result.extraction_report["chunk_quality"]["overlap_chars"] == 20
+    assert "advanced_extraction" in build_result.extraction_report

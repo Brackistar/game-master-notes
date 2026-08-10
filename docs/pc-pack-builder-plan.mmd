@@ -11,8 +11,11 @@ flowchart LR
     Chunk[Chunking\nparagraph-aware citations]
     Quality[Chunk quality\noverlap + dedupe]
     Embed[Embedding generation\none vector per chunk]
+    Diagnostics[Advanced diagnostics\nOCR + tables + columns]
     Validate[Pack validation\ncounts + schema + checksums]
     Write[Pack writer\nZIP archive]
+    Compare[Compare extractors\nPyMuPDF vs pdfplumber]
+    Schema[Schema command\npack contract]
     Inspect[Inspection commands\nreport + sample chunks]
   end
 
@@ -27,13 +30,15 @@ flowchart LR
   PDF --> Extract
   Flags --> Extract
   Config --> Extract
-  Extract --> Cleanup --> Chunk --> Quality --> Embed --> Validate --> Write
+  Extract --> Cleanup --> Chunk --> Quality --> Embed --> Diagnostics --> Validate --> Write
+  Extract --> Compare
   Write --> Manifest
   Write --> Docs
   Write --> Chunks
   Write --> Vectors
   Write --> Report
   Pack --> Inspect
+  Schema --> Import
   Pack --> Import[Android pack importer]
 
   classDef input fill:#f7f7f7,stroke:#666,color:#111;
@@ -41,5 +46,5 @@ flowchart LR
   classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
 
   class PDF,Flags,Config input;
-  class Extract,Cleanup,Chunk,Quality,Embed,Validate,Write,Inspect process;
+  class Extract,Cleanup,Chunk,Quality,Embed,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
   class Manifest,Docs,Chunks,Vectors,Report,Import output;

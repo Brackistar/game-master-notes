@@ -24,6 +24,7 @@ from pack_builder.constants import (
     SUSPICIOUS_PAGE_CHAR_THRESHOLD,
 )
 from pack_builder.embeddings import EmbeddingProvider
+from pack_builder.extraction_diagnostics import advanced_extraction_diagnostics
 from pack_builder.models import ExtractedDocument, SourceChunk
 from pack_builder.pdf_extract import PdfExtractor, extract_document, slugify
 from pack_builder.text_cleanup import clean_documents
@@ -109,6 +110,7 @@ def build_extraction_report(
         },
         "cleanup": cleanup_report,
         "chunk_quality": chunk_quality_report,
+        "advanced_extraction": advanced_extraction_diagnostics(documents),
         "page_text_lengths": page_lengths,
         "empty_pages": empty_pages,
         "suspicious_pages": suspicious_pages,

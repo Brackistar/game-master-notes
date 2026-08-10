@@ -251,3 +251,31 @@ def test_cli_report_and_sample_chunks(synthetic_pdf: Path, tmp_path: Path) -> No
     sample_payload = json.loads(sample_result.output)
     assert sample_payload["count"] == 1
     assert "citation_label" in sample_payload["chunks"][0]
+
+
+def test_cli_schema_outputs_contract() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["schema", "--json"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["schema_version"] == "1.0"
+    assert "chunks.jsonl" in payload["archive_files"]
+
+
+def test_cli_compare_extractors_outputs_summary(
+    synthetic_pdf: Path,
+) -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        ["compare-extractors", "--json", str(synthetic_pdf)],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["extractors"] == ["pymupdf", "pdfplumber"]
+    assert payload["page_count"] == 2
+    assert "character_delta" in payload["summary"]

@@ -34,6 +34,8 @@ uv run pack-builder build --chunk-overlap-chars 200 --no-clean-text --no-dedupli
 uv run pack-builder build --dry-run --report-out report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --config build-config.json
 uv run pack-builder report example.gmnpack
+uv run pack-builder compare-extractors book.pdf
+uv run pack-builder schema --json
 uv run pack-builder sample-chunks --limit 5 example.gmnpack
 uv run pack-builder inspect --json example.gmnpack
 uv run pack-builder validate --json example.gmnpack
@@ -78,6 +80,8 @@ CLI flags override config file values.
 - `report --json` prints the full report.
 - `sample-chunks` prints a few chunk text samples for manual review.
 - `sample-chunks --contains "term"` filters sampled chunks by text.
+- `compare-extractors` compares PyMuPDF and pdfplumber page character counts.
+- `schema` prints the current `.gmnpack` contract.
 
 ## Archive Layout
 
@@ -90,3 +94,5 @@ Each `.gmnpack` is a ZIP archive containing:
 - `extraction-report.json`
 
 The extraction report records chunking settings, cleanup actions, chunk quality actions, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.
+
+Advanced extraction diagnostics flag likely OCR-needed pages, table-shaped text, and multi-column-shaped text. Password-protected PDF handling is intentionally out of scope.

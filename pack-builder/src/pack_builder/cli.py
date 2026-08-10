@@ -10,9 +10,11 @@ from rich.table import Table
 
 from pack_builder.build_config import BuildOptions, BuildOverrides, resolve_build_options
 from pack_builder.embeddings import get_embedding_provider
+from pack_builder.extractor_compare import compare_extractors
 from pack_builder.pack_reader import read_chunks, read_extraction_report
 from pack_builder.pack_writer import build_pack, preview_pack
 from pack_builder.pdf_extract import get_extractor
+from pack_builder.schema_contract import pack_schema_contract
 from pack_builder.validate import validate_pack
 
 
@@ -270,6 +272,55 @@ def report(
     for field_name in ["empty_pages", "suspicious_pages", "duplicate_pages", "warnings", "errors"]:
         value = extraction_report.get(field_name, [])
         table.add_row(field_name, str(len(value) if isinstance(value, list) else value))
+    console.print(table)
+
+
+@app.command("compare-extractors")
+def compare_extractors_command(
+    pdf: Annotated[
+        Path,
+        typer.Argument(exists=True, file_okay=True, dir_okay=False, readable=True),
+    ],
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Print comparison report as JSON."),
+    ] = False,
+) -> None:
+    """Compare PyMuPDF and pdfplumber extraction output."""
+    comparison = compare_extractors(pdf)
+    if as_json:
+        console.print_json(data=comparison)
+        return
+
+    table = Table(title=f"Extractor comparison: {pdf}")
+    table.add_column("Metric")
+    table.add_column("Value")
+    summary = comparison["summary"]
+    if isinstance(summary, dict):
+        for key, value in summary.items():
+            table.add_row(key, str(value))
+    console.print(table)
+
+
+@app.command("schema")
+def schema(
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Print schema contract as JSON."),
+    ] = False,
+) -> None:
+    """Print the .gmnpack schema contract."""
+    contract = pack_schema_contract()
+    if as_json:
+        console.print_json(data=contract)
+        return
+
+    table = Table(title=".gmnpack schema")
+    table.add_column("Field")
+    table.add_column("Value")
+    table.add_row("schema_version", str(contract["schema_version"]))
+    table.add_row("embedding_format", str(contract["embedding_format"]))
+    table.add_row("archive_files", ", ".join(contract["archive_files"]))
     console.print(table)
 
 

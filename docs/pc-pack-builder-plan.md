@@ -33,19 +33,33 @@ The builder must never require committing PDFs, extracted book text, or commerci
 - Archive format: ZIP with a stable internal layout
 - Tests: pytest
 
-## Future Directory
+## Implementation Status
 
-Use `pack-builder/` when implementation begins.
+The first implementation slice now lives in `pack-builder/`.
 
-Suggested structure:
+Current structure:
 
-- `pack_builder/cli.py`
-- `pack_builder/pdf_extract.py`
-- `pack_builder/chunking.py`
-- `pack_builder/embeddings.py`
-- `pack_builder/pack_writer.py`
-- `pack_builder/validate.py`
+- `src/pack_builder/cli.py`
+- `src/pack_builder/pdf_extract.py`
+- `src/pack_builder/chunking.py`
+- `src/pack_builder/embeddings.py`
+- `src/pack_builder/pack_writer.py`
+- `src/pack_builder/validate.py`
 - `tests/`
+
+Implemented commands:
+
+- `build --system --edition --title --out --extractor [pymupdf|pdfplumber] <pdf...>`
+- `inspect <pack>`
+- `validate <pack>`
+
+Implemented archive layout:
+
+- `manifest.json`
+- `documents.json`
+- `chunks.jsonl`
+- `embeddings.npy`
+- `extraction-report.json`
 
 ## V1 Pack Archive Layout
 
@@ -54,7 +68,7 @@ Use a ZIP archive with this internal shape:
 - `manifest.json`
 - `documents.json`
 - `chunks.jsonl`
-- `embeddings.bin` or `embeddings.npy`
+- `embeddings.npy`
 - `extraction-report.json`
 
 The manifest should include:

@@ -1,5 +1,12 @@
 # game-master-notes
 
+## Metadata
+
+- File: `README.MD`
+- Created: 2026-08-10
+- Last updated: 2026-08-10
+- User: brackistar
+
 An offline Android lore and notes assistant for game masters running multiple roleplaying systems.
 
 ## Overview
@@ -62,9 +69,9 @@ The expected sweet spot is around 350M parameters. Larger models may be tested, 
 
 ## Current Status
 
-This project is in architecture reset and planning. The repository currently describes the intended Android offline architecture, implementation tracks, Mermaid diagrams, and local VS Code/GitHub-style steering files before implementation begins.
+This project is in architecture reset and early implementation. The repository currently describes the intended Android offline architecture, implementation tracks, Mermaid diagrams, local VS Code/GitHub-style steering files, and the first sourcebook pack builder slice.
 
-The next step is to create the Android project skeleton, define the local data model, and build the first sourcebook pack format and importer.
+The next step is to expand the pack builder, create the Android project skeleton, define the local data model, and build the Android sourcebook pack importer.
 
 ## Roadmap
 
@@ -112,12 +119,30 @@ The repository is still being bootstrapped. Current project source is mostly doc
 - `docs/` for architecture, planning, and Mermaid diagrams
 - `.github/instructions/` for local VS Code/GitHub-style steering files
 
-Expected future top-level implementation directories:
+Implementation directories:
 
 - `android/` for the Android application
 - `pack-builder/` for the local PC sourcebook pack CLI
 
-Do not assume these directories already exist until implementation begins.
+Do not assume `android/` exists until Android implementation begins.
+
+## Pack Builder Commands
+
+From `pack-builder/`:
+
+```bash
+uv venv
+uv sync --extra dev
+uv run pytest
+uv run pack-builder --help
+```
+
+The pack builder can also be run through the local virtual environment directly after syncing:
+
+```bash
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\pack-builder.exe --help
+```
 
 ## Documentation Map
 

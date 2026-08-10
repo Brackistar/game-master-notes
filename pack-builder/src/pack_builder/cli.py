@@ -108,6 +108,21 @@ def build(
             help="Remove repeated lines and repair hyphenation before chunking.",
         ),
     ] = None,
+    remove_front_matter: Annotated[
+        bool | None,
+        typer.Option(
+            "--remove-front-matter/--keep-front-matter",
+            help="Remove early credits/legal pages before chunking.",
+        ),
+    ] = None,
+    front_matter_max_page: Annotated[
+        int | None,
+        typer.Option(
+            "--front-matter-max-page",
+            min=0,
+            help="Only remove front-matter-shaped pages up to this page number.",
+        ),
+    ] = None,
     remove_toc_pages: Annotated[
         bool | None,
         typer.Option(
@@ -166,6 +181,8 @@ def build(
                 max_chars_per_chunk=max_chars_per_chunk,
                 chunk_overlap_chars=chunk_overlap_chars,
                 clean_text=clean_text,
+                remove_front_matter=remove_front_matter,
+                front_matter_max_page=front_matter_max_page,
                 remove_toc_pages=remove_toc_pages,
                 toc_max_page=toc_max_page,
                 deduplicate_chunks=deduplicate_chunks,
@@ -225,6 +242,8 @@ def run_build(options: BuildOptions):
                 extractor=pdf_extractor,
                 max_chars_per_chunk=options.max_chars_per_chunk,
                 clean_text=options.clean_text,
+                remove_front_matter=options.remove_front_matter,
+                front_matter_max_page=options.front_matter_max_page,
                 remove_toc_pages=options.remove_toc_pages,
                 toc_max_page=options.toc_max_page,
                 deduplicate_chunks=options.deduplicate_chunks,
@@ -247,6 +266,8 @@ def run_build(options: BuildOptions):
             embedding_provider=embeddings,
             max_chars_per_chunk=options.max_chars_per_chunk,
             clean_text=options.clean_text,
+            remove_front_matter=options.remove_front_matter,
+            front_matter_max_page=options.front_matter_max_page,
             remove_toc_pages=options.remove_toc_pages,
             toc_max_page=options.toc_max_page,
             deduplicate_chunks=options.deduplicate_chunks,
@@ -259,6 +280,7 @@ def print_quality_summary(extraction_report: dict[str, object]) -> None:
     suspicious_pages = extraction_report.get("suspicious_pages", [])
     duplicate_pages = extraction_report.get("duplicate_pages", [])
     warnings = extraction_report.get("warnings", [])
+    timing = extraction_report.get("timing", {})
     console.print(
         "Quality: "
         f"{len(empty_pages)} empty pages, "
@@ -266,6 +288,9 @@ def print_quality_summary(extraction_report: dict[str, object]) -> None:
         f"{len(duplicate_pages)} duplicate pages, "
         f"{len(warnings)} warnings."
     )
+    if isinstance(timing, dict) and timing:
+        seconds = timing.get("measured_before_archive_seconds")
+        console.print(f"Timing: {seconds}s before archive write.")
 
 
 @app.command("report")
@@ -295,10 +320,37 @@ def report(
             "max_chars_per_chunk",
             str(chunking.get("max_chars_per_chunk", "")),
         )
-    for field_name in ["empty_pages", "suspicious_pages", "duplicate_pages", "warnings", "errors"]:
+    for field_name in [
+        "empty_pages",
+        "suspicious_pages",
+        "duplicate_pages",
+        "warnings",
+        "errors",
+    ]:
         value = extraction_report.get(field_name, [])
         table.add_row(field_name, str(len(value) if isinstance(value, list) else value))
+        if isinstance(value, list) and value:
+            table.add_row(f"{field_name}_refs", format_page_refs(value))
+    advanced = extraction_report.get("advanced_extraction", {})
+    if isinstance(advanced, dict):
+        for field_name, value in advanced.items():
+            table.add_row(field_name, str(len(value) if isinstance(value, list) else value))
+            if isinstance(value, list) and value:
+                table.add_row(f"{field_name}_refs", format_page_refs(value))
+    timing = extraction_report.get("timing", {})
+    if isinstance(timing, dict):
+        for key, value in timing.items():
+            table.add_row(key, str(value))
     console.print(table)
+
+
+def format_page_refs(refs: list[object]) -> str:
+    pages = [
+        str(ref.get("page"))
+        for ref in refs
+        if isinstance(ref, dict) and ref.get("page") is not None
+    ]
+    return ", ".join(pages[:30]) + (" ..." if len(pages) > 30 else "")
 
 
 @app.command("compare-extractors")
@@ -383,6 +435,33 @@ def sample_chunks(
         console.rule(str(chunk.get("citation_label", chunk.get("chunk_id", "chunk"))))
         text = str(chunk.get("text", ""))
         console.print(text[:700] + ("..." if len(text) > 700 else ""))
+
+
+@app.command("page-chunks")
+def page_chunks(
+    pack: Annotated[
+        Path,
+        typer.Argument(exists=True, file_okay=True, dir_okay=False, readable=True),
+    ],
+    page: Annotated[int, typer.Option("--page", min=1, help="PDF page number.")],
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Print page chunks as JSON."),
+    ] = False,
+) -> None:
+    """Print chunks that include a specific source PDF page."""
+    chunks = [
+        chunk
+        for chunk in read_chunks(pack)
+        if int(chunk.get("page_start", 0)) <= page <= int(chunk.get("page_end", 0))
+    ]
+    if as_json:
+        console.print_json(data={"page": page, "chunks": chunks, "count": len(chunks)})
+        return
+    for chunk in chunks:
+        console.rule(str(chunk.get("citation_label", chunk.get("chunk_id", "chunk"))))
+        text = str(chunk.get("text", ""))
+        console.print(text[:900] + ("..." if len(text) > 900 else ""))
 
 
 @app.command()

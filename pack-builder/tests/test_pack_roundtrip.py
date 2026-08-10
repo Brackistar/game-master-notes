@@ -44,6 +44,8 @@ def test_build_pack_writes_valid_archive(synthetic_pdf: Path, tmp_path: Path) ->
 
     assert embeddings.shape[0] == manifest["chunk_count"]
     assert embeddings.shape[1] == 384
+    assert manifest["build_options"]["extractor"] == "pymupdf"
+    assert "timing" in build_result.extraction_report
 
 
 def test_build_pack_respects_custom_chunk_size(
@@ -85,6 +87,7 @@ def test_build_pack_records_cleanup_and_chunk_quality(
     )
 
     assert build_result.extraction_report["cleanup"]["enabled"] is True
+    assert build_result.extraction_report["front_matter_cleanup"]["enabled"] is True
     assert build_result.extraction_report["toc_cleanup"]["enabled"] is True
     assert build_result.extraction_report["chunk_quality"]["overlap_chars"] == 20
     assert "advanced_extraction" in build_result.extraction_report

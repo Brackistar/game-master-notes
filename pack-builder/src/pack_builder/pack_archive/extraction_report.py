@@ -12,8 +12,10 @@ def build_extraction_report(
     documents: list[ExtractedDocument],
     max_chars_per_chunk: int,
     cleanup_report: dict[str, object],
+    front_matter_report: dict[str, object],
     toc_report: dict[str, object],
     chunk_quality_report: dict[str, object],
+    timing_report: dict[str, object],
 ) -> dict[str, object]:
     page_report = collect_page_report(documents)
     return {
@@ -23,8 +25,10 @@ def build_extraction_report(
             "strategy": "paragraph-aware",
         },
         "cleanup": cleanup_report,
+        "front_matter_cleanup": front_matter_report,
         "toc_cleanup": toc_report,
         "chunk_quality": chunk_quality_report,
+        "timing": timing_report,
         "advanced_extraction": advanced_extraction_diagnostics(documents),
         "page_text_lengths": page_report["page_text_lengths"],
         "empty_pages": page_report["empty_pages"],

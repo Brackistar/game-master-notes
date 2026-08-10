@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+from time import perf_counter
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -65,6 +66,7 @@ def manifest_data(
     extractor_name: str,
     embedding_provider: EmbeddingProvider,
     chunk_count: int,
+    build_options: dict[str, object],
 ) -> dict[str, object]:
     return {
         "schema_version": PACK_SCHEMA_VERSION,
@@ -85,6 +87,7 @@ def manifest_data(
         "embedding_model_id": embedding_provider.model_id,
         "embedding_dimensions": embedding_provider.dimensions,
         "chunk_count": chunk_count,
+        "build_options": build_options,
         "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
     }
 
@@ -128,11 +131,14 @@ def build_pack(
     embedding_provider: EmbeddingProvider,
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
     clean_text: bool = True,
+    remove_front_matter: bool = True,
+    front_matter_max_page: int = 3,
     remove_toc_pages: bool = True,
     toc_max_page: int = 20,
     deduplicate_chunks: bool = True,
     chunk_overlap_chars: int = 0,
 ) -> BuildResult:
+    started_at = perf_counter()
     pack_content = prepare_pack_content(
         pdf_paths=pdf_paths,
         title=title,
@@ -141,6 +147,8 @@ def build_pack(
         extractor=extractor,
         max_chars_per_chunk=max_chars_per_chunk,
         clean_text=clean_text,
+        remove_front_matter=remove_front_matter,
+        front_matter_max_page=front_matter_max_page,
         remove_toc_pages=remove_toc_pages,
         toc_max_page=toc_max_page,
         deduplicate=deduplicate_chunks,
@@ -148,8 +156,10 @@ def build_pack(
     )
     if not pack_content.chunks:
         raise ValueError("no text chunks were created from the provided PDFs")
+    prepared_at = perf_counter()
 
     embeddings = embedding_provider.encode([chunk.text for chunk in pack_content.chunks])
+    embedded_at = perf_counter()
     if embeddings.shape != (len(pack_content.chunks), embedding_provider.dimensions):
         raise ValueError(
             "embedding provider returned shape "
@@ -167,6 +177,17 @@ def build_pack(
         extractor_name=extractor.name,
         embedding_provider=embedding_provider,
         chunk_count=len(pack_content.chunks),
+        build_options=build_options_data(
+            extractor.name,
+            max_chars_per_chunk,
+            chunk_overlap_chars,
+            clean_text,
+            remove_front_matter,
+            front_matter_max_page,
+            remove_toc_pages,
+            toc_max_page,
+            deduplicate_chunks,
+        ),
     )
     document_rows = [document_metadata(document) for document in pack_content.documents]
     report = build_extraction_report(
@@ -174,8 +195,10 @@ def build_pack(
         pack_content.documents,
         max_chars_per_chunk,
         pack_content.cleanup_report,
+        pack_content.front_matter_report,
         pack_content.toc_report,
         pack_content.chunk_quality_report,
+        build_timing_report(started_at, prepared_at, embedded_at),
     )
 
     write_pack_archive(
@@ -204,11 +227,14 @@ def preview_pack(
     extractor: PdfExtractor,
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
     clean_text: bool = True,
+    remove_front_matter: bool = True,
+    front_matter_max_page: int = 3,
     remove_toc_pages: bool = True,
     toc_max_page: int = 20,
     deduplicate_chunks: bool = True,
     chunk_overlap_chars: int = 0,
 ) -> BuildResult:
+    started_at = perf_counter()
     pack_content = prepare_pack_content(
         pdf_paths=pdf_paths,
         title=title,
@@ -217,6 +243,8 @@ def preview_pack(
         extractor=extractor,
         max_chars_per_chunk=max_chars_per_chunk,
         clean_text=clean_text,
+        remove_front_matter=remove_front_matter,
+        front_matter_max_page=front_matter_max_page,
         remove_toc_pages=remove_toc_pages,
         toc_max_page=toc_max_page,
         deduplicate=deduplicate_chunks,
@@ -227,8 +255,10 @@ def preview_pack(
         pack_content.documents,
         max_chars_per_chunk,
         pack_content.cleanup_report,
+        pack_content.front_matter_report,
         pack_content.toc_report,
         pack_content.chunk_quality_report,
+        build_timing_report(started_at, perf_counter(), None),
     )
     manifest = {
         "schema_version": PACK_SCHEMA_VERSION,
@@ -246,6 +276,17 @@ def preview_pack(
         "embedding_model_id": None,
         "embedding_dimensions": None,
         "chunk_count": len(pack_content.chunks),
+        "build_options": build_options_data(
+            extractor.name,
+            max_chars_per_chunk,
+            chunk_overlap_chars,
+            clean_text,
+            remove_front_matter,
+            front_matter_max_page,
+            remove_toc_pages,
+            toc_max_page,
+            deduplicate_chunks,
+        ),
         "created_at": None,
         "dry_run": True,
     }
@@ -255,6 +296,46 @@ def preview_pack(
         chunks=pack_content.chunks,
         extraction_report=report,
     )
+
+
+def build_options_data(
+    extractor_name: str,
+    max_chars_per_chunk: int,
+    chunk_overlap_chars: int,
+    clean_text: bool,
+    remove_front_matter: bool,
+    front_matter_max_page: int,
+    remove_toc_pages: bool,
+    toc_max_page: int,
+    deduplicate_chunks: bool,
+) -> dict[str, object]:
+    return {
+        "extractor": extractor_name,
+        "max_chars_per_chunk": max_chars_per_chunk,
+        "chunk_overlap_chars": chunk_overlap_chars,
+        "clean_text": clean_text,
+        "remove_front_matter": remove_front_matter,
+        "front_matter_max_page": front_matter_max_page,
+        "remove_toc_pages": remove_toc_pages,
+        "toc_max_page": toc_max_page,
+        "deduplicate_chunks": deduplicate_chunks,
+    }
+
+
+def build_timing_report(
+    started_at: float,
+    prepared_at: float,
+    embedded_at: float | None,
+) -> dict[str, object]:
+    measured_at = perf_counter()
+    timing = {
+        "prepare_seconds": round(prepared_at - started_at, 3),
+        "measured_before_archive_seconds": round(measured_at - started_at, 3),
+    }
+    if embedded_at is not None:
+        timing["embedding_seconds"] = round(embedded_at - prepared_at, 3)
+        timing["post_embedding_seconds"] = round(measured_at - embedded_at, 3)
+    return timing
 
 
 

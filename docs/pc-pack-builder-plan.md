@@ -60,6 +60,8 @@ Implemented commands:
 - `build --chunk-overlap-chars <int>`
 - `build --max-chars-per-chunk <int>`
 - `build --no-clean-text`
+- `build --keep-front-matter`
+- `build --front-matter-max-page <int>`
 - `build --keep-toc-pages`
 - `build --toc-max-page <int>`
 - `build --no-deduplicate-chunks`
@@ -74,6 +76,7 @@ Implemented commands:
 - `schema --json`
 - `sample-chunks <pack>`
 - `sample-chunks --contains <text> --limit <n> <pack>`
+- `page-chunks --page <n> <pack>`
 - `validate <pack>`
 - `validate --json <pack>`
 
@@ -86,6 +89,9 @@ Implemented quality controls:
 - Sample chunk inspection for real-world PDF review.
 - Repeated-line cleanup for common headers and footers.
 - Hyphenated line repair.
+- Conservative split-word repair for common layout artifacts.
+- Table-shaped line preservation with pipe-separated cells.
+- Early front-matter cleanup for credits and legal pages.
 - Early table-of-contents cleanup with a max-page guard, including dense inline TOC text extracted from complex PDFs.
 - Block-based PyMuPDF layout ordering for column-heavy RPG manuals.
 - Optional chunk overlap for retrieval continuity.
@@ -94,6 +100,9 @@ Implemented quality controls:
 - OCR-needed page diagnostics for image-only extraction results.
 - Table-shaped and multi-column-shaped text diagnostics.
 - Merged-word diagnostics for layout extraction artifacts.
+- Normal report output with page references and timing metrics.
+- Page-level chunk inspection for debugging individual PDF pages.
+- Manifest build options for reproducible pack creation.
 - Extractor comparison between PyMuPDF, PyMuPDF layout, and pdfplumber.
 - Schema contract output for Android importer planning.
 - Password-protected PDF handling is intentionally excluded.
@@ -208,6 +217,7 @@ pack-builder validate mage-core.gmnpack
 - Unit test build config validation and CLI override behavior.
 - Unit test report and sample-chunk CLI output.
 - Unit test repeated-line cleanup and hyphen repair.
+- Unit test split-word repair, table-line preservation, and front-matter cleanup.
 - Unit test table-of-contents cleanup.
 - Unit test chunk overlap and duplicate chunk removal.
 - Unit test advanced extraction diagnostics.
@@ -231,4 +241,5 @@ pack-builder validate mage-core.gmnpack
 - Extraction profiles per publisher or PDF style.
 - Deduplication for repeated headers, footers, and legal text.
 - Optional image/table extraction metadata.
+- Embedding cache for faster rebuilds of unchanged chunks.
 - Pack signing or checksums for integrity.

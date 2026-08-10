@@ -38,6 +38,7 @@ uv run pack-builder report example.gmnpack
 uv run pack-builder compare-extractors book.pdf
 uv run pack-builder schema --json
 uv run pack-builder sample-chunks --limit 5 example.gmnpack
+uv run pack-builder page-chunks --page 12 example.gmnpack
 uv run pack-builder inspect --json example.gmnpack
 uv run pack-builder validate --json example.gmnpack
 ```
@@ -47,7 +48,9 @@ uv run pack-builder validate --json example.gmnpack
 - `--extractor pymupdf-layout` uses block ordering tuned for multi-column RPG manuals.
 - `--max-chars-per-chunk` controls retrieval chunk size.
 - `--chunk-overlap-chars` prepends trailing context from the previous chunk.
-- `--clean-text/--no-clean-text` toggles repeated-line removal and hyphen repair.
+- `--clean-text/--no-clean-text` toggles repeated-line removal, word repair, table-line preservation, and hyphen repair.
+- `--remove-front-matter/--keep-front-matter` toggles early credits/legal cleanup.
+- `--front-matter-max-page` limits front-matter cleanup to early book pages.
 - `--remove-toc-pages/--keep-toc-pages` toggles early table-of-contents cleanup.
 - `--toc-max-page` limits TOC cleanup to early book pages.
 - `--deduplicate-chunks/--no-deduplicate-chunks` toggles duplicate chunk removal.
@@ -71,6 +74,8 @@ Example `build-config.json`:
   "max_chars_per_chunk": 1200,
   "chunk_overlap_chars": 200,
   "clean_text": true,
+  "remove_front_matter": true,
+  "front_matter_max_page": 3,
   "remove_toc_pages": true,
   "toc_max_page": 20,
   "deduplicate_chunks": true,
@@ -84,8 +89,10 @@ CLI flags override config file values.
 
 - `report` prints extraction quality metrics from `extraction-report.json`.
 - `report --json` prints the full report.
+- `report` prints warning counts, page references, and build timings.
 - `sample-chunks` prints a few chunk text samples for manual review.
 - `sample-chunks --contains "term"` filters sampled chunks by text.
+- `page-chunks --page <n>` prints chunks that cite a specific PDF page.
 - `compare-extractors` compares PyMuPDF, PyMuPDF layout, and pdfplumber page character counts.
 - `schema` prints the current `.gmnpack` contract.
 
@@ -94,7 +101,8 @@ flowchart TD
   PDF[Owned PDF] --> EXT[Extract pages]
   EXT --> LAY[Order layout]
   LAY --> CLEAN[Clean text]
-  CLEAN --> TOC[Remove TOC pages]
+  CLEAN --> FRONT[Remove front matter]
+  FRONT --> TOC[Remove TOC pages]
   TOC --> CHUNK[Create chunks]
   CHUNK --> QUAL[Improve chunks]
   QUAL --> EMB[Generate embeddings]
@@ -115,7 +123,9 @@ Each `.gmnpack` is a ZIP archive containing:
 - `embeddings.npy`
 - `extraction-report.json`
 
-The extraction report records chunking settings, cleanup actions, TOC cleanup actions, chunk quality actions, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.
+The extraction report records chunking settings, cleanup actions, front-matter cleanup actions, TOC cleanup actions, chunk quality actions, build timings, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.
+
+The manifest records build options such as extractor, chunk size, overlap, cleanup flags, and deduplication. This makes packs easier to reproduce and compare.
 
 Advanced extraction diagnostics flag likely OCR-needed pages, table-shaped text, multi-column-shaped text, and merged-word artifacts. Password-protected PDF handling is intentionally out of scope.
 

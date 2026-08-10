@@ -3,7 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
-from pack_builder.content_processing.text_cleanup import clean_documents, repair_hyphenation
+from pack_builder.content_processing.text_cleanup import (
+    clean_documents,
+    preserve_table_spacing,
+    repair_hyphenation,
+    repair_known_split_words,
+)
 
 
 def test_repair_hyphenation_joins_split_words() -> None:
@@ -11,6 +16,19 @@ def test_repair_hyphenation_joins_split_words() -> None:
 
     assert text == "ancient magic wards"
     assert repairs == 1
+
+
+def test_repair_known_split_words_fixes_common_layout_artifacts() -> None:
+    text, repairs = repair_known_split_words("comfort able Super nal Awak ened")
+
+    assert text == "comfortable Supernal Awakened"
+    assert repairs == 3
+
+
+def test_preserve_table_spacing_marks_table_cells() -> None:
+    line = preserve_table_spacing("Name      Cost      Effect")
+
+    assert line == "Name | Cost | Effect"
 
 
 def test_clean_documents_removes_repeated_lines() -> None:

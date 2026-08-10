@@ -6,6 +6,9 @@ from pathlib import Path
 
 from pack_builder.content_processing.chunking import chunk_pages
 from pack_builder.content_processing.chunk_quality import improve_chunks
+from pack_builder.content_processing.front_matter_cleanup import (
+    remove_front_matter_pages,
+)
 from pack_builder.core_domain.models import ExtractedDocument, SourceChunk
 from pack_builder.pdf_extraction.extract import PdfExtractor, extract_document, slugify
 from pack_builder.content_processing.text_cleanup import clean_documents
@@ -20,6 +23,7 @@ class PreparedPackContent:
     pack_id: str
     chunks: list[SourceChunk]
     cleanup_report: dict[str, object]
+    front_matter_report: dict[str, object]
     toc_report: dict[str, object]
     chunk_quality_report: dict[str, object]
 
@@ -33,6 +37,8 @@ def prepare_pack_content(
     extractor: PdfExtractor,
     max_chars_per_chunk: int,
     clean_text: bool,
+    remove_front_matter: bool,
+    front_matter_max_page: int,
     remove_toc_pages: bool,
     toc_max_page: int,
     deduplicate: bool,
@@ -40,6 +46,11 @@ def prepare_pack_content(
 ) -> PreparedPackContent:
     documents = [extract_document(pdf_path, extractor) for pdf_path in pdf_paths]
     documents, cleanup_report = maybe_clean_documents(documents, clean_text)
+    documents, front_matter_report = maybe_remove_front_matter(
+        documents,
+        remove_front_matter=remove_front_matter,
+        front_matter_max_page=front_matter_max_page,
+    )
     documents, toc_report = maybe_remove_toc_pages(
         documents,
         remove_toc_pages=remove_toc_pages,
@@ -61,6 +72,7 @@ def prepare_pack_content(
         pack_id=pack_id,
         chunks=chunks,
         cleanup_report=cleanup_report,
+        front_matter_report=front_matter_report,
         toc_report=toc_report,
         chunk_quality_report=chunk_quality_report,
     )
@@ -84,6 +96,17 @@ def maybe_remove_toc_pages(
     if not remove_toc_pages:
         return documents, {"enabled": False}
     return remove_toc_pages_from_documents(documents, max_page=toc_max_page)
+
+
+def maybe_remove_front_matter(
+    documents: list[ExtractedDocument],
+    *,
+    remove_front_matter: bool,
+    front_matter_max_page: int,
+) -> tuple[list[ExtractedDocument], dict[str, object]]:
+    if not remove_front_matter:
+        return documents, {"enabled": False}
+    return remove_front_matter_pages(documents, max_page=front_matter_max_page)
 
 
 def make_content_pack_id(

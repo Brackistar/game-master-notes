@@ -252,6 +252,11 @@ def test_cli_report_and_sample_chunks(synthetic_pdf: Path, tmp_path: Path) -> No
     assert sample_payload["count"] == 1
     assert "citation_label" in sample_payload["chunks"][0]
 
+    page_result = runner.invoke(app, ["page-chunks", "--json", "--page", "1", str(out)])
+    assert page_result.exit_code == 0, page_result.output
+    page_payload = json.loads(page_result.output)
+    assert page_payload["count"] >= 1
+
 
 def test_cli_schema_outputs_contract() -> None:
     runner = CliRunner()

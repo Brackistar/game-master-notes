@@ -132,6 +132,18 @@ def test_resolve_build_options_rejects_negative_toc_max_page(
         resolve_build_options(config, BuildOverrides())
 
 
+def test_resolve_build_options_rejects_negative_front_matter_max_page(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    config = tmp_path / "bad-front-matter.json"
+    payload = base_config(synthetic_pdf, tmp_path / "out.gmnpack")
+    payload["front_matter_max_page"] = -1
+    write_config(config, payload)
+
+    with pytest.raises(ValueError, match="must be zero or greater"):
+        resolve_build_options(config, BuildOverrides())
+
+
 def test_resolve_build_options_uses_cli_overrides(
     synthetic_pdf: Path, tmp_path: Path
 ) -> None:
@@ -146,12 +158,14 @@ def test_resolve_build_options_uses_cli_overrides(
             title="Override Book",
             out=override_out,
             max_chars_per_chunk=240,
+            remove_front_matter=False,
         ),
     )
 
     assert options.title == "Override Book"
     assert options.out_path == override_out
     assert options.max_chars_per_chunk == 240
+    assert options.remove_front_matter is False
 
 
 

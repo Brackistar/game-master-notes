@@ -25,6 +25,8 @@ class BuildOptions:
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK
     chunk_overlap_chars: int = 0
     clean_text: bool = True
+    remove_front_matter: bool = True
+    front_matter_max_page: int = 3
     remove_toc_pages: bool = True
     toc_max_page: int = 20
     deduplicate_chunks: bool = True
@@ -47,6 +49,8 @@ class BuildOverrides:
     max_chars_per_chunk: int | None = None
     chunk_overlap_chars: int | None = None
     clean_text: bool | None = None
+    remove_front_matter: bool | None = None
+    front_matter_max_page: int | None = None
     remove_toc_pages: bool | None = None
     toc_max_page: int | None = None
     deduplicate_chunks: bool | None = None
@@ -105,6 +109,18 @@ def resolve_build_options(
             0,
         ),
         clean_text=_optional_bool(config, "clean_text", overrides.clean_text, True),
+        remove_front_matter=_optional_bool(
+            config,
+            "remove_front_matter",
+            overrides.remove_front_matter,
+            True,
+        ),
+        front_matter_max_page=_optional_int(
+            config,
+            "front_matter_max_page",
+            overrides.front_matter_max_page,
+            3,
+        ),
         remove_toc_pages=_optional_bool(
             config,
             "remove_toc_pages",
@@ -138,6 +154,8 @@ def validate_build_options(options: BuildOptions) -> None:
         raise ValueError("--chunk-overlap-chars must be zero or greater")
     if options.chunk_overlap_chars >= options.max_chars_per_chunk:
         raise ValueError("--chunk-overlap-chars must be smaller than chunk size")
+    if options.front_matter_max_page < 0:
+        raise ValueError("--front-matter-max-page must be zero or greater")
     if options.toc_max_page < 0:
         raise ValueError("--toc-max-page must be zero or greater")
     if options.out_path.exists() and not options.force and not options.dry_run:

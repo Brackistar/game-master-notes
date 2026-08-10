@@ -31,6 +31,9 @@ Useful build options:
 ```bash
 uv run pack-builder build --force --max-chars-per-chunk 1200 --report-out report.json --verbose --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --dry-run --report-out report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
+uv run pack-builder build --config build-config.json
+uv run pack-builder report example.gmnpack
+uv run pack-builder sample-chunks --limit 5 example.gmnpack
 uv run pack-builder inspect --json example.gmnpack
 uv run pack-builder validate --json example.gmnpack
 ```
@@ -41,6 +44,33 @@ uv run pack-builder validate --json example.gmnpack
 - `--report-out` writes the extraction quality report as standalone JSON.
 - `--verbose` prints empty, suspicious, duplicate, and warning counts.
 - `--json` makes `inspect` and `validate` machine-readable.
+- `--config` reads repeatable build settings from a JSON file.
+
+Example `build-config.json`:
+
+```json
+{
+  "pdfs": ["C:/path/to/book.pdf"],
+  "system": "Example System",
+  "edition": "1e",
+  "title": "Example Book",
+  "out": "C:/path/to/example.gmnpack",
+  "extractor": "pymupdf",
+  "embedding_provider": "sentence-transformers",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "max_chars_per_chunk": 1200,
+  "report_out": "C:/path/to/report.json"
+}
+```
+
+CLI flags override config file values.
+
+## Quality Inspection
+
+- `report` prints extraction quality metrics from `extraction-report.json`.
+- `report --json` prints the full report.
+- `sample-chunks` prints a few chunk text samples for manual review.
+- `sample-chunks --contains "term"` filters sampled chunks by text.
 
 ## Archive Layout
 

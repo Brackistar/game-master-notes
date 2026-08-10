@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import zipfile
@@ -41,8 +42,6 @@ def make_pack_id(
     title: str,
     source_checksums: list[str],
 ) -> str:
-    import hashlib
-
     slug = slugify(f"{system}-{edition}-{title}")
     checksum_part = "|".join(sorted(source_checksums))
     digest = hashlib.sha256(
@@ -89,27 +88,13 @@ def build_extraction_report(
                         "warning": warning,
                     }
                 )
-            if normalized_page_text:
-                import hashlib
-
-                text_hash = hashlib.sha256(
-                    normalized_page_text.encode("utf-8")
-                ).hexdigest()
-                first_seen = seen_page_texts.get(text_hash)
-                if first_seen:
-                    duplicate_pages.append(
-                        {
-                            "document_id": document.document_id,
-                            "page": page.page_number,
-                            "matches_document_id": first_seen["document_id"],
-                            "matches_page": first_seen["page"],
-                        }
-                    )
-                else:
-                    seen_page_texts[text_hash] = {
-                        "document_id": document.document_id,
-                        "page": page.page_number,
-                    }
+            record_duplicate_page(
+                normalized_page_text,
+                document,
+                page.page_number,
+                seen_page_texts,
+                duplicate_pages,
+            )
         page_lengths[document.document_id] = lengths
 
     return {
@@ -125,6 +110,33 @@ def build_extraction_report(
         "warnings": warnings,
         "errors": [],
     }
+
+
+def record_duplicate_page(
+    normalized_page_text: str,
+    document: ExtractedDocument,
+    page_number: int,
+    seen_page_texts: dict[str, dict[str, object]],
+    duplicate_pages: list[dict[str, object]],
+) -> None:
+    if not normalized_page_text:
+        return
+    text_hash = hashlib.sha256(normalized_page_text.encode("utf-8")).hexdigest()
+    first_seen = seen_page_texts.get(text_hash)
+    if not first_seen:
+        seen_page_texts[text_hash] = {
+            "document_id": document.document_id,
+            "page": page_number,
+        }
+        return
+    duplicate_pages.append(
+        {
+            "document_id": document.document_id,
+            "page": page_number,
+            "matches_document_id": first_seen["document_id"],
+            "matches_page": first_seen["page"],
+        }
+    )
 
 
 def document_metadata(document: ExtractedDocument) -> dict[str, object]:
@@ -220,37 +232,14 @@ def build_pack(
     embedding_provider: EmbeddingProvider,
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
 ) -> BuildResult:
-    documents = [extract_document(pdf_path, extractor) for pdf_path in pdf_paths]
-    pack_id = make_pack_id(
+    documents, pack_id, chunks = prepare_pack_content(
+        pdf_paths=pdf_paths,
+        title=title,
         system=system,
         edition=edition,
-        title=title,
-        source_checksums=[document.source_checksum for document in documents],
+        extractor=extractor,
+        max_chars_per_chunk=max_chars_per_chunk,
     )
-
-    chunks: list[SourceChunk] = []
-    for document in documents:
-        document_chunks = chunk_pages(
-            pack_id=pack_id,
-            document_id=document.document_id,
-            pages=document.pages,
-            max_chars=max_chars_per_chunk,
-        )
-        row_offset = len(chunks)
-        chunks.extend(
-            SourceChunk(
-                chunk_id=chunk.chunk_id,
-                document_id=chunk.document_id,
-                page_start=chunk.page_start,
-                page_end=chunk.page_end,
-                citation_label=chunk.citation_label,
-                text=chunk.text,
-                char_count=chunk.char_count,
-                embedding_row_index=row_offset + index,
-            )
-            for index, chunk in enumerate(document_chunks)
-        )
-
     if not chunks:
         raise ValueError("no text chunks were created from the provided PDFs")
 
@@ -301,35 +290,14 @@ def preview_pack(
     extractor: PdfExtractor,
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
 ) -> BuildResult:
-    documents = [extract_document(pdf_path, extractor) for pdf_path in pdf_paths]
-    pack_id = make_pack_id(
+    documents, pack_id, chunks = prepare_pack_content(
+        pdf_paths=pdf_paths,
+        title=title,
         system=system,
         edition=edition,
-        title=title,
-        source_checksums=[document.source_checksum for document in documents],
+        extractor=extractor,
+        max_chars_per_chunk=max_chars_per_chunk,
     )
-    chunks: list[SourceChunk] = []
-    for document in documents:
-        row_offset = len(chunks)
-        document_chunks = chunk_pages(
-            pack_id=pack_id,
-            document_id=document.document_id,
-            pages=document.pages,
-            max_chars=max_chars_per_chunk,
-        )
-        chunks.extend(
-            SourceChunk(
-                chunk_id=chunk.chunk_id,
-                document_id=chunk.document_id,
-                page_start=chunk.page_start,
-                page_end=chunk.page_end,
-                citation_label=chunk.citation_label,
-                text=chunk.text,
-                char_count=chunk.char_count,
-                embedding_row_index=row_offset + index,
-            )
-            for index, chunk in enumerate(document_chunks)
-        )
     report = build_extraction_report(extractor.name, documents, max_chars_per_chunk)
     manifest = {
         "schema_version": PACK_SCHEMA_VERSION,
@@ -356,3 +324,64 @@ def preview_pack(
         chunks=chunks,
         extraction_report=report,
     )
+
+
+def prepare_pack_content(
+    *,
+    pdf_paths: list[Path],
+    title: str,
+    system: str,
+    edition: str,
+    extractor: PdfExtractor,
+    max_chars_per_chunk: int,
+) -> tuple[list[ExtractedDocument], str, list[SourceChunk]]:
+    documents = [extract_document(pdf_path, extractor) for pdf_path in pdf_paths]
+    pack_id = make_pack_id(
+        system=system,
+        edition=edition,
+        title=title,
+        source_checksums=[document.source_checksum for document in documents],
+    )
+    return documents, pack_id, chunk_documents(
+        pack_id=pack_id,
+        documents=documents,
+        max_chars_per_chunk=max_chars_per_chunk,
+    )
+
+
+def chunk_documents(
+    *,
+    pack_id: str,
+    documents: list[ExtractedDocument],
+    max_chars_per_chunk: int,
+) -> list[SourceChunk]:
+    chunks: list[SourceChunk] = []
+    for document in documents:
+        chunks.extend(
+            reindex_chunks(
+                chunks=chunk_pages(
+                    pack_id=pack_id,
+                    document_id=document.document_id,
+                    pages=document.pages,
+                    max_chars=max_chars_per_chunk,
+                ),
+                row_offset=len(chunks),
+            )
+        )
+    return chunks
+
+
+def reindex_chunks(chunks: list[SourceChunk], row_offset: int) -> list[SourceChunk]:
+    return [
+        SourceChunk(
+            chunk_id=chunk.chunk_id,
+            document_id=chunk.document_id,
+            page_start=chunk.page_start,
+            page_end=chunk.page_end,
+            citation_label=chunk.citation_label,
+            text=chunk.text,
+            char_count=chunk.char_count,
+            embedding_row_index=row_offset + index,
+        )
+        for index, chunk in enumerate(chunks)
+    ]

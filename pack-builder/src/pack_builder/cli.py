@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from enum import Enum
 from pathlib import Path
 from typing import Annotated
@@ -9,12 +8,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from pack_builder.constants import (
-    DEFAULT_EMBEDDING_MODEL_ID,
-    DEFAULT_EXTRACTOR,
-    DEFAULT_MAX_CHARS_PER_CHUNK,
-)
+from pack_builder.build_config import BuildOptions, BuildOverrides, resolve_build_options
 from pack_builder.embeddings import get_embedding_provider
+from pack_builder.pack_reader import read_chunks, read_extraction_report
 from pack_builder.pack_writer import build_pack, preview_pack
 from pack_builder.pdf_extract import get_extractor
 from pack_builder.validate import validate_pack
@@ -35,6 +31,8 @@ console = Console()
 
 
 def write_json_file(path: Path, payload: dict[str, object]) -> None:
+    import json
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
@@ -42,43 +40,52 @@ def write_json_file(path: Path, payload: dict[str, object]) -> None:
 @app.command()
 def build(
     pdfs: Annotated[
-        list[Path],
+        list[Path] | None,
         typer.Argument(
-            exists=True,
             file_okay=True,
             dir_okay=False,
             readable=True,
             help="One or more user-owned PDFs to package.",
         ),
-    ],
-    system: Annotated[str, typer.Option("--system", help="Game system name.")],
-    edition: Annotated[str, typer.Option("--edition", help="Game system edition.")],
-    title: Annotated[str, typer.Option("--title", help="Pack title.")],
-    out: Annotated[Path, typer.Option("--out", help="Output .gmnpack path.")],
+    ] = None,
+    config: Annotated[
+        Path | None,
+        typer.Option("--config", exists=True, help="JSON build config file."),
+    ] = None,
+    system: Annotated[str | None, typer.Option("--system", help="Game system name.")] = None,
+    edition: Annotated[
+        str | None, typer.Option("--edition", help="Game system edition.")
+    ] = None,
+    title: Annotated[str | None, typer.Option("--title", help="Pack title.")] = None,
+    out: Annotated[
+        Path | None, typer.Option("--out", help="Output .gmnpack path.")
+    ] = None,
     extractor: Annotated[
-        ExtractorName,
+        ExtractorName | None,
         typer.Option("--extractor", help="PDF extraction adapter."),
-    ] = ExtractorName(DEFAULT_EXTRACTOR),
-    language: Annotated[str, typer.Option("--language", help="Pack language code.")] = "en",
+    ] = None,
+    language: Annotated[
+        str | None, typer.Option("--language", help="Pack language code.")
+    ] = None,
     embedding_provider: Annotated[
-        EmbeddingProviderName,
+        EmbeddingProviderName | None,
         typer.Option(
             "--embedding-provider",
             help="Embedding provider. Deterministic is for tests and local fixtures.",
         ),
-    ] = EmbeddingProviderName.sentence_transformers,
+    ] = None,
     embedding_model: Annotated[
-        str,
+        str | None,
         typer.Option("--embedding-model", help="Sentence Transformers model id."),
-    ] = DEFAULT_EMBEDDING_MODEL_ID,
+    ] = None,
     max_chars_per_chunk: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--max-chars-per-chunk",
             min=200,
             help="Maximum normalized characters per retrieval chunk.",
         ),
-    ] = DEFAULT_MAX_CHARS_PER_CHUNK,
+    ] = None,
     force: Annotated[
         bool,
         typer.Option("--force", help="Overwrite an existing output pack."),
@@ -97,45 +104,39 @@ def build(
     ] = False,
 ) -> None:
     """Build a .gmnpack archive from one or more PDFs."""
-    if out.exists() and not force and not dry_run:
-        console.print(f"[red]Build failed:[/red] output already exists: {out}")
-        console.print("Use --force to overwrite it.")
-        raise typer.Exit(code=1)
-
     try:
-        pdf_extractor = get_extractor(extractor.value)
-        if dry_run:
-            build_result = preview_pack(
-                pdf_paths=pdfs,
-                title=title,
+        options = resolve_build_options(
+            config,
+            BuildOverrides(
+                pdfs=pdfs,
                 system=system,
                 edition=edition,
-                language=language,
-                extractor=pdf_extractor,
-                max_chars_per_chunk=max_chars_per_chunk,
-            )
-        else:
-            embeddings = get_embedding_provider(embedding_provider.value, embedding_model)
-            build_result = build_pack(
-                pdf_paths=pdfs,
-                out_path=out,
                 title=title,
-                system=system,
-                edition=edition,
+                out=out,
+                extractor=extractor.value if extractor else None,
                 language=language,
-                extractor=pdf_extractor,
-                embedding_provider=embeddings,
+                embedding_provider=embedding_provider.value
+                if embedding_provider
+                else None,
+                embedding_model=embedding_model,
                 max_chars_per_chunk=max_chars_per_chunk,
-            )
+                force=force,
+                dry_run=dry_run,
+                report_out=report_out,
+            ),
+        )
+        build_result = run_build(options)
     except Exception as exc:
         console.print(f"[red]Build failed:[/red] {exc}")
+        if isinstance(exc, FileExistsError):
+            console.print("Use --force to overwrite it.")
         raise typer.Exit(code=1) from exc
 
-    if report_out:
-        write_json_file(report_out, build_result.extraction_report)
-        console.print(f"[green]Wrote report[/green] {report_out}")
+    if options.report_out:
+        write_json_file(options.report_out, build_result.extraction_report)
+        console.print(f"[green]Wrote report[/green] {options.report_out}")
 
-    if dry_run:
+    if options.dry_run:
         console.print("[green]Dry run complete.[/green]")
         console.print(
             f"Pack {build_result.manifest['pack_id']} would contain "
@@ -145,14 +146,14 @@ def build(
             print_quality_summary(build_result.extraction_report)
         return
 
-    validation = validate_pack(out)
+    validation = validate_pack(options.out_path)
     if not validation.ok:
         console.print("[red]Pack was written but failed validation:[/red]")
         for error in validation.errors:
             console.print(f"- {error}")
         raise typer.Exit(code=1)
 
-    console.print(f"[green]Wrote[/green] {out}")
+    console.print(f"[green]Wrote[/green] {options.out_path}")
     console.print(
         f"Pack {build_result.manifest['pack_id']} with "
         f"{build_result.manifest['chunk_count']} chunks and "
@@ -160,6 +161,38 @@ def build(
     )
     if verbose:
         print_quality_summary(build_result.extraction_report)
+
+
+def run_build(options: BuildOptions):
+    pdf_extractor = get_extractor(options.extractor)
+    if options.dry_run:
+        with console.status("Extracting and chunking PDFs..."):
+            return preview_pack(
+                pdf_paths=options.pdf_paths,
+                title=options.title,
+                system=options.system,
+                edition=options.edition,
+                language=options.language,
+                extractor=pdf_extractor,
+                max_chars_per_chunk=options.max_chars_per_chunk,
+            )
+
+    embeddings = get_embedding_provider(
+        options.embedding_provider,
+        options.embedding_model,
+    )
+    with console.status("Extracting, chunking, embedding, and writing pack..."):
+        return build_pack(
+            pdf_paths=options.pdf_paths,
+            out_path=options.out_path,
+            title=options.title,
+            system=options.system,
+            edition=options.edition,
+            language=options.language,
+            extractor=pdf_extractor,
+            embedding_provider=embeddings,
+            max_chars_per_chunk=options.max_chars_per_chunk,
+        )
 
 
 def print_quality_summary(extraction_report: dict[str, object]) -> None:
@@ -174,6 +207,74 @@ def print_quality_summary(extraction_report: dict[str, object]) -> None:
         f"{len(duplicate_pages)} duplicate pages, "
         f"{len(warnings)} warnings."
     )
+
+
+@app.command("report")
+def report(
+    pack: Annotated[
+        Path,
+        typer.Argument(exists=True, file_okay=True, dir_okay=False, readable=True),
+    ],
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Print full extraction report JSON."),
+    ] = False,
+) -> None:
+    """Print extraction quality report summary."""
+    extraction_report = read_extraction_report(pack)
+    if as_json:
+        console.print_json(data=extraction_report)
+        return
+
+    table = Table(title=f"Extraction report: {pack}")
+    table.add_column("Metric")
+    table.add_column("Value")
+    table.add_row("extractor", str(extraction_report.get("extractor", "")))
+    chunking = extraction_report.get("chunking", {})
+    if isinstance(chunking, dict):
+        table.add_row(
+            "max_chars_per_chunk",
+            str(chunking.get("max_chars_per_chunk", "")),
+        )
+    for field_name in ["empty_pages", "suspicious_pages", "duplicate_pages", "warnings", "errors"]:
+        value = extraction_report.get(field_name, [])
+        table.add_row(field_name, str(len(value) if isinstance(value, list) else value))
+    console.print(table)
+
+
+@app.command("sample-chunks")
+def sample_chunks(
+    pack: Annotated[
+        Path,
+        typer.Argument(exists=True, file_okay=True, dir_okay=False, readable=True),
+    ],
+    limit: Annotated[
+        int,
+        typer.Option("--limit", min=1, help="Maximum chunks to print."),
+    ] = 3,
+    contains: Annotated[
+        str | None,
+        typer.Option("--contains", help="Only sample chunks containing this text."),
+    ] = None,
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Print sampled chunks as JSON."),
+    ] = False,
+) -> None:
+    """Print sample chunks from a pack for manual quality inspection."""
+    chunks = read_chunks(pack)
+    if contains:
+        needle = contains.lower()
+        chunks = [chunk for chunk in chunks if needle in str(chunk.get("text", "")).lower()]
+    sampled = chunks[:limit]
+    if as_json:
+        console.print_json(data={"chunks": sampled, "count": len(sampled)})
+        return
+
+    for chunk in sampled:
+        console.rule(str(chunk.get("citation_label", chunk.get("chunk_id", "chunk"))))
+        text = str(chunk.get("text", ""))
+        console.print(text[:700] + ("..." if len(text) > 700 else ""))
 
 
 @app.command()

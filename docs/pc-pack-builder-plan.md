@@ -39,10 +39,12 @@ The first implementation slice now lives in `pack-builder/`.
 
 Current structure:
 
+- `src/pack_builder/build_config.py`
 - `src/pack_builder/cli.py`
 - `src/pack_builder/pdf_extract.py`
 - `src/pack_builder/chunking.py`
 - `src/pack_builder/embeddings.py`
+- `src/pack_builder/pack_reader.py`
 - `src/pack_builder/pack_writer.py`
 - `src/pack_builder/validate.py`
 - `tests/`
@@ -50,8 +52,29 @@ Current structure:
 Implemented commands:
 
 - `build --system --edition --title --out --extractor [pymupdf|pdfplumber] <pdf...>`
+- `build --config <json>`
+- `build --dry-run`
+- `build --force`
+- `build --max-chars-per-chunk <int>`
+- `build --report-out <json>`
 - `inspect <pack>`
+- `inspect --json <pack>`
+- `report <pack>`
+- `report --json <pack>`
+- `sample-chunks <pack>`
+- `sample-chunks --contains <text> --limit <n> <pack>`
 - `validate <pack>`
+- `validate --json <pack>`
+
+Implemented quality controls:
+
+- Output overwrite protection unless `--force` is passed.
+- Dry run extraction and chunk preview without embedding generation.
+- Config-file builds with CLI flag override precedence.
+- Extraction report export and report inspection.
+- Sample chunk inspection for real-world PDF review.
+- Duplicate normalized page detection.
+- Focused config validation for invalid JSON, bad `pdfs`, missing required values, missing PDFs, and too-small chunks.
 
 Implemented archive layout:
 
@@ -105,12 +128,17 @@ Initial commands:
 
 - `build`: convert PDF files into a pack archive.
 - `inspect`: print pack metadata and extraction stats.
+- `report`: print extraction quality metrics.
+- `sample-chunks`: inspect representative chunks for manual quality review.
 - `validate`: verify manifest, chunk count, embedding count, and required fields.
 
 Example shape:
 
 ```bash
 pack-builder build --system "Mage" --edition "20th" --title "Core Rulebook" --out mage-core.gmnpack book.pdf
+pack-builder build --config mage-core-build.json
+pack-builder report mage-core.gmnpack
+pack-builder sample-chunks --limit 5 mage-core.gmnpack
 pack-builder inspect mage-core.gmnpack
 pack-builder validate mage-core.gmnpack
 ```
@@ -150,6 +178,8 @@ pack-builder validate mage-core.gmnpack
 - Unit test chunk boundaries and citation labels.
 - Unit test manifest validation.
 - Unit test pack read/write round trips.
+- Unit test build config validation and CLI override behavior.
+- Unit test report and sample-chunk CLI output.
 - Use tiny synthetic PDFs in the repo for tests, not copyrighted sourcebooks.
 - Manually test with real owned books outside the repo.
 

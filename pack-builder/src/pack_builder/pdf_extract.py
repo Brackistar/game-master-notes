@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Protocol
 
+from pack_builder.layout_order import TextBlock, order_text_blocks
 from pack_builder.models import ExtractedDocument, ExtractedPage
 
 
@@ -38,6 +39,30 @@ class PyMuPdfExtractor:
         return pages
 
 
+class PyMuPdfLayoutExtractor:
+    name = "pymupdf-layout"
+
+    def extract_pages(self, pdf_path: Path) -> list[ExtractedPage]:
+        import pymupdf
+
+        pages: list[ExtractedPage] = []
+        with pymupdf.open(pdf_path) as document:
+            for index, page in enumerate(document, start=1):
+                try:
+                    blocks = pymupdf_text_blocks(page)
+                    text = order_text_blocks(blocks, page.rect.width)
+                    pages.append(ExtractedPage(page_number=index, text=text))
+                except Exception as exc:  # pragma: no cover - depends on damaged PDFs.
+                    pages.append(
+                        ExtractedPage(
+                            page_number=index,
+                            text="",
+                            warnings=[f"layout extraction failed: {exc}"],
+                        )
+                    )
+        return pages
+
+
 class PdfPlumberExtractor:
     name = "pdfplumber"
 
@@ -65,9 +90,21 @@ def get_extractor(name: str) -> PdfExtractor:
     normalized = name.lower()
     if normalized == PyMuPdfExtractor.name:
         return PyMuPdfExtractor()
+    if normalized == PyMuPdfLayoutExtractor.name:
+        return PyMuPdfLayoutExtractor()
     if normalized == PdfPlumberExtractor.name:
         return PdfPlumberExtractor()
     raise ValueError(f"unknown PDF extractor: {name}")
+
+
+def pymupdf_text_blocks(page) -> list[TextBlock]:
+    blocks: list[TextBlock] = []
+    for raw_block in page.get_text("blocks", sort=False):
+        if len(raw_block) < 5:
+            continue
+        x0, y0, x1, y1, text = raw_block[:5]
+        blocks.append(TextBlock(float(x0), float(y0), float(x1), float(y1), str(text)))
+    return blocks
 
 
 def sha256_file(path: Path) -> str:

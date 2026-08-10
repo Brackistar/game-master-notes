@@ -47,6 +47,7 @@ Current structure:
 - `src/pack_builder/extraction_diagnostics.py`
 - `src/pack_builder/extraction_report.py`
 - `src/pack_builder/extractor_compare.py`
+- `src/pack_builder/layout_order.py`
 - `src/pack_builder/pdf_extract.py`
 - `src/pack_builder/pack_pipeline.py`
 - `src/pack_builder/pack_reader.py`
@@ -62,6 +63,7 @@ The current code keeps the CLI, pack preparation pipeline, archive writing, and 
 Implemented commands:
 
 - `build --system --edition --title --out --extractor [pymupdf|pdfplumber] <pdf...>`
+- `build --extractor pymupdf-layout`
 - `build --config <json>`
 - `build --dry-run`
 - `build --force`
@@ -95,12 +97,14 @@ Implemented quality controls:
 - Repeated-line cleanup for common headers and footers.
 - Hyphenated line repair.
 - Early table-of-contents cleanup with a max-page guard, including dense inline TOC text extracted from complex PDFs.
+- Block-based PyMuPDF layout ordering for column-heavy RPG manuals.
 - Optional chunk overlap for retrieval continuity.
 - Duplicate normalized chunk removal.
 - Duplicate normalized page detection.
 - OCR-needed page diagnostics for image-only extraction results.
 - Table-shaped and multi-column-shaped text diagnostics.
-- Extractor comparison between PyMuPDF and pdfplumber.
+- Merged-word diagnostics for layout extraction artifacts.
+- Extractor comparison between PyMuPDF, PyMuPDF layout, and pdfplumber.
 - Schema contract output for Android importer planning.
 - Password-protected PDF handling is intentionally excluded.
 - Focused config validation for invalid JSON, bad `pdfs`, missing required values, missing PDFs, and too-small chunks.
@@ -224,7 +228,8 @@ pack-builder validate mage-core.gmnpack
 
 ## Risks
 
-- PDFs with scanned images may need OCR later.
+- PDFs with scanned rule text may need OCR later.
+- Image-only covers, chapter openers, divider art, and blank end pages are expected to appear as empty pages and OCR candidates.
 - Password-protected PDFs are not handled by design.
 - Rulebooks with complex tables may extract poorly.
 - Embedding model choice affects Android search compatibility.

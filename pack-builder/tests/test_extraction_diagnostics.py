@@ -33,3 +33,11 @@ def test_advanced_diagnostics_flags_table_and_multicolumn_shapes() -> None:
 
     assert report["table_warnings"] == [{"document_id": "doc", "page": 1}]
     assert report["multicolumn_warnings"] == [{"document_id": "doc", "page": 2}]
+
+
+def test_advanced_diagnostics_flags_merged_words() -> None:
+    text = "outsideThemes theirunlocked Theythe anotherMergedWord"
+
+    report = advanced_extraction_diagnostics([document([ExtractedPage(1, text)])])
+
+    assert report["merged_word_warnings"] == [{"document_id": "doc", "page": 1}]

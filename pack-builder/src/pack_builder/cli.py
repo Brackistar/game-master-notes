@@ -20,6 +20,7 @@ from pack_builder.validate import validate_pack
 
 class ExtractorName(str, Enum):
     pymupdf = "pymupdf"
+    pymupdf_layout = "pymupdf-layout"
     pdfplumber = "pdfplumber"
 
 

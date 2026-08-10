@@ -8,16 +8,17 @@ flowchart LR
   subgraph Builder[PC Pack Builder CLI]
     Pipeline[Pack pipeline\norchestration]
     Extract[PDF extraction\npage-aware text]
+    Layout[Layout ordering\ncolumns + blocks]
     Cleanup[Text cleanup\nheaders + hyphen repair]
     Toc[TOC cleanup\nearly + dense inline pages]
     Chunk[Chunking\nparagraph-aware citations]
     Quality[Chunk quality\noverlap + dedupe]
     Embed[Embedding generation\none vector per chunk]
     ReportBuild[Extraction report builder\nstats + duplicates + diagnostics]
-    Diagnostics[Advanced diagnostics\nOCR + tables + columns]
+    Diagnostics[Advanced diagnostics\nOCR candidates + layout artifacts]
     Validate[Pack validation\ncounts + schema + checksums]
     Write[Pack writer\nZIP archive]
-    Compare[Compare extractors\nPyMuPDF vs pdfplumber]
+    Compare[Compare extractors\nPyMuPDF + layout + pdfplumber]
     Schema[Schema command\npack contract]
     Inspect[Inspection commands\nreport + sample chunks]
   end
@@ -33,7 +34,7 @@ flowchart LR
   PDF --> Pipeline
   Flags --> Pipeline
   Config --> Pipeline
-  Pipeline --> Extract --> Cleanup --> Toc --> Chunk --> Quality --> Embed
+  Pipeline --> Extract --> Layout --> Cleanup --> Toc --> Chunk --> Quality --> Embed
   Quality --> ReportBuild --> Diagnostics
   Embed --> Validate --> Write
   Diagnostics --> Write
@@ -52,5 +53,5 @@ flowchart LR
   classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
 
   class PDF,Flags,Config input;
-  class Pipeline,Extract,Cleanup,Toc,Chunk,Quality,Embed,ReportBuild,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
+  class Pipeline,Extract,Layout,Cleanup,Toc,Chunk,Quality,Embed,ReportBuild,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
   class Manifest,Docs,Chunks,Vectors,Report,Import output;

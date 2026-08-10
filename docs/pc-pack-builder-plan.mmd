@@ -9,6 +9,7 @@ flowchart LR
     ConfigPkg[configuration\nbuild options]
     Pipeline[content_processing\npipeline orchestration]
     Extract[pdf_extraction\npage-aware text]
+    Ocr[ocr_detection\nimage-only + blank pages]
     Layout[pdf_extraction\ncolumns + blocks]
     Cleanup[content_processing\nheaders + word/table repair]
     Front[content_processing\nfront-matter cleanup]
@@ -17,7 +18,7 @@ flowchart LR
     Quality[content_processing\noverlap + dedupe]
     Embed[embedding_generation\none vector per chunk]
     ReportBuild[pack_archive\nreport + timings]
-    Diagnostics[pdf_extraction\nOCR + layout diagnostics]
+    Diagnostics[pdf_extraction\nlayout diagnostics]
     Validate[pack_archive\ncounts + schema + checksums]
     Write[pack_archive\nZIP writer]
     Compare[pdf_extraction\nextractor comparison]
@@ -36,7 +37,8 @@ flowchart LR
   PDF --> Pipeline
   Flags --> ConfigPkg --> Pipeline
   Config --> ConfigPkg
-  Pipeline --> Extract --> Layout --> Cleanup --> Front --> Toc --> Chunk --> Quality --> Embed
+  Pipeline --> Extract --> Ocr --> Layout --> Cleanup --> Front --> Toc --> Chunk --> Quality --> Embed
+  Ocr --> ReportBuild
   Quality --> ReportBuild --> Diagnostics
   Embed --> Validate --> Write
   Diagnostics --> Write
@@ -55,5 +57,5 @@ flowchart LR
   classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
 
   class PDF,Flags,Config input;
-  class ConfigPkg,Pipeline,Extract,Layout,Cleanup,Front,Toc,Chunk,Quality,Embed,ReportBuild,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
+  class ConfigPkg,Pipeline,Extract,Ocr,Layout,Cleanup,Front,Toc,Chunk,Quality,Embed,ReportBuild,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
   class Manifest,Docs,Chunks,Vectors,Report,Import output;

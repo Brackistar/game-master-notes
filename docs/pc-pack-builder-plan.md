@@ -43,6 +43,7 @@ Current structure:
 - `src/pack_builder/configuration/`
 - `src/pack_builder/core_domain/`
 - `src/pack_builder/pdf_extraction/`
+- `src/pack_builder/ocr_detection/`
 - `src/pack_builder/content_processing/`
 - `src/pack_builder/embedding_generation/`
 - `src/pack_builder/pack_archive/`
@@ -98,6 +99,7 @@ Implemented quality controls:
 - Duplicate normalized chunk removal.
 - Duplicate normalized page detection.
 - OCR-needed page diagnostics for image-only extraction results.
+- OCR detection that separates image-only candidates, true blank pages, and low-text image pages.
 - Table-shaped and multi-column-shaped text diagnostics.
 - Merged-word diagnostics for layout extraction artifacts.
 - Normal report output with page references and timing metrics.
@@ -221,6 +223,7 @@ pack-builder validate mage-core.gmnpack
 - Unit test table-of-contents cleanup.
 - Unit test chunk overlap and duplicate chunk removal.
 - Unit test advanced extraction diagnostics.
+- Unit test OCR detection categories.
 - Unit test schema contract output.
 - Unit test extractor comparison CLI output.
 - Use tiny synthetic PDFs in the repo for tests, not copyrighted sourcebooks.
@@ -229,7 +232,7 @@ pack-builder validate mage-core.gmnpack
 ## Risks
 
 - PDFs with scanned rule text may need OCR later.
-- Image-only covers, chapter openers, divider art, and blank end pages are expected to appear as empty pages and OCR candidates.
+- Image-only covers, chapter openers, divider art, and blank end pages are expected to appear in OCR detection review categories, not always as OCR candidates.
 - Password-protected PDFs are not handled by design.
 - Rulebooks with complex tables may extract poorly.
 - Embedding model choice affects Android search compatibility.
@@ -237,7 +240,7 @@ pack-builder validate mage-core.gmnpack
 
 ## Suggested Extensions
 
-- OCR pipeline for scanned books.
+- OCR execution pipeline for scanned books.
 - Extraction profiles per publisher or PDF style.
 - Deduplication for repeated headers, footers, and legal text.
 - Optional image/table extraction metadata.

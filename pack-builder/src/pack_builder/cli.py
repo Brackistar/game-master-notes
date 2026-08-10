@@ -334,6 +334,9 @@ def report(
     advanced = extraction_report.get("advanced_extraction", {})
     if isinstance(advanced, dict):
         for field_name, value in advanced.items():
+            if field_name == "ocr_detection" and isinstance(value, dict):
+                add_ocr_detection_rows(table, value)
+                continue
             table.add_row(field_name, str(len(value) if isinstance(value, list) else value))
             if isinstance(value, list) and value:
                 table.add_row(f"{field_name}_refs", format_page_refs(value))
@@ -351,6 +354,19 @@ def format_page_refs(refs: list[object]) -> str:
         if isinstance(ref, dict) and ref.get("page") is not None
     ]
     return ", ".join(pages[:30]) + (" ..." if len(pages) > 30 else "")
+
+
+def add_ocr_detection_rows(table: Table, ocr_detection: dict[str, object]) -> None:
+    for field_name in [
+        "ocr_candidates",
+        "image_only_pages",
+        "blank_pages",
+        "low_text_image_pages",
+    ]:
+        value = ocr_detection.get(field_name, [])
+        table.add_row(field_name, str(len(value) if isinstance(value, list) else value))
+        if isinstance(value, list) and value:
+            table.add_row(f"{field_name}_refs", format_page_refs(value))
 
 
 @app.command("compare-extractors")

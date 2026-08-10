@@ -5,10 +5,23 @@ from pathlib import Path
 
 
 @dataclass(frozen=True)
+class PageOcrSignals:
+    image_count: int = 0
+    drawing_count: int = 0
+
+    def to_json(self) -> dict[str, int]:
+        return {
+            "image_count": self.image_count,
+            "drawing_count": self.drawing_count,
+        }
+
+
+@dataclass(frozen=True)
 class ExtractedPage:
     page_number: int
     text: str
     warnings: list[str] = field(default_factory=list)
+    ocr_signals: PageOcrSignals = field(default_factory=PageOcrSignals)
 
 
 @dataclass(frozen=True)

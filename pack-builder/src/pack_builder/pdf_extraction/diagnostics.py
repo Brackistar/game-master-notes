@@ -3,13 +3,16 @@ from __future__ import annotations
 import re
 
 from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
+from pack_builder.ocr_detection.detector import detect_ocr_pages
 
 
 def advanced_extraction_diagnostics(
     documents: list[ExtractedDocument],
 ) -> dict[str, object]:
+    ocr_detection = detect_ocr_pages(documents)
     return {
-        "ocr_candidates": page_refs(documents, is_ocr_candidate),
+        "ocr_detection": ocr_detection,
+        "ocr_candidates": ocr_detection["ocr_candidates"],
         "table_warnings": page_refs(documents, has_table_shape),
         "multicolumn_warnings": page_refs(documents, has_multicolumn_shape),
         "merged_word_warnings": page_refs(documents, has_merged_words),
@@ -28,10 +31,6 @@ def page_refs(
                     {"document_id": document.document_id, "page": page.page_number}
                 )
     return refs
-
-
-def is_ocr_candidate(page: ExtractedPage) -> bool:
-    return len(page.text.strip()) == 0
 
 
 def has_table_shape(page: ExtractedPage) -> bool:

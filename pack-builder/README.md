@@ -129,6 +129,8 @@ The manifest records build options such as extractor, chunk size, overlap, clean
 
 Advanced extraction diagnostics flag likely OCR-needed pages, table-shaped text, multi-column-shaped text, and merged-word artifacts. Password-protected PDF handling is intentionally out of scope.
 
+OCR support is detection-only. The report separates image-only OCR candidates, truly blank pages, and low-text image pages so scanned material can be reviewed without treating every art page as missing text.
+
 For RPG manuals with heavy columns or tables, compare extraction first:
 
 ```bash
@@ -136,7 +138,7 @@ uv run pack-builder compare-extractors book.pdf
 uv run pack-builder build --extractor pymupdf-layout --dry-run --report-out report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 ```
 
-Image-only pages are reported as empty pages and OCR candidates. In RPG manuals, these are often covers, chapter openers, divider art, or blank end pages. Treat them as extraction failures only when neighboring page lengths, sample chunks, or the source PDF show that rule text is missing.
+Blank pages and image-only pages are reported separately. In RPG manuals, empty pages are often covers, chapter openers, divider art, or blank end pages. Treat them as extraction failures only when neighboring page lengths, sample chunks, or the source PDF show that rule text is missing.
 
 ## Internal Structure
 

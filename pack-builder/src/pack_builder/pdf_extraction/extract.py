@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Protocol
 
 from pack_builder.pdf_extraction.layout_order import TextBlock, order_text_blocks
-from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
+from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage, PageOcrSignals
 
 
 class PdfExtractor(Protocol):
@@ -27,7 +27,13 @@ class PyMuPdfExtractor:
             for index, page in enumerate(document, start=1):
                 try:
                     text = page.get_text("text", sort=True) or ""
-                    pages.append(ExtractedPage(page_number=index, text=text))
+                    pages.append(
+                        ExtractedPage(
+                            page_number=index,
+                            text=text,
+                            ocr_signals=pymupdf_ocr_signals(page),
+                        )
+                    )
                 except Exception as exc:  # pragma: no cover - depends on damaged PDFs.
                     pages.append(
                         ExtractedPage(
@@ -51,7 +57,13 @@ class PyMuPdfLayoutExtractor:
                 try:
                     blocks = pymupdf_text_blocks(page)
                     text = order_text_blocks(blocks, page.rect.width)
-                    pages.append(ExtractedPage(page_number=index, text=text))
+                    pages.append(
+                        ExtractedPage(
+                            page_number=index,
+                            text=text,
+                            ocr_signals=pymupdf_ocr_signals(page),
+                        )
+                    )
                 except Exception as exc:  # pragma: no cover - depends on damaged PDFs.
                     pages.append(
                         ExtractedPage(
@@ -74,7 +86,13 @@ class PdfPlumberExtractor:
             for index, page in enumerate(document.pages, start=1):
                 try:
                     text = page.extract_text(layout=True) or ""
-                    pages.append(ExtractedPage(page_number=index, text=text))
+                    pages.append(
+                        ExtractedPage(
+                            page_number=index,
+                            text=text,
+                            ocr_signals=pdfplumber_ocr_signals(page),
+                        )
+                    )
                 except Exception as exc:  # pragma: no cover - depends on damaged PDFs.
                     pages.append(
                         ExtractedPage(
@@ -105,6 +123,17 @@ def pymupdf_text_blocks(page) -> list[TextBlock]:
         x0, y0, x1, y1, text = raw_block[:5]
         blocks.append(TextBlock(float(x0), float(y0), float(x1), float(y1), str(text)))
     return blocks
+
+
+def pymupdf_ocr_signals(page) -> PageOcrSignals:
+    return PageOcrSignals(
+        image_count=len(page.get_images(full=True)),
+        drawing_count=len(page.get_drawings()),
+    )
+
+
+def pdfplumber_ocr_signals(page) -> PageOcrSignals:
+    return PageOcrSignals(image_count=len(page.images))
 
 
 def sha256_file(path: Path) -> str:

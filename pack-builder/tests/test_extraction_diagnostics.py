@@ -17,10 +17,11 @@ def document(pages: list[ExtractedPage]) -> ExtractedDocument:
     )
 
 
-def test_advanced_diagnostics_flags_ocr_candidates() -> None:
+def test_advanced_diagnostics_reports_blank_pages_separately() -> None:
     report = advanced_extraction_diagnostics([document([ExtractedPage(1, "")])])
 
-    assert report["ocr_candidates"] == [{"document_id": "doc", "page": 1}]
+    assert report["ocr_candidates"] == []
+    assert report["ocr_detection"]["blank_pages"][0]["page"] == 1
 
 
 def test_advanced_diagnostics_flags_table_and_multicolumn_shapes() -> None:

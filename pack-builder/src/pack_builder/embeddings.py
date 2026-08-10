@@ -25,7 +25,7 @@ class SentenceTransformerEmbeddingProvider:
 
         self.model_id = model_id
         self._model = SentenceTransformer(model_id)
-        dimension = self._model.get_sentence_embedding_dimension()
+        dimension = sentence_transformer_dimensions(self._model)
         self.dimensions = int(dimension or DEFAULT_EMBEDDING_DIMENSIONS)
 
     def encode(self, texts: list[str]) -> np.ndarray:
@@ -36,6 +36,18 @@ class SentenceTransformerEmbeddingProvider:
             show_progress_bar=False,
         )
         return np.asarray(embeddings, dtype=np.float32)
+
+
+def sentence_transformer_dimensions(model: object) -> int | None:
+    get_dimension = getattr(model, "get_embedding_dimension", None)
+    if callable(get_dimension):
+        return get_dimension()
+
+    get_legacy_dimension = getattr(model, "get_sentence_embedding_dimension", None)
+    if callable(get_legacy_dimension):
+        return get_legacy_dimension()
+
+    return None
 
 
 class DeterministicEmbeddingProvider:

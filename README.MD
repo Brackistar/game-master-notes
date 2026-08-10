@@ -69,9 +69,9 @@ The expected sweet spot is around 350M parameters. Larger models may be tested, 
 
 ## Current Status
 
-This project is in architecture reset and early implementation. The repository currently describes the intended Android offline architecture, implementation tracks, Mermaid diagrams, local VS Code/GitHub-style steering files, and the first sourcebook pack builder slice.
+This project is in architecture reset and early implementation. The repository currently describes the intended Android offline architecture, implementation tracks, Mermaid diagrams, local VS Code/GitHub-style steering files, the first sourcebook pack builder slice, and an initial multi-module Android app skeleton.
 
-The next step is to expand the pack builder, create the Android project skeleton, define the local data model, and build the Android sourcebook pack importer.
+The next step is to define the Android local data model, add Room dependencies and entities, and build the Android sourcebook pack importer against the `.gmnpack` format produced by `pack-builder/`.
 
 ## Roadmap
 
@@ -124,7 +124,40 @@ Implementation directories:
 - `android/` for the Android application
 - `pack-builder/` for the local PC sourcebook pack CLI
 
-Do not assume `android/` exists until Android implementation begins.
+The Android implementation has begun as a native multi-module project:
+
+- `android/app/` for the Android application and navigation host
+- `android/core/ai/` for the local AI runtime adapter boundary
+- `android/core/data/` for the database and repository implementation boundary
+- `android/core/design/` for shared Compose theme and UI primitives
+- `android/core/domain/` for durable domain identifiers and models
+- `android/core/importpacks/` for sourcebook pack import logic
+- `android/core/retrieval/` for search and retrieval contracts
+- `android/feature/assistant/` for assistant workflows
+- `android/feature/home/` for the home entry point
+- `android/feature/import/` for sourcebook pack import UI
+- `android/feature/library/` for library workflows
+- `android/feature/search/` for search UI
+- `android/feature/session/` for session mode
+- `android/feature/settings/` for settings
+
+Gradle wrapper files still need to be generated from an Android-capable environment.
+
+## Android Commands
+
+From `android/`, after Gradle wrapper generation:
+
+```bash
+./gradlew assembleDebug
+./gradlew testDebugUnitTest
+```
+
+On Windows PowerShell:
+
+```powershell
+.\gradlew.bat assembleDebug
+.\gradlew.bat testDebugUnitTest
+```
 
 ## Pack Builder Commands
 

@@ -32,22 +32,28 @@ The Android app is the user's session and prep tool. It must work offline on low
 - Kotlin coroutines and Flow for asynchronous state
 - Navigation Compose for app navigation
 
-## Future Directory
+## Android Directory
 
-Use `android/` when implementation begins.
+Use `android/` for the native Android app.
 
-Suggested modules can start simple:
+The initial implementation uses these modules:
 
 - `app`
 - `core:data`
 - `core:domain`
+- `core:design`
+- `core:importpacks`
+- `core:retrieval`
+- `core:ai`
 - `feature:library`
 - `feature:session`
 - `feature:import`
 - `feature:assistant`
+- `feature:home`
+- `feature:search`
 - `feature:settings`
 
-If Gradle module complexity slows early work, begin with one app module and package boundaries, then split later.
+The `app` module owns the navigation host and depends on feature modules. Feature modules depend on shared core modules, not on each other. Keep cross-feature coordination in `app` or future domain-level use cases.
 
 ## Main Screens
 
@@ -76,10 +82,10 @@ The session UI should avoid heavy decoration and favor readable, dense panels th
 
 ### Phase 1: Skeleton
 
-- Create the Android project.
-- Add Compose navigation and app theme.
-- Add placeholder screens for Home, Library, Session, Import, Assistant, and Settings.
-- Document Gradle build and test commands.
+- Create the Android project. Initial multi-module skeleton added under `android/`.
+- Add Compose navigation and app theme. Initial app host and shared theme added.
+- Add placeholder screens for Home, Library, Session, Import, Search, Assistant, and Settings. Initial placeholders added.
+- Document Gradle build and test commands. Initial commands documented; Gradle wrapper generation remains.
 
 ### Phase 2: Notes and Library
 

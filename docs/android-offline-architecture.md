@@ -17,7 +17,7 @@ The design goal is not to run a large general assistant on tablet hardware. The 
 
 ## Android App Modules
 
-The first implementation should use a native Android structure with Kotlin and Jetpack Compose.
+The first implementation uses a native Android multi-module structure with Kotlin and Jetpack Compose under `android/`.
 
 - App shell: navigation, theming, settings, permissions, and import entry points.
 - Library: systems, sourcebooks, campaigns, sessions, notes, NPCs, locations, factions, items, timelines, and tags.
@@ -27,7 +27,7 @@ The first implementation should use a native Android structure with Kotlin and J
 - Retrieval: context assembly from campaign notes, user lore, and sourcebook chunks.
 - AI: `AiEngine` adapter, prompt construction, streaming responses when available, and benchmark reporting.
 
-Keep modules small at first. The important boundary is between product workflows, local storage/search, pack import, and AI runtime integration.
+Keep modules small at first. The important boundary is between product workflows, local storage/search, pack import, retrieval, and AI runtime integration. The initial modules are `app`, `core:design`, `core:domain`, `core:data`, `core:importpacks`, `core:retrieval`, `core:ai`, and feature modules for home, library, session, import, search, assistant, and settings.
 
 ## Sourcebook Pack Format
 

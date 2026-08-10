@@ -24,6 +24,24 @@ uv run --extra dev pytest
 
 The default build path uses `sentence-transformers/all-MiniLM-L6-v2` and writes 384-dimensional embeddings. Tests use a deterministic local embedding provider so they do not need internet access or model files.
 
+## Build Controls
+
+Useful build options:
+
+```bash
+uv run pack-builder build --force --max-chars-per-chunk 1200 --report-out report.json --verbose --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
+uv run pack-builder build --dry-run --report-out report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
+uv run pack-builder inspect --json example.gmnpack
+uv run pack-builder validate --json example.gmnpack
+```
+
+- `--force` overwrites an existing output pack.
+- `--dry-run` extracts and chunks without generating embeddings or writing a pack.
+- `--max-chars-per-chunk` controls retrieval chunk size.
+- `--report-out` writes the extraction quality report as standalone JSON.
+- `--verbose` prints empty, suspicious, duplicate, and warning counts.
+- `--json` makes `inspect` and `validate` machine-readable.
+
 ## Archive Layout
 
 Each `.gmnpack` is a ZIP archive containing:
@@ -33,3 +51,5 @@ Each `.gmnpack` is a ZIP archive containing:
 - `chunks.jsonl`
 - `embeddings.npy`
 - `extraction-report.json`
+
+The extraction report records chunking settings, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.

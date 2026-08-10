@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import zipfile
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,6 +26,14 @@ from pack_builder.models import ExtractedDocument, SourceChunk
 from pack_builder.pdf_extract import PdfExtractor, extract_document, slugify
 
 
+@dataclass(frozen=True)
+class BuildResult:
+    manifest: dict[str, object]
+    documents: list[dict[str, object]]
+    chunks: list[SourceChunk]
+    extraction_report: dict[str, object]
+
+
 def make_pack_id(
     *,
     system: str,
@@ -45,15 +54,19 @@ def make_pack_id(
 def build_extraction_report(
     extractor_name: str,
     documents: list[ExtractedDocument],
+    max_chars_per_chunk: int,
 ) -> dict[str, object]:
     page_lengths: dict[str, list[dict[str, int]]] = {}
     empty_pages: list[dict[str, object]] = []
     suspicious_pages: list[dict[str, object]] = []
     warnings: list[dict[str, object]] = []
+    seen_page_texts: dict[str, dict[str, object]] = {}
+    duplicate_pages: list[dict[str, object]] = []
 
     for document in documents:
         lengths: list[dict[str, int]] = []
         for page in document.pages:
+            normalized_page_text = " ".join(page.text.split())
             text_len = len(page.text.strip())
             lengths.append({"page": page.page_number, "characters": text_len})
             if text_len == 0:
@@ -76,13 +89,39 @@ def build_extraction_report(
                         "warning": warning,
                     }
                 )
+            if normalized_page_text:
+                import hashlib
+
+                text_hash = hashlib.sha256(
+                    normalized_page_text.encode("utf-8")
+                ).hexdigest()
+                first_seen = seen_page_texts.get(text_hash)
+                if first_seen:
+                    duplicate_pages.append(
+                        {
+                            "document_id": document.document_id,
+                            "page": page.page_number,
+                            "matches_document_id": first_seen["document_id"],
+                            "matches_page": first_seen["page"],
+                        }
+                    )
+                else:
+                    seen_page_texts[text_hash] = {
+                        "document_id": document.document_id,
+                        "page": page.page_number,
+                    }
         page_lengths[document.document_id] = lengths
 
     return {
         "extractor": extractor_name,
+        "chunking": {
+            "max_chars_per_chunk": max_chars_per_chunk,
+            "strategy": "paragraph-aware",
+        },
         "page_text_lengths": page_lengths,
         "empty_pages": empty_pages,
         "suspicious_pages": suspicious_pages,
+        "duplicate_pages": duplicate_pages,
         "warnings": warnings,
         "errors": [],
     }
@@ -180,7 +219,7 @@ def build_pack(
     extractor: PdfExtractor,
     embedding_provider: EmbeddingProvider,
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
-) -> dict[str, object]:
+) -> BuildResult:
     documents = [extract_document(pdf_path, extractor) for pdf_path in pdf_paths]
     pack_id = make_pack_id(
         system=system,
@@ -234,7 +273,7 @@ def build_pack(
         chunk_count=len(chunks),
     )
     document_rows = [document_metadata(document) for document in documents]
-    report = build_extraction_report(extractor.name, documents)
+    report = build_extraction_report(extractor.name, documents, max_chars_per_chunk)
 
     write_pack_archive(
         out_path=out_path,
@@ -244,4 +283,76 @@ def build_pack(
         embeddings=embeddings,
         extraction_report=report,
     )
-    return manifest
+    return BuildResult(
+        manifest=manifest,
+        documents=document_rows,
+        chunks=chunks,
+        extraction_report=report,
+    )
+
+
+def preview_pack(
+    *,
+    pdf_paths: list[Path],
+    title: str,
+    system: str,
+    edition: str,
+    language: str,
+    extractor: PdfExtractor,
+    max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
+) -> BuildResult:
+    documents = [extract_document(pdf_path, extractor) for pdf_path in pdf_paths]
+    pack_id = make_pack_id(
+        system=system,
+        edition=edition,
+        title=title,
+        source_checksums=[document.source_checksum for document in documents],
+    )
+    chunks: list[SourceChunk] = []
+    for document in documents:
+        row_offset = len(chunks)
+        document_chunks = chunk_pages(
+            pack_id=pack_id,
+            document_id=document.document_id,
+            pages=document.pages,
+            max_chars=max_chars_per_chunk,
+        )
+        chunks.extend(
+            SourceChunk(
+                chunk_id=chunk.chunk_id,
+                document_id=chunk.document_id,
+                page_start=chunk.page_start,
+                page_end=chunk.page_end,
+                citation_label=chunk.citation_label,
+                text=chunk.text,
+                char_count=chunk.char_count,
+                embedding_row_index=row_offset + index,
+            )
+            for index, chunk in enumerate(document_chunks)
+        )
+    report = build_extraction_report(extractor.name, documents, max_chars_per_chunk)
+    manifest = {
+        "schema_version": PACK_SCHEMA_VERSION,
+        "pack_id": pack_id,
+        "title": title,
+        "system": system,
+        "edition": edition,
+        "language": language,
+        "source_pdfs": [
+            {"filename": document.source_filename, "checksum": document.source_checksum}
+            for document in documents
+        ],
+        "generator_version": GENERATOR_VERSION,
+        "extractor_name": extractor.name,
+        "embedding_model_id": None,
+        "embedding_dimensions": None,
+        "chunk_count": len(chunks),
+        "created_at": None,
+        "dry_run": True,
+    }
+    return BuildResult(
+        manifest=manifest,
+        documents=[document_metadata(document) for document in documents],
+        chunks=chunks,
+        extraction_report=report,
+    )

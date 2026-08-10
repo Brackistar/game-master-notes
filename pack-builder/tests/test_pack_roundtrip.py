@@ -15,7 +15,7 @@ from pack_builder.validate import validate_pack
 def test_build_pack_writes_valid_archive(synthetic_pdf: Path, tmp_path: Path) -> None:
     out = tmp_path / "synthetic.gmnpack"
 
-    manifest = build_pack(
+    build_result = build_pack(
         pdf_paths=[synthetic_pdf],
         out_path=out,
         title="Synthetic Book",
@@ -25,10 +25,12 @@ def test_build_pack_writes_valid_archive(synthetic_pdf: Path, tmp_path: Path) ->
         extractor=get_extractor("pymupdf"),
         embedding_provider=DeterministicEmbeddingProvider(),
     )
+    manifest = build_result.manifest
 
     assert out.exists()
     assert manifest["chunk_count"] >= 1
     assert validate_pack(out).ok
+    assert build_result.extraction_report["chunking"]["max_chars_per_chunk"] == 1800
 
     with zipfile.ZipFile(out) as archive:
         assert {
@@ -42,3 +44,24 @@ def test_build_pack_writes_valid_archive(synthetic_pdf: Path, tmp_path: Path) ->
 
     assert embeddings.shape[0] == manifest["chunk_count"]
     assert embeddings.shape[1] == 384
+
+
+def test_build_pack_respects_custom_chunk_size(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "small-chunks.gmnpack"
+
+    build_result = build_pack(
+        pdf_paths=[synthetic_pdf],
+        out_path=out,
+        title="Synthetic Book",
+        system="Test System",
+        edition="1e",
+        language="en",
+        extractor=get_extractor("pymupdf"),
+        embedding_provider=DeterministicEmbeddingProvider(),
+        max_chars_per_chunk=80,
+    )
+
+    assert build_result.manifest["chunk_count"] > 1
+    assert build_result.extraction_report["chunking"]["max_chars_per_chunk"] == 80

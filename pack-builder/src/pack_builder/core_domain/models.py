@@ -57,3 +57,6 @@ class SourceChunk:
             "char_count": self.char_count,
             "embedding_row_index": self.embedding_row_index,
         }
+
+
+

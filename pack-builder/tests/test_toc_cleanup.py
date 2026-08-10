@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pack_builder.models import ExtractedDocument, ExtractedPage
-from pack_builder.toc_cleanup import is_toc_page, remove_toc_pages
+from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
+from pack_builder.content_processing.toc_cleanup import is_toc_page, remove_toc_pages
 
 
 def document(pages: list[ExtractedPage]) -> ExtractedDocument:
@@ -55,3 +55,6 @@ def test_remove_toc_pages_respects_max_page() -> None:
 
     assert [page.page_number for page in cleaned[0].pages] == [5, 30]
     assert report["removed_pages"]["doc"] == [4]
+
+
+

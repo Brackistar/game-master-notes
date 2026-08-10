@@ -4,8 +4,8 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from pack_builder.constants import DEFAULT_MAX_CHARS_PER_CHUNK
-from pack_builder.models import ExtractedPage, SourceChunk
+from pack_builder.core_domain.constants import DEFAULT_MAX_CHARS_PER_CHUNK
+from pack_builder.core_domain.models import ExtractedPage, SourceChunk
 
 
 @dataclass(frozen=True)
@@ -158,3 +158,6 @@ def chunk_pages(
 
     flush()
     return chunks
+
+
+

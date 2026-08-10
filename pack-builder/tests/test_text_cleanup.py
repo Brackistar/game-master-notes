@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pack_builder.models import ExtractedDocument, ExtractedPage
-from pack_builder.text_cleanup import clean_documents, repair_hyphenation
+from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
+from pack_builder.content_processing.text_cleanup import clean_documents, repair_hyphenation
 
 
 def test_repair_hyphenation_joins_split_words() -> None:
@@ -31,3 +31,6 @@ def test_clean_documents_removes_repeated_lines() -> None:
 
     assert "Book Title" not in cleaned[0].pages[0].text
     assert report["removed_repeated_lines"]["doc"] == ["Book Title"]
+
+
+

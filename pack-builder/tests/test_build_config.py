@@ -5,7 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from pack_builder.build_config import BuildOverrides, load_build_config, resolve_build_options
+from pack_builder.configuration.build_config import (
+    BuildOverrides,
+    load_build_config,
+    resolve_build_options,
+)
 
 
 def write_config(path: Path, payload: object) -> None:
@@ -148,3 +152,6 @@ def test_resolve_build_options_uses_cli_overrides(
     assert options.title == "Override Book"
     assert options.out_path == override_out
     assert options.max_chars_per_chunk == 240
+
+
+

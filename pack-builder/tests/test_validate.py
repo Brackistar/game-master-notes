@@ -7,14 +7,14 @@ from pathlib import Path
 
 import numpy as np
 
-from pack_builder.constants import (
+from pack_builder.core_domain.constants import (
     CHUNKS_FILE,
     DOCUMENTS_FILE,
     EMBEDDINGS_FILE,
     EXTRACTION_REPORT_FILE,
     MANIFEST_FILE,
 )
-from pack_builder.validate import validate_pack
+from pack_builder.pack_archive.validate import validate_pack
 
 
 def write_minimal_pack(
@@ -102,3 +102,6 @@ def test_validate_rejects_malformed_chunks(tmp_path: Path) -> None:
 
     assert not result.ok
     assert any("missing field" in error for error in result.errors)
+
+
+

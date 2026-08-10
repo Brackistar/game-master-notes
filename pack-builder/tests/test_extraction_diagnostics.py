@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pack_builder.extraction_diagnostics import advanced_extraction_diagnostics
-from pack_builder.models import ExtractedDocument, ExtractedPage
+from pack_builder.pdf_extraction.diagnostics import advanced_extraction_diagnostics
+from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
 
 
 def document(pages: list[ExtractedPage]) -> ExtractedDocument:
@@ -41,3 +41,6 @@ def test_advanced_diagnostics_flags_merged_words() -> None:
     report = advanced_extraction_diagnostics([document([ExtractedPage(1, text)])])
 
     assert report["merged_word_warnings"] == [{"document_id": "doc", "page": 1}]
+
+
+

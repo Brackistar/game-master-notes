@@ -6,21 +6,22 @@ flowchart LR
   end
 
   subgraph Builder[PC Pack Builder CLI]
-    Pipeline[Pack pipeline\norchestration]
-    Extract[PDF extraction\npage-aware text]
-    Layout[Layout ordering\ncolumns + blocks]
-    Cleanup[Text cleanup\nheaders + hyphen repair]
-    Toc[TOC cleanup\nearly + dense inline pages]
-    Chunk[Chunking\nparagraph-aware citations]
-    Quality[Chunk quality\noverlap + dedupe]
-    Embed[Embedding generation\none vector per chunk]
-    ReportBuild[Extraction report builder\nstats + duplicates + diagnostics]
-    Diagnostics[Advanced diagnostics\nOCR candidates + layout artifacts]
-    Validate[Pack validation\ncounts + schema + checksums]
-    Write[Pack writer\nZIP archive]
-    Compare[Compare extractors\nPyMuPDF + layout + pdfplumber]
-    Schema[Schema command\npack contract]
-    Inspect[Inspection commands\nreport + sample chunks]
+    ConfigPkg[configuration\nbuild options]
+    Pipeline[content_processing\npipeline orchestration]
+    Extract[pdf_extraction\npage-aware text]
+    Layout[pdf_extraction\ncolumns + blocks]
+    Cleanup[content_processing\nheaders + hyphen repair]
+    Toc[content_processing\nTOC cleanup]
+    Chunk[content_processing\nparagraph chunks]
+    Quality[content_processing\noverlap + dedupe]
+    Embed[embedding_generation\none vector per chunk]
+    ReportBuild[pack_archive\nreport builder]
+    Diagnostics[pdf_extraction\nOCR + layout diagnostics]
+    Validate[pack_archive\ncounts + schema + checksums]
+    Write[pack_archive\nZIP writer]
+    Compare[pdf_extraction\nextractor comparison]
+    Schema[pack_archive\nschema command]
+    Inspect[pack_archive\nreport + sample chunks]
   end
 
   subgraph Pack[GMN Pack Output]
@@ -32,8 +33,8 @@ flowchart LR
   end
 
   PDF --> Pipeline
-  Flags --> Pipeline
-  Config --> Pipeline
+  Flags --> ConfigPkg --> Pipeline
+  Config --> ConfigPkg
   Pipeline --> Extract --> Layout --> Cleanup --> Toc --> Chunk --> Quality --> Embed
   Quality --> ReportBuild --> Diagnostics
   Embed --> Validate --> Write
@@ -53,5 +54,5 @@ flowchart LR
   classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
 
   class PDF,Flags,Config input;
-  class Pipeline,Extract,Layout,Cleanup,Toc,Chunk,Quality,Embed,ReportBuild,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
+  class ConfigPkg,Pipeline,Extract,Layout,Cleanup,Toc,Chunk,Quality,Embed,ReportBuild,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
   class Manifest,Docs,Chunks,Vectors,Report,Import output;

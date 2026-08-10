@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
-from pack_builder.models import SourceChunk
+from pack_builder.core_domain.models import SourceChunk
 
 
 def improve_chunks(
@@ -89,3 +89,6 @@ def tail_text(text: str, max_chars: int) -> str:
 def text_fingerprint(text: str) -> str:
     normalized = " ".join(text.lower().split())
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+

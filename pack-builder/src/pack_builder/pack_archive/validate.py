@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pack_builder.constants import (
+from pack_builder.core_domain.constants import (
     CHUNKS_FILE,
     DOCUMENTS_FILE,
     EMBEDDINGS_FILE,
@@ -266,3 +266,6 @@ def validate_chunk_page_range(
         return
     if page_start <= 0 or page_end < page_start:
         errors.append(f"chunk row {index} has invalid page range")
+
+
+

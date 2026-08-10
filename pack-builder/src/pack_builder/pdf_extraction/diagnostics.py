@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from pack_builder.models import ExtractedDocument, ExtractedPage
+from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
 
 
 def advanced_extraction_diagnostics(
@@ -53,3 +53,6 @@ def has_multicolumn_shape(page: ExtractedPage) -> bool:
 def has_merged_words(page: ExtractedPage) -> bool:
     words = re.findall(r"[a-z]{5,}[A-Z][a-z]{3,}", page.text)
     return len(words) >= 2
+
+
+

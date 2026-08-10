@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pack_builder.embeddings import sentence_transformer_dimensions
+from pack_builder.embedding_generation.embeddings import sentence_transformer_dimensions
 
 
 def test_sentence_transformer_dimensions_prefers_new_method() -> None:
@@ -20,3 +20,6 @@ def test_sentence_transformer_dimensions_falls_back_to_legacy_method() -> None:
             return 128
 
     assert sentence_transformer_dimensions(FakeModel()) == 128
+
+
+

@@ -3,7 +3,11 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from pack_builder.models import ExtractedDocument, ExtractedPage, replace_document_pages
+from pack_builder.core_domain.models import (
+    ExtractedDocument,
+    ExtractedPage,
+    replace_document_pages,
+)
 
 
 def clean_documents(
@@ -73,3 +77,6 @@ def repair_hyphenation(text: str) -> tuple[str, int]:
 
 def normalize_line(line: str) -> str:
     return re.sub(r"\s+", " ", line).strip()
+
+
+

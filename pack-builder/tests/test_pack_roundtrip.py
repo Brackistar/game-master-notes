@@ -6,10 +6,10 @@ from pathlib import Path
 
 import numpy as np
 
-from pack_builder.embeddings import DeterministicEmbeddingProvider
-from pack_builder.pack_writer import build_pack
-from pack_builder.pdf_extract import get_extractor
-from pack_builder.validate import validate_pack
+from pack_builder.embedding_generation.embeddings import DeterministicEmbeddingProvider
+from pack_builder.pack_archive.writer import build_pack
+from pack_builder.pdf_extraction.extract import get_extractor
+from pack_builder.pack_archive.validate import validate_pack
 
 
 def test_build_pack_writes_valid_archive(synthetic_pdf: Path, tmp_path: Path) -> None:
@@ -88,3 +88,6 @@ def test_build_pack_records_cleanup_and_chunk_quality(
     assert build_result.extraction_report["toc_cleanup"]["enabled"] is True
     assert build_result.extraction_report["chunk_quality"]["overlap_chars"] == 20
     assert "advanced_extraction" in build_result.extraction_report
+
+
+

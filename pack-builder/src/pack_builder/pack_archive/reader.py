@@ -4,7 +4,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from pack_builder.constants import (
+from pack_builder.core_domain.constants import (
     CHUNKS_FILE,
     EXTRACTION_REPORT_FILE,
     MANIFEST_FILE,
@@ -30,3 +30,6 @@ def read_chunks(pack_path: Path) -> list[dict[str, object]]:
         with archive.open(CHUNKS_FILE) as handle:
             lines = handle.read().decode("utf-8").splitlines()
     return [json.loads(line) for line in lines if line.strip()]
+
+
+

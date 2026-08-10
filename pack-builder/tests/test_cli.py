@@ -280,3 +280,6 @@ def test_cli_compare_extractors_outputs_summary(
     assert payload["page_count"] == 2
     assert "character_delta" in payload["summary"]
     assert "layout_delta" in payload["summary"]
+
+
+

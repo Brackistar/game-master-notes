@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pack_builder.pdf_extract import extract_document, get_extractor
+from pack_builder.pdf_extraction.extract import extract_document, get_extractor
 
 EXTRACTORS_TO_COMPARE = ["pymupdf", "pymupdf-layout", "pdfplumber"]
 
@@ -57,3 +57,6 @@ def summarize_pages(pages: list[dict[str, object]]) -> dict[str, object]:
         summary["pymupdf-layout_characters"] - summary["pymupdf_characters"]
     )
     return summary
+
+
+

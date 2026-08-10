@@ -80,3 +80,6 @@ def block_center(block: TextBlock) -> float:
 
 def spans_midpoint(block: TextBlock, midpoint: float) -> bool:
     return block.x0 < midpoint < block.x1
+
+
+

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pack_builder.chunk_quality import improve_chunks
-from pack_builder.models import SourceChunk
+from pack_builder.content_processing.chunk_quality import improve_chunks
+from pack_builder.core_domain.models import SourceChunk
 
 
 def chunk(chunk_id: str, text: str, row: int) -> SourceChunk:
@@ -45,3 +45,6 @@ def test_improve_chunks_removes_duplicate_text_and_reindexes() -> None:
     assert [item.chunk_id for item in chunks] == ["chunk-1", "chunk-3"]
     assert [item.embedding_row_index for item in chunks] == [0, 1]
     assert report["removed_duplicate_chunk_ids"] == ["chunk-2"]
+
+
+

@@ -89,6 +89,22 @@ CLI flags override config file values.
 - `compare-extractors` compares PyMuPDF, PyMuPDF layout, and pdfplumber page character counts.
 - `schema` prints the current `.gmnpack` contract.
 
+```mermaid
+flowchart TD
+  PDF[Owned PDF] --> EXT[Extract pages]
+  EXT --> LAY[Order layout]
+  LAY --> CLEAN[Clean text]
+  CLEAN --> TOC[Remove TOC pages]
+  TOC --> CHUNK[Create chunks]
+  CHUNK --> QUAL[Improve chunks]
+  QUAL --> EMB[Generate embeddings]
+  QUAL --> REP[Build report]
+  EMB --> WRITE[Write archive]
+  REP --> WRITE
+  WRITE --> PACK[.gmnpack]
+  PACK --> CHECK[Validate pack]
+```
+
 ## Archive Layout
 
 Each `.gmnpack` is a ZIP archive containing:
@@ -115,11 +131,26 @@ Image-only pages are reported as empty pages and OCR candidates. In RPG manuals,
 ## Internal Structure
 
 - `cli.py` owns Typer commands and user-facing output.
-- `build_config.py` resolves JSON config files and CLI overrides.
-- `pdf_extract.py` owns extractor adapters for PyMuPDF and pdfplumber.
-- `layout_order.py` orders PyMuPDF text blocks for column-heavy pages.
-- `pack_pipeline.py` coordinates extraction, cleanup, TOC removal, chunking, and chunk quality.
-- `pack_writer.py` writes manifests, document metadata, embeddings, and ZIP archives.
-- `pack_reader.py` reads existing packs for inspection commands.
-- `extraction_report.py` builds extraction quality reports.
-- `validate.py` verifies `.gmnpack` archive contracts.
+- `configuration/` resolves JSON config files and CLI overrides.
+- `core_domain/` contains shared constants and sourcebook pack data models.
+- `pdf_extraction/` owns extractor adapters, layout ordering, diagnostics, and comparisons.
+- `content_processing/` coordinates text cleanup, TOC removal, chunking, and chunk quality.
+- `embedding_generation/` owns embedding provider adapters.
+- `pack_archive/` reads, writes, reports on, validates, and describes `.gmnpack` archives.
+
+```mermaid
+flowchart LR
+  CLI[CLI] --> CFG[Configuration]
+  CLI --> PDF[PDF Extraction]
+  CLI --> ARC[Pack Archive]
+  CFG --> PROC[Content Processing]
+  PDF --> PROC
+  PROC --> EMB[Embedding Generation]
+  PROC --> ARC
+  EMB --> ARC
+  CORE[Core Domain] --> CFG
+  CORE --> PDF
+  CORE --> PROC
+  CORE --> EMB
+  CORE --> ARC
+```

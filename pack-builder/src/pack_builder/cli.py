@@ -8,14 +8,18 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from pack_builder.build_config import BuildOptions, BuildOverrides, resolve_build_options
-from pack_builder.embeddings import get_embedding_provider
-from pack_builder.extractor_compare import compare_extractors
-from pack_builder.pack_reader import read_chunks, read_extraction_report
-from pack_builder.pack_writer import build_pack, preview_pack
-from pack_builder.pdf_extract import get_extractor
-from pack_builder.schema_contract import pack_schema_contract
-from pack_builder.validate import validate_pack
+from pack_builder.configuration.build_config import (
+    BuildOptions,
+    BuildOverrides,
+    resolve_build_options,
+)
+from pack_builder.embedding_generation.embeddings import get_embedding_provider
+from pack_builder.pdf_extraction.compare import compare_extractors
+from pack_builder.pack_archive.reader import read_chunks, read_extraction_report
+from pack_builder.pack_archive.writer import build_pack, preview_pack
+from pack_builder.pdf_extraction.extract import get_extractor
+from pack_builder.pack_archive.schema_contract import pack_schema_contract
+from pack_builder.pack_archive.validate import validate_pack
 
 
 class ExtractorName(str, Enum):
@@ -482,3 +486,6 @@ def validate(
 
 if __name__ == "__main__":
     app()
+
+
+

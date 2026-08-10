@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import re
 
-from pack_builder.models import ExtractedDocument, ExtractedPage, replace_document_pages
+from pack_builder.core_domain.models import (
+    ExtractedDocument,
+    ExtractedPage,
+    replace_document_pages,
+)
 
 MIN_TOC_LINES = 5
 MIN_INLINE_TOC_REFS = 8
@@ -59,3 +63,6 @@ def looks_like_toc_line(line: str) -> bool:
 
 def count_inline_page_refs(text: str) -> int:
     return len(PAGE_REF_PATTERN.findall(text))
+
+
+

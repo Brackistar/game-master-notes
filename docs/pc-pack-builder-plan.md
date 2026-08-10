@@ -39,26 +39,16 @@ The first implementation slice now lives in `pack-builder/`.
 
 Current structure:
 
-- `src/pack_builder/build_config.py`
 - `src/pack_builder/cli.py`
-- `src/pack_builder/chunking.py`
-- `src/pack_builder/chunk_quality.py`
-- `src/pack_builder/embeddings.py`
-- `src/pack_builder/extraction_diagnostics.py`
-- `src/pack_builder/extraction_report.py`
-- `src/pack_builder/extractor_compare.py`
-- `src/pack_builder/layout_order.py`
-- `src/pack_builder/pdf_extract.py`
-- `src/pack_builder/pack_pipeline.py`
-- `src/pack_builder/pack_reader.py`
-- `src/pack_builder/pack_writer.py`
-- `src/pack_builder/schema_contract.py`
-- `src/pack_builder/text_cleanup.py`
-- `src/pack_builder/toc_cleanup.py`
-- `src/pack_builder/validate.py`
+- `src/pack_builder/configuration/`
+- `src/pack_builder/core_domain/`
+- `src/pack_builder/pdf_extraction/`
+- `src/pack_builder/content_processing/`
+- `src/pack_builder/embedding_generation/`
+- `src/pack_builder/pack_archive/`
 - `tests/`
 
-The current code keeps the CLI, pack preparation pipeline, archive writing, and extraction report generation in separate modules to keep file size and cognitive complexity under control.
+The current code keeps CLI, configuration, domain models, PDF extraction, content processing, embedding generation, and pack archive responsibilities in separate packages to keep file size and cognitive complexity under control.
 
 Implemented commands:
 

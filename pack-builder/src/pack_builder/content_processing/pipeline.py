@@ -4,12 +4,14 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from pack_builder.chunking import chunk_pages
-from pack_builder.chunk_quality import improve_chunks
-from pack_builder.models import ExtractedDocument, SourceChunk
-from pack_builder.pdf_extract import PdfExtractor, extract_document, slugify
-from pack_builder.text_cleanup import clean_documents
-from pack_builder.toc_cleanup import remove_toc_pages as remove_toc_pages_from_documents
+from pack_builder.content_processing.chunking import chunk_pages
+from pack_builder.content_processing.chunk_quality import improve_chunks
+from pack_builder.core_domain.models import ExtractedDocument, SourceChunk
+from pack_builder.pdf_extraction.extract import PdfExtractor, extract_document, slugify
+from pack_builder.content_processing.text_cleanup import clean_documents
+from pack_builder.content_processing.toc_cleanup import (
+    remove_toc_pages as remove_toc_pages_from_documents,
+)
 
 
 @dataclass(frozen=True)
@@ -149,3 +151,6 @@ def reindex_chunks(chunks: list[SourceChunk], row_offset: int) -> list[SourceChu
         )
         for index, chunk in enumerate(chunks)
     ]
+
+
+

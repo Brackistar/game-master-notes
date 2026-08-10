@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pack_builder.constants import (
+from pack_builder.core_domain.constants import (
     CHUNKS_FILE,
     DOCUMENTS_FILE,
     EMBEDDINGS_FILE,
@@ -47,3 +47,6 @@ def pack_schema_contract() -> dict[str, object]:
         ],
         "embedding_format": "numpy .npy float32 matrix",
     }
+
+
+

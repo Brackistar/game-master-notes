@@ -5,8 +5,8 @@ import re
 from pathlib import Path
 from typing import Protocol
 
-from pack_builder.layout_order import TextBlock, order_text_blocks
-from pack_builder.models import ExtractedDocument, ExtractedPage
+from pack_builder.pdf_extraction.layout_order import TextBlock, order_text_blocks
+from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
 
 
 class PdfExtractor(Protocol):
@@ -136,3 +136,6 @@ def extract_document(pdf_path: Path, extractor: PdfExtractor) -> ExtractedDocume
         page_count=len(pages),
         pages=pages,
     )
+
+
+

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pack_builder.chunking import (
+from pack_builder.content_processing.chunking import (
     chunk_pages,
     citation_label,
     deterministic_chunk_id,
     normalize_text,
 )
-from pack_builder.models import ExtractedPage
+from pack_builder.core_domain.models import ExtractedPage
 
 
 def test_normalize_text_collapses_whitespace_without_losing_paragraphs() -> None:
@@ -42,3 +42,6 @@ def test_ids_and_citation_labels_are_deterministic() -> None:
     assert first.startswith("chunk-")
     assert citation_label("doc", 3, 3) == "doc p. 3"
     assert citation_label("doc", 3, 5) == "doc pp. 3-5"
+
+
+

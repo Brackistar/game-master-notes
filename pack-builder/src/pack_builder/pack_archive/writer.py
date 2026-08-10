@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pack_builder.constants import (
+from pack_builder.core_domain.constants import (
     CHUNKS_FILE,
     DEFAULT_MAX_CHARS_PER_CHUNK,
     DOCUMENTS_FILE,
@@ -20,11 +20,11 @@ from pack_builder.constants import (
     PACK_SCHEMA_VERSION,
     SUSPICIOUS_PAGE_CHAR_THRESHOLD,
 )
-from pack_builder.embeddings import EmbeddingProvider
-from pack_builder.extraction_report import build_extraction_report
-from pack_builder.models import ExtractedDocument, SourceChunk
-from pack_builder.pack_pipeline import make_pack_id, prepare_pack_content
-from pack_builder.pdf_extract import PdfExtractor
+from pack_builder.embedding_generation.embeddings import EmbeddingProvider
+from pack_builder.pack_archive.extraction_report import build_extraction_report
+from pack_builder.core_domain.models import ExtractedDocument, SourceChunk
+from pack_builder.content_processing.pipeline import make_pack_id, prepare_pack_content
+from pack_builder.pdf_extraction.extract import PdfExtractor
 
 
 @dataclass(frozen=True)
@@ -255,3 +255,6 @@ def preview_pack(
         chunks=pack_content.chunks,
         extraction_report=report,
     )
+
+
+

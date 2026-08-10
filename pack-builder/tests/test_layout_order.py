@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pack_builder.layout_order import TextBlock, order_text_blocks
+from pack_builder.pdf_extraction.layout_order import TextBlock, order_text_blocks
 
 
 def block(x0: float, y0: float, x1: float, y1: float, text: str) -> TextBlock:
@@ -51,3 +51,6 @@ def test_order_text_blocks_keeps_heading_before_columns() -> None:
     text = order_text_blocks(blocks, page_width=400)
 
     assert text.startswith("Chapter Title\n\nleft one")
+
+
+

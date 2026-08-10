@@ -5,7 +5,7 @@ from typing import Protocol
 
 import numpy as np
 
-from pack_builder.constants import (
+from pack_builder.core_domain.constants import (
     DEFAULT_EMBEDDING_DIMENSIONS,
     DEFAULT_EMBEDDING_MODEL_ID,
 )
@@ -83,3 +83,6 @@ def get_embedding_provider(
     if normalized == "deterministic":
         return DeterministicEmbeddingProvider()
     raise ValueError(f"unknown embedding provider: {provider_name}")
+
+
+

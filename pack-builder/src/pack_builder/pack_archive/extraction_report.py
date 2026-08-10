@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 
-from pack_builder.constants import SUSPICIOUS_PAGE_CHAR_THRESHOLD
-from pack_builder.extraction_diagnostics import advanced_extraction_diagnostics
-from pack_builder.models import ExtractedDocument, ExtractedPage
+from pack_builder.core_domain.constants import SUSPICIOUS_PAGE_CHAR_THRESHOLD
+from pack_builder.pdf_extraction.diagnostics import advanced_extraction_diagnostics
+from pack_builder.core_domain.models import ExtractedDocument, ExtractedPage
 
 
 def build_extraction_report(
@@ -107,3 +107,6 @@ def record_duplicate_page(
 
 def page_location(document: ExtractedDocument, page_number: int) -> dict[str, object]:
     return {"document_id": document.document_id, "page": page_number}
+
+
+

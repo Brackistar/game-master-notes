@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from pack_builder.constants import (
+from pack_builder.core_domain.constants import (
     DEFAULT_EMBEDDING_MODEL_ID,
     DEFAULT_EXTRACTOR,
     DEFAULT_MAX_CHARS_PER_CHUNK,
@@ -222,3 +222,6 @@ def _optional_bool(
     if explicit_value is not None:
         return explicit_value
     return bool(config.get(key, default_value))
+
+
+

@@ -55,5 +55,8 @@ mempalace.yaml
 # Node modules
 node_modules/
 
-# Github files
-.github/
+# GitHub local steering files
+.github/*
+!.github/workflows/
+!.github/workflows/**
+.github/instructions/

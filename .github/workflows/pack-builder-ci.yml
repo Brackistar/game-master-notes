@@ -1,0 +1,52 @@
+name: Pack Builder CI
+
+on:
+  push:
+    paths:
+      - "pack-builder/**"
+      - ".github/workflows/pack-builder-ci.yml"
+  pull_request:
+    paths:
+      - "pack-builder/**"
+      - ".github/workflows/pack-builder-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.10"
+          - "3.12"
+
+    defaults:
+      run:
+        working-directory: pack-builder
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          version: "0.12.2"
+          enable-cache: true
+          cache-dependency-glob: pack-builder/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run tests
+        run: uv run pytest

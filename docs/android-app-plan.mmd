@@ -1,0 +1,57 @@
+flowchart TD
+  subgraph App[Android App]
+    Shell[App shell\nnavigation + theme + settings]
+    Home[Home\nrecent campaigns + search]
+    Library[Library\nsystems + campaigns + lore]
+    Session[Session Mode\nquick notes + pinned lore]
+    Import[Import\npack picker + progress]
+    Search[Search\nkeyword + semantic results]
+    Assistant[Assistant\ncontext preview + response]
+    Bench[Benchmarks\nmodel performance]
+  end
+
+  subgraph Domain[Domain Layer]
+    UseCases[Use cases\nnotes + packs + retrieval]
+    Repos[Repository interfaces]
+    AiPort[AiEngine port]
+  end
+
+  subgraph Platform[Platform Services]
+    Room[Room database]
+    Work[WorkManager\nlong imports]
+    Files[Android file storage\npacks + models]
+    Llama[llama.cpp runtime]
+  end
+
+  Shell --> Home
+  Shell --> Library
+  Shell --> Session
+  Shell --> Import
+  Shell --> Search
+  Shell --> Assistant
+  Shell --> Bench
+
+  Home --> UseCases
+  Library --> UseCases
+  Session --> UseCases
+  Import --> UseCases
+  Search --> UseCases
+  Assistant --> UseCases
+  Bench --> UseCases
+
+  UseCases --> Repos
+  UseCases --> AiPort
+  Repos --> Room
+  Repos --> Files
+  Import --> Work
+  Work --> Repos
+  AiPort --> Llama
+  Llama --> Files
+
+  classDef ui fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
+  classDef domain fill:#fff3d8,stroke:#b37518,color:#3f2a05;
+  classDef platform fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
+
+  class Shell,Home,Library,Session,Import,Search,Assistant,Bench ui;
+  class UseCases,Repos,AiPort domain;
+  class Room,Work,Files,Llama platform;

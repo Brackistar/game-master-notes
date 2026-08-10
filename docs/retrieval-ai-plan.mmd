@@ -1,0 +1,38 @@
+flowchart LR
+  User[User request\nsearch or assistant] --> Normalize[Normalize query]
+
+  subgraph Retrieval[Shared Retrieval Pipeline]
+    Normalize --> Keyword[SQLite FTS\nkeyword search]
+    Normalize --> Semantic[Vector search\nsemantic matches]
+    Keyword --> Rank[Merge + rank]
+    Semantic --> Rank
+    Filters[Campaign + system + tag filters] --> Rank
+    Pinned[Pinned lore\nactive session context] --> Rank
+    Rank --> Bundle[Context bundle\nnotes + lore + cited chunks]
+  end
+
+  subgraph Assistant[Assistant Orchestration]
+    Bundle --> Prompt[Grounded prompt builder]
+    Prompt --> Engine[AiEngine adapter]
+    Engine --> Fake[Fake engine\nUI tests]
+    Engine --> Llama[llama.cpp engine]
+    Llama --> Model[GGUF model\n350M-class target]
+    Model --> Response[Streamed response]
+    Fake --> Response
+  end
+
+  subgraph Output[User-Facing Output]
+    Response --> Citations[Citations + context preview]
+    Citations --> Save[Save useful output\nas note]
+    Response --> Bench[Benchmark metrics\nload + tokens/sec + notes]
+  end
+
+  classDef retrieval fill:#fff3d8,stroke:#b37518,color:#3f2a05;
+  classDef ai fill:#f1e8ff,stroke:#6f45ad,color:#25123f;
+  classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
+  classDef input fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
+
+  class User,Normalize input;
+  class Keyword,Semantic,Rank,Filters,Pinned,Bundle retrieval;
+  class Prompt,Engine,Fake,Llama,Model,Response ai;
+  class Citations,Save,Bench output;

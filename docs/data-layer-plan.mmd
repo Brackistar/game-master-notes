@@ -1,0 +1,72 @@
+flowchart TD
+  subgraph Domain[Domain Records]
+    System[Systems]
+    Campaign[Campaigns]
+    Session[Sessions]
+    Note[Notes]
+    Lore[Lore Entities]
+    Tag[Tags]
+  end
+
+  subgraph Sources[Imported Sourcebook Data]
+    Pack[Sourcebook Packs]
+    Document[Source Documents]
+    Chunk[Source Chunks\ntext + citations]
+  end
+
+  subgraph Storage[Room + SQLite]
+    Tables[Relational Tables]
+    Links[Links\nnotes + lore + chunks]
+    FTS[FTS Index\nkeyword search]
+    Vector[Vector Store\nsemantic search]
+    Files[File Storage\npack archives + GGUF models]
+  end
+
+  subgraph Runtime[Runtime Metadata]
+    Models[Model Profiles]
+    Bench[Benchmark Runs]
+  end
+
+  System --> Campaign
+  Campaign --> Session
+  Campaign --> Note
+  Campaign --> Lore
+  Note --> Tag
+  Lore --> Tag
+
+  Pack --> Document --> Chunk
+  System --> Pack
+
+  System --> Tables
+  Campaign --> Tables
+  Session --> Tables
+  Note --> Tables
+  Lore --> Tables
+  Tag --> Tables
+  Pack --> Tables
+  Document --> Tables
+  Chunk --> Tables
+
+  Note --> Links
+  Lore --> Links
+  Chunk --> Links
+  Note --> FTS
+  Lore --> FTS
+  Chunk --> FTS
+  Note --> Vector
+  Lore --> Vector
+  Chunk --> Vector
+
+  Models --> Files
+  Models --> Bench
+  Bench --> Tables
+
+  classDef domain fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
+  classDef source fill:#f7f7f7,stroke:#666,color:#111;
+  classDef storage fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
+  classDef runtime fill:#f1e8ff,stroke:#6f45ad,color:#25123f;
+
+  class System,Campaign,Session,Note,Lore,Tag domain;
+  class Pack,Document,Chunk source;
+  class Tables,Links,FTS,Vector,Files storage;
+  class Models,Bench runtime;

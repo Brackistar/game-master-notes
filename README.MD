@@ -1,103 +1,144 @@
 # game-master-notes
 
-An AI-powered note-taking and world-management app for game masters running multiple games and campaigns.
+An offline Android lore and notes assistant for game masters running multiple roleplaying systems.
 
 ## Overview
 
-`game-master-notes` is an early-stage project focused on a simple idea: a game master should be able to capture ideas quickly, organize worlds cleanly, and get useful AI help without turning prep into a second job.
+`game-master-notes` is being reset around a new goal: a tablet-first Android app that acts as a local source of campaign notes, world lore, and searchable sourcebook knowledge. The app is intended to run on low-requirement Android tablets and remain useful without internet access during prep or live sessions.
 
-The product is being designed around a live transcription-first workflow. Instead of relying only on typed notes, the goal is to let a GM speak ideas as they come, turn those into structured notes, connect them to worlds and campaigns, and retrieve them later through keyword and semantic search. On top of that foundation, the project will include an optional council-style AI assistant for lore checks, plot brainstorming, NPC design, and continuity support.
+The v1 product focuses on three practical jobs:
 
-## Why This Project
+- Capture and organize campaign notes, NPCs, locations, factions, items, timelines, and tags.
+- Import prebuilt sourcebook packs generated from PDFs the user already owns.
+- Use local retrieval plus a small on-device AI model to brainstorm, answer lore questions, and support session direction with cited context.
 
-Running more than one game usually means scattered notes, forgotten ideas, duplicate prep, and too much context living only in your head. This project exists to make campaign knowledge easier to capture, easier to revisit, and easier to grow over time.
+The local model does not need to memorize game systems or campaign lore. That knowledge lives in the app database, sourcebook packs, and user notes. The assistant's job is to work with retrieved context and produce grounded, useful help.
 
-The approach is intentionally practical: prioritize usability first, keep AI costs under control, and use OpenAI as the initial provider so the first versions can focus on product quality instead of local model infrastructure. The goal is not to add AI everywhere, but to make it genuinely helpful where it saves time.
+## Target Device Profile
 
-This repository is being built in public by [`brackistar`](https://github.com/brackistar), starting from architecture and scope decisions before expanding into implementation.
+The first target profile is a modest Android tablet rather than a flagship device:
+
+- Android 10 or newer
+- Entry-level or midrange ARM CPU
+- 4 GB RAM minimum, 6 GB preferred
+- 64 GB internal storage minimum, 128 GB preferred
+- Optional microSD expansion support
+- 8-inch or larger display
+
+This hardware makes offline-first design important. The app should favor small local models, compact indexes, resumable imports, and predictable memory usage over heavyweight agent stacks.
 
 ## Planned Features
 
-- Multi-world and multi-campaign organization
-- Session notes with rich text editing
-- Live voice transcription for fast idea capture
-- AI-powered summaries and entity extraction
-- Semantic search across notes, sessions, and world data
-- Manual council AI for lore, NPCs, plot hooks, and continuity checks
-- Shared web and desktop experience
+- Multi-system library for different RPG rulesets and settings
+- Campaign and session organization
+- Notes for characters, locations, factions, items, events, timelines, and loose ideas
+- Sourcebook pack import from local storage or microSD
+- Keyword and semantic search across notes, lore, and imported sourcebook chunks
+- Session mode with quick note capture, pinned lore, search, and assistant panel
+- Grounded local assistant for brainstorming, continuity checks, NPC ideas, rulings support, and session direction
+- Model benchmark view for load time, memory use, tokens per second, and answer quality notes
 
-## Architecture
+## Sourcebook Packs
 
-The current v1 direction is:
+Sourcebook PDFs are not committed to this repository and are not shipped with the app.
 
-- Frontend: React + TypeScript + Vite
-- Desktop wrapper: Tauri
-- Core backend: Go
-- AI orchestration service: Python + Strands Agents
-- Data layer: PostgreSQL + pgvector
-- AI provider: OpenAI
-- Communication: HTTP/JSON + WebSocket for client traffic, gRPC for internal services
+In v1, PDFs are processed on a local PC using a pack builder CLI. The generated pack contains metadata, extracted text chunks, page or citation references, and embeddings. The Android app imports that pack and stores it locally.
 
-This split keeps the core application logic in Go while using Python where it is most useful for AI orchestration and agent workflows.
+This keeps copyrighted sourcebooks private, avoids slow tablet-side PDF processing, and makes setup practical for large books.
 
-## AI and Cost Strategy
+## Local AI Strategy
 
-The bread-and-butter workflow is live transcription, so the system is being designed with that as the primary AI cost driver. More advanced council-style assistance is manual by design, which helps keep usage predictable and prevents unnecessary background model calls.
+The app will use an `AiEngine` adapter so different local runtimes and models can be tested without rewriting the product workflow.
 
-The current expectation is that balanced solo usage should remain relatively inexpensive, with transcription as the main recurring cost and deeper AI reasoning used selectively. More detailed cost breakdowns and model routing notes will live in future documentation as the implementation becomes concrete.
+Initial benchmark candidates include:
+
+- LFM2.5-350M
+- SmolLM2-360M-Instruct
+- SmolLM2-135M-Instruct
+- MobileLLM and MobileLLM/ParetoQ variants
+- Qwen3-0.6B as an upper quality benchmark
+
+The expected sweet spot is around 350M parameters. Larger models may be tested, but v1 should not depend on 1B+ models running comfortably on the target tablet.
 
 ## Current Status
 
-This project is currently in planning and early implementation setup.
+This project is in architecture reset and planning. The repository currently describes the intended Android offline architecture, implementation tracks, Mermaid diagrams, and local VS Code/GitHub-style steering files before implementation begins.
 
-The scope, architecture, and product direction are defined, and the next step is building the core foundations: data model, service boundaries, note flows, and live transcription pipeline. The repository is intentionally light at the moment and should be read as a project brief and build roadmap rather than a finished application.
+The next step is to create the Android project skeleton, define the local data model, and build the first sourcebook pack format and importer.
 
 ## Roadmap
 
-### Phase 1: Foundation and Data Model
+### Phase 1: Android Foundation
 
-- Define core entities for worlds, campaigns, sessions, notes, and tags
-- Set up the shared architecture and service boundaries
-- Establish the database and API foundations
+- Create the Android project
+- Set up local persistence and core data entities
+- Build campaign, session, and note screens
+- Document build and test commands
 
-### Phase 2: Notes and Search
+### Phase 2: Sourcebook Packs
 
-- Build the main note-taking flows
-- Add structured organization and linking
-- Introduce keyword and semantic search
+- Create the local PC pack builder
+- Extract PDF text into citeable chunks
+- Generate embeddings and package metadata
+- Import packs into the Android app from local storage or microSD
 
-### Phase 3: Live Transcription
+### Phase 3: Retrieval
 
-- Implement realtime voice capture and transcript streaming
-- Save finalized transcript content into session workflows
-- Turn spoken ideas into usable notes
+- Add keyword search
+- Add local vector search
+- Merge note, lore, and sourcebook results into a context assembler
+- Show citations for retrieved source material
 
-### Phase 4: Council AI
+### Phase 4: Local Assistant
 
-- Add manual AI workflows for lore, plot, NPCs, and continuity
-- Keep retrieval grounded in campaign and world data
-- Make deeper reasoning opt-in
+- Add the `AiEngine` interface
+- Integrate the first local runtime path
+- Build grounded assistant prompts over retrieved context
+- Add tablet benchmark workflows for candidate models
 
-### Phase 5: Polish, Observability, and Deployment
+### Phase 5: Session Polish
 
-- Improve reliability and UX
-- Add usage tracking and cost visibility
-- Prepare production deployment and project hardening
+- Optimize the low-requirement tablet session layout
+- Add pinned lore and fast note capture
+- Improve import reliability, search quality, and offline robustness
+- Consider optional cloud escalation only after the offline v1 works
 
 ## Repository Structure
 
-The repository is still being bootstrapped, but the intended top-level structure is straightforward:
+The repository is still being bootstrapped. Current project source is mostly documentation:
 
-- `frontend/` for the shared React application
-- `backend/` for the Go core service and related backend components
+- `README.MD` for product direction, roadmap, and repository map
+- `AGENTS.md` for local Codex steering when present in the workspace
+- `docs/` for architecture, planning, and Mermaid diagrams
+- `.github/instructions/` for local VS Code/GitHub-style steering files
 
-This will evolve as the implementation begins, but the project is intentionally keeping a clean separation between UI, core application logic, and AI orchestration.
+Expected future top-level implementation directories:
+
+- `android/` for the Android application
+- `pack-builder/` for the local PC sourcebook pack CLI
+
+Do not assume these directories already exist until implementation begins.
+
+## Documentation Map
+
+- [Android Offline Architecture](docs/android-offline-architecture.md) with [general architecture diagram](docs/general-architecture.mmd)
+- [Development Plan](docs/development-plan.md) with [development roadmap diagram](docs/development-plan.mmd)
+- [Android App Plan](docs/android-app-plan.md) with [Android app diagram](docs/android-app-plan.mmd)
+- [PC Pack Builder Plan](docs/pc-pack-builder-plan.md) with [pack builder diagram](docs/pc-pack-builder-plan.mmd)
+- [Data Layer Plan](docs/data-layer-plan.md) with [data layer diagram](docs/data-layer-plan.mmd)
+- [Retrieval and Local AI Plan](docs/retrieval-ai-plan.md) with [retrieval and AI diagram](docs/retrieval-ai-plan.mmd)
+
+## Steering Files
+
+Local steering files live in `.github/instructions/` and use VS Code/GitHub-style `*.instructions.md` frontmatter with `applyTo` patterns. They currently cover project direction, documentation, Android architecture, Compose UI, Android storage/work, Android performance, data layer, retrieval/local AI, code quality, testing quality, refactoring, and pack-builder work.
+
+`AGENTS.md` and `.github/` are currently ignored by `.gitignore`, so they should be treated as local workspace steering unless that ignore policy changes.
 
 ## Contributing
 
 Issues, feedback, and ideas are welcome.
 
-If you are interested in game-master tooling, AI-assisted knowledge systems, or helping shape the project direction early, feel free to open an issue or start a discussion. A dedicated contributing guide can be added once the initial implementation structure is in place.
+This project is being built in public by [`brackistar`](https://github.com/brackistar), starting from architecture and scope decisions before expanding into implementation.
 
 ## License
 

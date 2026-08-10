@@ -1,0 +1,133 @@
+# Android App Plan
+
+## Metadata
+
+- File: `docs/android-app-plan.md`
+- Created: 2026-08-10
+- Last updated: 2026-08-10
+- User: brackistar
+
+Related diagram: [android-app-plan.mmd](android-app-plan.mmd)
+
+## Purpose
+
+The Android app is the user's session and prep tool. It must work offline on low-requirement Android tablets, import sourcebook packs, store campaign notes, search local lore, and provide manually triggered AI help grounded in local context.
+
+## Product Goals
+
+- Run comfortably on modest Android tablet hardware.
+- Provide fast access to notes and lore during sessions.
+- Import sourcebook packs from local storage or microSD.
+- Search campaign notes and sourcebook chunks.
+- Use local AI only when the user asks for it.
+- Keep the interface useful before local AI integration is complete.
+
+## Suggested Stack
+
+- Kotlin
+- Jetpack Compose
+- Android SDK
+- Room for SQLite access
+- WorkManager for imports and long-running background jobs
+- Kotlin coroutines and Flow for asynchronous state
+- Navigation Compose for app navigation
+
+## Future Directory
+
+Use `android/` when implementation begins.
+
+Suggested modules can start simple:
+
+- `app`
+- `core:data`
+- `core:domain`
+- `feature:library`
+- `feature:session`
+- `feature:import`
+- `feature:assistant`
+- `feature:settings`
+
+If Gradle module complexity slows early work, begin with one app module and package boundaries, then split later.
+
+## Main Screens
+
+- Home: recent campaigns, active session, quick search.
+- Library: systems, sourcebooks, campaigns, notes, entities, and tags.
+- Sourcebook Packs: import status, installed packs, pack metadata, and validation issues.
+- Session Mode: quick note capture, pinned lore, current scene notes, search, and assistant panel.
+- Search: keyword and semantic results with filters and citations.
+- Assistant: retrieved context preview, prompt input, response, citations, and cancellation.
+- Benchmarks: local model load time, memory notes, tokens per second, and qualitative result notes.
+- Settings: storage locations, model files, import preferences, and privacy/offline status.
+
+## Session Mode UX
+
+Low-requirement tablet layouts should prioritize repeated live-session actions:
+
+- Capture a note quickly.
+- Search a rule or lore detail.
+- Pin a relevant character, location, or sourcebook passage.
+- Ask for grounded brainstorming.
+- Save useful assistant output back into notes.
+
+The session UI should avoid heavy decoration and favor readable, dense panels that can be scanned during play.
+
+## Implementation Phases
+
+### Phase 1: Skeleton
+
+- Create the Android project.
+- Add Compose navigation and app theme.
+- Add placeholder screens for Home, Library, Session, Import, Assistant, and Settings.
+- Document Gradle build and test commands.
+
+### Phase 2: Notes and Library
+
+- Add Room database and repositories.
+- Create systems, campaigns, sessions, notes, entities, and tags.
+- Build CRUD screens for notes and campaigns.
+- Add basic keyword search over user notes.
+
+### Phase 3: Pack Import
+
+- Add file picker support for `.gmnpack` archives.
+- Validate pack manifest before import.
+- Import metadata, chunks, citations, and embeddings.
+- Show import progress and errors.
+- Make imports resumable or safely retryable.
+
+### Phase 4: Search and Retrieval UI
+
+- Add FTS-backed search.
+- Add semantic search once vector storage is available.
+- Show mixed results with clear source labels.
+- Add context preview before assistant calls.
+
+### Phase 5: Assistant Integration
+
+- Add `AiEngine` interface and fake implementation.
+- Build assistant UI with cancellation and response persistence.
+- Integrate `llama.cpp` runtime behind the adapter.
+- Add model benchmark workflows.
+
+## Testing
+
+- Unit test repositories and use cases.
+- Instrumented test database migrations.
+- UI tests for note creation, search, import flow, and session mode.
+- Manual device tests on low-requirement Android tablets for import time, memory pressure, and responsiveness.
+
+## Risks
+
+- Local model runtime may be slower than expected.
+- Android storage permissions around microSD can be awkward.
+- Large imports can block or overwhelm memory if not streamed.
+- Complex UI can become cramped on smaller tablet displays if panels are too ambitious.
+
+## Suggestions
+
+- Make the non-AI app excellent first.
+- Add a fake AI engine early so UI and retrieval can be tested before model integration.
+- Keep assistant output saveable as normal notes.
+- Design for one active model loaded at a time.
+- Add an explicit offline/privacy indicator so the user trusts the app during sessions.

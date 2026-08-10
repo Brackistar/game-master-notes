@@ -1,0 +1,74 @@
+flowchart LR
+  subgraph PC[Local PC]
+    PDFs[User-owned sourcebook PDFs]
+    Builder[Pack Builder CLI\nPython]
+    Pack[Sourcebook Pack\nmetadata + chunks + citations + embeddings]
+    PDFs --> Builder --> Pack
+  end
+
+  subgraph Tablet[Low-requirement Android Tablet\nOffline Android App]
+    Importer[Pack Importer\nlocal storage / microSD]
+
+    subgraph UI[Kotlin + Jetpack Compose UI]
+      Library[Library\nsystems + campaigns + lore]
+      Session[Session Mode\nquick notes + pinned lore]
+      AssistantPanel[Assistant Panel\nbrainstorming + continuity]
+      Benchmarks[Model Benchmarks]
+    end
+
+    subgraph Data[Local Data Layer]
+      Room[Room DAOs]
+      SQLite[(SQLite Database)]
+      FTS[SQLite FTS\nkeyword index]
+      Vectors[Local Vector Index\nsemantic chunks]
+      Files[App File Storage\npacks + GGUF models]
+    end
+
+    subgraph Retrieval[Retrieval Pipeline]
+      Query[User Query]
+      Keyword[Keyword Search]
+      Semantic[Semantic Search]
+      Rank[Merge + Rank Results]
+      Context[Context Bundle\nnotes + lore + cited chunks]
+    end
+
+    subgraph AI[Local AI Runtime]
+      Adapter[AiEngine Adapter]
+      Llama[llama.cpp Android Runtime]
+      Model[GGUF Small Model\n350M-class target]
+    end
+
+    Importer --> Room
+    Importer --> SQLite
+    Importer --> FTS
+    Importer --> Vectors
+    Importer --> Files
+
+    Library --> Room
+    Session --> Room
+    AssistantPanel --> Query
+    Query --> Keyword --> Rank
+    Query --> Semantic --> Rank
+    FTS --> Keyword
+    Vectors --> Semantic
+    SQLite --> Rank
+    Room --> SQLite
+    Rank --> Context
+    Context --> Adapter --> Llama --> Model
+    Model --> AssistantPanel
+    Benchmarks --> Adapter
+  end
+
+  Pack --> Importer
+
+  classDef external fill:#f7f7f7,stroke:#666,color:#111;
+  classDef ui fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
+  classDef data fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
+  classDef retrieval fill:#fff3d8,stroke:#b37518,color:#3f2a05;
+  classDef ai fill:#f1e8ff,stroke:#6f45ad,color:#25123f;
+
+  class PDFs,Builder,Pack external;
+  class Library,Session,AssistantPanel,Benchmarks ui;
+  class Room,SQLite,FTS,Vectors,Files,Importer data;
+  class Query,Keyword,Semantic,Rank,Context retrieval;
+  class Adapter,Llama,Model ai;

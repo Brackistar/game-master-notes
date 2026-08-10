@@ -1,0 +1,40 @@
+flowchart LR
+  subgraph Input[User Local Files]
+    PDF[Owned PDF sourcebook]
+    Config[Build settings\nsystem + edition + title]
+  end
+
+  subgraph Builder[PC Pack Builder CLI]
+    Extract[PDF extraction\npage-aware text]
+    Normalize[Normalize text\nheaders + whitespace]
+    Chunk[Chunking\nparagraph-aware citations]
+    Embed[Embedding generation\none vector per chunk]
+    Validate[Pack validation\ncounts + schema + checksums]
+    Write[Pack writer\nZIP archive]
+  end
+
+  subgraph Pack[GMN Pack Output]
+    Manifest[manifest.json]
+    Docs[documents.json]
+    Chunks[chunks.jsonl]
+    Vectors[embeddings.bin or npy]
+    Report[extraction-report.json]
+  end
+
+  PDF --> Extract
+  Config --> Extract
+  Extract --> Normalize --> Chunk --> Embed --> Validate --> Write
+  Write --> Manifest
+  Write --> Docs
+  Write --> Chunks
+  Write --> Vectors
+  Write --> Report
+  Pack --> Import[Android pack importer]
+
+  classDef input fill:#f7f7f7,stroke:#666,color:#111;
+  classDef process fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
+  classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
+
+  class PDF,Config input;
+  class Extract,Normalize,Chunk,Embed,Validate,Write process;
+  class Manifest,Docs,Chunks,Vectors,Report,Import output;

@@ -55,6 +55,33 @@ mempalace.yaml
 # Node modules
 node_modules/
 
+# Android local SDK and IDE metadata
+android/local.properties
+android/.idea/
+android/.gradle/
+android/.kotlin/
+*.iml
+
+# Android generated build outputs
+android/build/
+android/**/build/
+android/captures/
+android/.externalNativeBuild/
+android/**/.externalNativeBuild/
+android/.cxx/
+android/**/.cxx/
+
+# Android packaged artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Android signing and local service files
+*.jks
+*.keystore
+android/**/google-services.json
+
 # GitHub local steering files
 .github/*
 !.github/workflows/

@@ -23,6 +23,9 @@ class BuildOptions:
     embedding_provider: str = "sentence-transformers"
     embedding_model: str = DEFAULT_EMBEDDING_MODEL_ID
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK
+    chunk_overlap_chars: int = 0
+    clean_text: bool = True
+    deduplicate_chunks: bool = True
     force: bool = False
     dry_run: bool = False
     report_out: Path | None = None
@@ -40,6 +43,9 @@ class BuildOverrides:
     embedding_provider: str | None = None
     embedding_model: str | None = None
     max_chars_per_chunk: int | None = None
+    chunk_overlap_chars: int | None = None
+    clean_text: bool | None = None
+    deduplicate_chunks: bool | None = None
     force: bool = False
     dry_run: bool = False
     report_out: Path | None = None
@@ -88,6 +94,19 @@ def resolve_build_options(
             overrides.max_chars_per_chunk,
             DEFAULT_MAX_CHARS_PER_CHUNK,
         ),
+        chunk_overlap_chars=_optional_int(
+            config,
+            "chunk_overlap_chars",
+            overrides.chunk_overlap_chars,
+            0,
+        ),
+        clean_text=_optional_bool(config, "clean_text", overrides.clean_text, True),
+        deduplicate_chunks=_optional_bool(
+            config,
+            "deduplicate_chunks",
+            overrides.deduplicate_chunks,
+            True,
+        ),
         force=_optional_bool(config, "force", overrides.force),
         dry_run=_optional_bool(config, "dry_run", overrides.dry_run),
         report_out=_optional_path(config, "report_out", overrides.report_out),
@@ -104,6 +123,10 @@ def validate_build_options(options: BuildOptions) -> None:
             raise ValueError(f"PDF does not exist: {pdf_path}")
     if options.max_chars_per_chunk < 200:
         raise ValueError("--max-chars-per-chunk must be at least 200")
+    if options.chunk_overlap_chars < 0:
+        raise ValueError("--chunk-overlap-chars must be zero or greater")
+    if options.chunk_overlap_chars >= options.max_chars_per_chunk:
+        raise ValueError("--chunk-overlap-chars must be smaller than chunk size")
     if options.out_path.exists() and not options.force and not options.dry_run:
         raise FileExistsError(f"output already exists: {options.out_path}")
 
@@ -180,6 +203,9 @@ def _optional_int(
 def _optional_bool(
     config: dict[str, object],
     key: str,
-    explicit_value: bool,
+    explicit_value: bool | None,
+    default_value: bool = False,
 ) -> bool:
-    return explicit_value or bool(config.get(key, False))
+    if explicit_value is not None:
+        return explicit_value
+    return bool(config.get(key, default_value))

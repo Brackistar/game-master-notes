@@ -1,16 +1,19 @@
 flowchart LR
   subgraph Input[User Local Files]
     PDF[Owned PDF sourcebook]
-    Config[Build settings\nsystem + edition + title]
+    Flags[CLI flags\nsystem + edition + title]
+    Config[Optional JSON config\nrepeatable builds]
   end
 
   subgraph Builder[PC Pack Builder CLI]
     Extract[PDF extraction\npage-aware text]
-    Normalize[Normalize text\nheaders + whitespace]
+    Cleanup[Text cleanup\nheaders + hyphen repair]
     Chunk[Chunking\nparagraph-aware citations]
+    Quality[Chunk quality\noverlap + dedupe]
     Embed[Embedding generation\none vector per chunk]
     Validate[Pack validation\ncounts + schema + checksums]
     Write[Pack writer\nZIP archive]
+    Inspect[Inspection commands\nreport + sample chunks]
   end
 
   subgraph Pack[GMN Pack Output]
@@ -22,19 +25,21 @@ flowchart LR
   end
 
   PDF --> Extract
+  Flags --> Extract
   Config --> Extract
-  Extract --> Normalize --> Chunk --> Embed --> Validate --> Write
+  Extract --> Cleanup --> Chunk --> Quality --> Embed --> Validate --> Write
   Write --> Manifest
   Write --> Docs
   Write --> Chunks
   Write --> Vectors
   Write --> Report
+  Pack --> Inspect
   Pack --> Import[Android pack importer]
 
   classDef input fill:#f7f7f7,stroke:#666,color:#111;
   classDef process fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
   classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
 
-  class PDF,Config input;
-  class Extract,Normalize,Chunk,Embed,Validate,Write process;
+  class PDF,Flags,Config input;
+  class Extract,Cleanup,Chunk,Quality,Embed,Validate,Write,Inspect process;
   class Manifest,Docs,Chunks,Vectors,Report,Import output;

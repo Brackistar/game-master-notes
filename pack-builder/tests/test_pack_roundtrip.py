@@ -65,3 +65,24 @@ def test_build_pack_respects_custom_chunk_size(
 
     assert build_result.manifest["chunk_count"] > 1
     assert build_result.extraction_report["chunking"]["max_chars_per_chunk"] == 80
+
+
+def test_build_pack_records_cleanup_and_chunk_quality(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "quality.gmnpack"
+
+    build_result = build_pack(
+        pdf_paths=[synthetic_pdf],
+        out_path=out,
+        title="Synthetic Book",
+        system="Test System",
+        edition="1e",
+        language="en",
+        extractor=get_extractor("pymupdf"),
+        embedding_provider=DeterministicEmbeddingProvider(),
+        chunk_overlap_chars=20,
+    )
+
+    assert build_result.extraction_report["cleanup"]["enabled"] is True
+    assert build_result.extraction_report["chunk_quality"]["overlap_chars"] == 20

@@ -86,6 +86,28 @@ def build(
             help="Maximum normalized characters per retrieval chunk.",
         ),
     ] = None,
+    chunk_overlap_chars: Annotated[
+        int | None,
+        typer.Option(
+            "--chunk-overlap-chars",
+            min=0,
+            help="Characters of previous chunk context to prepend to each chunk.",
+        ),
+    ] = None,
+    clean_text: Annotated[
+        bool | None,
+        typer.Option(
+            "--clean-text/--no-clean-text",
+            help="Remove repeated lines and repair hyphenation before chunking.",
+        ),
+    ] = None,
+    deduplicate_chunks: Annotated[
+        bool | None,
+        typer.Option(
+            "--deduplicate-chunks/--no-deduplicate-chunks",
+            help="Remove duplicate normalized chunk text.",
+        ),
+    ] = None,
     force: Annotated[
         bool,
         typer.Option("--force", help="Overwrite an existing output pack."),
@@ -120,6 +142,9 @@ def build(
                 else None,
                 embedding_model=embedding_model,
                 max_chars_per_chunk=max_chars_per_chunk,
+                chunk_overlap_chars=chunk_overlap_chars,
+                clean_text=clean_text,
+                deduplicate_chunks=deduplicate_chunks,
                 force=force,
                 dry_run=dry_run,
                 report_out=report_out,
@@ -175,6 +200,9 @@ def run_build(options: BuildOptions):
                 language=options.language,
                 extractor=pdf_extractor,
                 max_chars_per_chunk=options.max_chars_per_chunk,
+                clean_text=options.clean_text,
+                deduplicate_chunks=options.deduplicate_chunks,
+                chunk_overlap_chars=options.chunk_overlap_chars,
             )
 
     embeddings = get_embedding_provider(
@@ -192,6 +220,9 @@ def run_build(options: BuildOptions):
             extractor=pdf_extractor,
             embedding_provider=embeddings,
             max_chars_per_chunk=options.max_chars_per_chunk,
+            clean_text=options.clean_text,
+            deduplicate_chunks=options.deduplicate_chunks,
+            chunk_overlap_chars=options.chunk_overlap_chars,
         )
 
 

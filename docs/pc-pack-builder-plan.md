@@ -55,7 +55,10 @@ Implemented commands:
 - `build --config <json>`
 - `build --dry-run`
 - `build --force`
+- `build --chunk-overlap-chars <int>`
 - `build --max-chars-per-chunk <int>`
+- `build --no-clean-text`
+- `build --no-deduplicate-chunks`
 - `build --report-out <json>`
 - `inspect <pack>`
 - `inspect --json <pack>`
@@ -73,6 +76,10 @@ Implemented quality controls:
 - Config-file builds with CLI flag override precedence.
 - Extraction report export and report inspection.
 - Sample chunk inspection for real-world PDF review.
+- Repeated-line cleanup for common headers and footers.
+- Hyphenated line repair.
+- Optional chunk overlap for retrieval continuity.
+- Duplicate normalized chunk removal.
 - Duplicate normalized page detection.
 - Focused config validation for invalid JSON, bad `pdfs`, missing required values, missing PDFs, and too-small chunks.
 
@@ -180,6 +187,8 @@ pack-builder validate mage-core.gmnpack
 - Unit test pack read/write round trips.
 - Unit test build config validation and CLI override behavior.
 - Unit test report and sample-chunk CLI output.
+- Unit test repeated-line cleanup and hyphen repair.
+- Unit test chunk overlap and duplicate chunk removal.
 - Use tiny synthetic PDFs in the repo for tests, not copyrighted sourcebooks.
 - Manually test with real owned books outside the repo.
 

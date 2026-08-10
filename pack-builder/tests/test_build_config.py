@@ -103,6 +103,19 @@ def test_resolve_build_options_rejects_too_small_chunk_size(
         resolve_build_options(config, BuildOverrides())
 
 
+def test_resolve_build_options_rejects_invalid_overlap(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    config = tmp_path / "bad-overlap.json"
+    payload = base_config(synthetic_pdf, tmp_path / "out.gmnpack")
+    payload["max_chars_per_chunk"] = 240
+    payload["chunk_overlap_chars"] = 240
+    write_config(config, payload)
+
+    with pytest.raises(ValueError, match="smaller than chunk size"):
+        resolve_build_options(config, BuildOverrides())
+
+
 def test_resolve_build_options_uses_cli_overrides(
     synthetic_pdf: Path, tmp_path: Path
 ) -> None:

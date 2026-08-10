@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 
 from pack_builder.chunking import chunk_pages
+from pack_builder.chunk_quality import improve_chunks
 from pack_builder.constants import (
     CHUNKS_FILE,
     DEFAULT_MAX_CHARS_PER_CHUNK,
@@ -25,6 +26,7 @@ from pack_builder.constants import (
 from pack_builder.embeddings import EmbeddingProvider
 from pack_builder.models import ExtractedDocument, SourceChunk
 from pack_builder.pdf_extract import PdfExtractor, extract_document, slugify
+from pack_builder.text_cleanup import clean_documents
 
 
 @dataclass(frozen=True)
@@ -54,6 +56,8 @@ def build_extraction_report(
     extractor_name: str,
     documents: list[ExtractedDocument],
     max_chars_per_chunk: int,
+    cleanup_report: dict[str, object],
+    chunk_quality_report: dict[str, object],
 ) -> dict[str, object]:
     page_lengths: dict[str, list[dict[str, int]]] = {}
     empty_pages: list[dict[str, object]] = []
@@ -103,6 +107,8 @@ def build_extraction_report(
             "max_chars_per_chunk": max_chars_per_chunk,
             "strategy": "paragraph-aware",
         },
+        "cleanup": cleanup_report,
+        "chunk_quality": chunk_quality_report,
         "page_text_lengths": page_lengths,
         "empty_pages": empty_pages,
         "suspicious_pages": suspicious_pages,
@@ -231,14 +237,20 @@ def build_pack(
     extractor: PdfExtractor,
     embedding_provider: EmbeddingProvider,
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
+    clean_text: bool = True,
+    deduplicate_chunks: bool = True,
+    chunk_overlap_chars: int = 0,
 ) -> BuildResult:
-    documents, pack_id, chunks = prepare_pack_content(
+    documents, pack_id, chunks, cleanup_report, chunk_quality_report = prepare_pack_content(
         pdf_paths=pdf_paths,
         title=title,
         system=system,
         edition=edition,
         extractor=extractor,
         max_chars_per_chunk=max_chars_per_chunk,
+        clean_text=clean_text,
+        deduplicate=deduplicate_chunks,
+        chunk_overlap_chars=chunk_overlap_chars,
     )
     if not chunks:
         raise ValueError("no text chunks were created from the provided PDFs")
@@ -262,7 +274,13 @@ def build_pack(
         chunk_count=len(chunks),
     )
     document_rows = [document_metadata(document) for document in documents]
-    report = build_extraction_report(extractor.name, documents, max_chars_per_chunk)
+    report = build_extraction_report(
+        extractor.name,
+        documents,
+        max_chars_per_chunk,
+        cleanup_report,
+        chunk_quality_report,
+    )
 
     write_pack_archive(
         out_path=out_path,
@@ -289,16 +307,28 @@ def preview_pack(
     language: str,
     extractor: PdfExtractor,
     max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
+    clean_text: bool = True,
+    deduplicate_chunks: bool = True,
+    chunk_overlap_chars: int = 0,
 ) -> BuildResult:
-    documents, pack_id, chunks = prepare_pack_content(
+    documents, pack_id, chunks, cleanup_report, chunk_quality_report = prepare_pack_content(
         pdf_paths=pdf_paths,
         title=title,
         system=system,
         edition=edition,
         extractor=extractor,
         max_chars_per_chunk=max_chars_per_chunk,
+        clean_text=clean_text,
+        deduplicate=deduplicate_chunks,
+        chunk_overlap_chars=chunk_overlap_chars,
     )
-    report = build_extraction_report(extractor.name, documents, max_chars_per_chunk)
+    report = build_extraction_report(
+        extractor.name,
+        documents,
+        max_chars_per_chunk,
+        cleanup_report,
+        chunk_quality_report,
+    )
     manifest = {
         "schema_version": PACK_SCHEMA_VERSION,
         "pack_id": pack_id,
@@ -334,19 +364,37 @@ def prepare_pack_content(
     edition: str,
     extractor: PdfExtractor,
     max_chars_per_chunk: int,
-) -> tuple[list[ExtractedDocument], str, list[SourceChunk]]:
+    clean_text: bool,
+    deduplicate: bool,
+    chunk_overlap_chars: int,
+) -> tuple[
+    list[ExtractedDocument],
+    str,
+    list[SourceChunk],
+    dict[str, object],
+    dict[str, object],
+]:
     documents = [extract_document(pdf_path, extractor) for pdf_path in pdf_paths]
+    cleanup_report: dict[str, object] = {"enabled": False}
+    if clean_text:
+        documents, cleanup_report = clean_documents(documents)
     pack_id = make_pack_id(
         system=system,
         edition=edition,
         title=title,
         source_checksums=[document.source_checksum for document in documents],
     )
-    return documents, pack_id, chunk_documents(
+    chunks = chunk_documents(
         pack_id=pack_id,
         documents=documents,
         max_chars_per_chunk=max_chars_per_chunk,
     )
+    chunks, chunk_quality_report = improve_chunks(
+        chunks,
+        overlap_chars=chunk_overlap_chars,
+        deduplicate=deduplicate,
+    )
+    return documents, pack_id, chunks, cleanup_report, chunk_quality_report
 
 
 def chunk_documents(

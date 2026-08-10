@@ -30,6 +30,7 @@ Useful build options:
 
 ```bash
 uv run pack-builder build --force --max-chars-per-chunk 1200 --report-out report.json --verbose --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
+uv run pack-builder build --chunk-overlap-chars 200 --no-clean-text --no-deduplicate-chunks --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --dry-run --report-out report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --config build-config.json
 uv run pack-builder report example.gmnpack
@@ -41,6 +42,9 @@ uv run pack-builder validate --json example.gmnpack
 - `--force` overwrites an existing output pack.
 - `--dry-run` extracts and chunks without generating embeddings or writing a pack.
 - `--max-chars-per-chunk` controls retrieval chunk size.
+- `--chunk-overlap-chars` prepends trailing context from the previous chunk.
+- `--clean-text/--no-clean-text` toggles repeated-line removal and hyphen repair.
+- `--deduplicate-chunks/--no-deduplicate-chunks` toggles duplicate chunk removal.
 - `--report-out` writes the extraction quality report as standalone JSON.
 - `--verbose` prints empty, suspicious, duplicate, and warning counts.
 - `--json` makes `inspect` and `validate` machine-readable.
@@ -59,6 +63,9 @@ Example `build-config.json`:
   "embedding_provider": "sentence-transformers",
   "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
   "max_chars_per_chunk": 1200,
+  "chunk_overlap_chars": 200,
+  "clean_text": true,
+  "deduplicate_chunks": true,
   "report_out": "C:/path/to/report.json"
 }
 ```
@@ -82,4 +89,4 @@ Each `.gmnpack` is a ZIP archive containing:
 - `embeddings.npy`
 - `extraction-report.json`
 
-The extraction report records chunking settings, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.
+The extraction report records chunking settings, cleanup actions, chunk quality actions, per-page text lengths, empty pages, suspiciously short pages, duplicate normalized page text, warnings, and errors.

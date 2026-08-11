@@ -4,7 +4,7 @@
 
 - File: `docs/development-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-08-11
 - User: brackistar
 
 Related diagram: [development-plan.mmd](development-plan.mmd)
@@ -35,7 +35,7 @@ Related local steering files live in `.github/instructions/`, including project,
 
 1. Define the sourcebook pack contract first.
 2. Build a minimal PC pack builder that can produce one importable test pack.
-3. Create the Android project skeleton and local Room database.
+3. Add the local Room database to the Android project skeleton.
 4. Implement pack import into SQLite tables without AI.
 5. Add keyword search and citation display.
 6. Add vector search with a small test embedding set.
@@ -45,6 +45,8 @@ Related local steering files live in `.github/instructions/`, including project,
 10. Benchmark real models on low-requirement Android tablets before choosing defaults.
 
 This order keeps risk visible. The app becomes useful as a searchable offline library before local generation is fully solved.
+
+Current implementation note: steps 1-5 have an initial working path for sourcebook packs. The Android app can select a package folder, import `.gmnpack` metadata/documents/chunks into Room, retrieve chunks with SQLite FTS, and answer through a deterministic grounded MVP assistant. Vector search, campaign notes, and `llama.cpp` are still future work.
 
 ## Milestones
 
@@ -57,20 +59,22 @@ This order keeps risk visible. The app becomes useful as a searchable offline li
 
 ### Milestone 2: Minimal Offline Library
 
-- Create the Android skeleton.
+- Extend the initial Android skeleton.
 - Add Room database and migrations.
-- Add systems, sourcebooks, campaigns, sessions, notes, tags, and source chunks.
+- Add sourcebook packs, source documents, and source chunks. Initial sourcebook tables are implemented.
+- Add systems, campaigns, sessions, notes, and tags later.
 - Add manual note creation and basic search.
 
 ### Milestone 3: Sourcebook Pack Import
 
 - Build the PC CLI to extract PDF text and write a pack archive.
-- Import pack metadata, chunks, citations, and embeddings into Android.
-- Show sourcebook chunks in the library and search UI.
+- Import pack metadata, documents, chunks, citations, and embedding metadata into Android.
+- Use a selected package folder and rescan it on app start.
+- Show imported sourcebook packs in the Library.
 
 ### Milestone 4: Retrieval
 
-- Add SQLite FTS for notes and sourcebook chunks.
+- Add SQLite FTS for sourcebook chunks first; add notes later.
 - Add local vector search.
 - Merge keyword and semantic results.
 - Build context bundles with citations.
@@ -78,7 +82,7 @@ This order keeps risk visible. The app becomes useful as a searchable offline li
 ### Milestone 5: Local Assistant
 
 - Add the `AiEngine` interface.
-- Create a fake engine for app development and tests.
+- Create a deterministic grounded MVP engine for app development and tests.
 - Integrate `llama.cpp` as the first real engine.
 - Add a benchmark screen and record model suitability on the target tablet.
 

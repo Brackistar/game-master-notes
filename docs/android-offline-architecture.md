@@ -4,7 +4,7 @@
 
 - File: `docs/android-offline-architecture.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-08-11
 - User: brackistar
 
 Related diagram: [general-architecture.mmd](general-architecture.mmd)
@@ -17,7 +17,7 @@ The design goal is not to run a large general assistant on tablet hardware. The 
 
 ## Android App Modules
 
-The first implementation uses a native Android multi-module structure with Kotlin and Jetpack Compose under `android/`.
+The first implementation uses a native Android multi-module structure with Kotlin and Jetpack Compose under `android/`. The app now includes the first working sourcebook workflow in addition to the application module, shared core boundaries, feature modules, and Compose navigation.
 
 - App shell: navigation, theming, settings, permissions, and import entry points.
 - Library: systems, sourcebooks, campaigns, sessions, notes, NPCs, locations, factions, items, timelines, and tags.
@@ -28,6 +28,8 @@ The first implementation uses a native Android multi-module structure with Kotli
 - AI: `AiEngine` adapter, prompt construction, streaming responses when available, and benchmark reporting.
 
 Keep modules small at first. The important boundary is between product workflows, local storage/search, pack import, retrieval, and AI runtime integration. The initial modules are `app`, `core:design`, `core:domain`, `core:data`, `core:importpacks`, `core:retrieval`, `core:ai`, and feature modules for home, library, session, import, search, assistant, and settings.
+
+The current app navigation exposes only Home, Library, Packs, and Ask the Books. Session, Search, and Settings remain planned feature modules for later milestones and are not wired into the active app shell.
 
 ## Sourcebook Pack Format
 
@@ -42,6 +44,18 @@ A v1 pack should include:
 - Import manifest: schema version, chunk count, embedding count, and compatibility flags.
 
 The repository must not contain copyrighted PDF contents or generated packs from commercial books unless the user explicitly adds private local artifacts outside project source.
+
+## Implemented Pack Folder Workflow
+
+The first Android sourcebook slice uses Android's Storage Access Framework instead of hardcoded filesystem paths:
+
+1. The user chooses a folder that contains `.gmnpack` files.
+2. The app persists read permission for that folder.
+3. On startup and manual rescan, the app scans immediate folder children ending in `.gmnpack`.
+4. New or changed packs are parsed from ZIP members and indexed into Room.
+5. Packs removed from the selected folder are pruned from the index so the library reflects currently available books.
+
+The importer currently reads `manifest.json`, `documents.json`, and `chunks.jsonl`. It validates that required pack members exist, records embedding metadata from the manifest, and defers use of `embeddings.npy` until vector search is implemented.
 
 ## Pack Builder CLI
 
@@ -64,13 +78,13 @@ Assistant requests and search requests should share a retrieval pipeline.
 
 1. Normalize the user query.
 2. Search SQLite FTS for exact and keyword matches.
-3. Search the local vector index for semantic matches.
+3. Search the local vector index for semantic matches when vector storage is enabled.
 4. Merge and rank results from notes, lore entities, session records, and sourcebook chunks.
 5. Build a compact context bundle with citations and source labels.
 6. Pass the context bundle to the assistant when the user asks for AI help.
 7. Require the assistant UI to show cited notes or sourcebook chunks when retrieved context was used.
 
-The database is the app's memory. The local model should answer from retrieved material instead of pretending to know sourcebooks or campaign continuity from its own weights.
+The database is the app's memory. The local model should answer from retrieved material instead of pretending to know sourcebooks or campaign continuity from its own weights. The first working assistant uses a deterministic `GroundedMvpAiEngine` that summarizes retrieved chunks with citations; it is a temporary implementation behind the same `AiEngine` boundary that `llama.cpp` will use later.
 
 ## Local AI Adapter Strategy
 

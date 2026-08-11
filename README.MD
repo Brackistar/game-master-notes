@@ -4,7 +4,7 @@
 
 - File: `README.MD`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-08-11
 - User: brackistar
 
 An offline Android lore and notes assistant for game masters running multiple roleplaying systems.
@@ -69,9 +69,18 @@ The expected sweet spot is around 350M parameters. Larger models may be tested, 
 
 ## Current Status
 
-This project is in architecture reset and early implementation. The repository currently describes the intended Android offline architecture, implementation tracks, Mermaid diagrams, local VS Code/GitHub-style steering files, the first sourcebook pack builder slice, and an initial multi-module Android app skeleton.
+This project is in architecture reset and early implementation. The repository currently contains the intended Android offline architecture, implementation tracks, Mermaid diagrams, local VS Code/GitHub-style steering files, the first sourcebook pack builder slice, an Android multi-module app, and CI workflows for both Android and the pack builder.
 
-The next step is to define the Android local data model, add Room dependencies and entities, and build the Android sourcebook pack importer against the `.gmnpack` format produced by `pack-builder/`.
+The Android app now has the first working sourcebook slice: users can choose a device folder containing `.gmnpack` archives, the app persists that folder permission, scans it on startup, indexes pack metadata/documents/chunks in Room, searches chunks with SQLite FTS, and provides an "Ask the Books" assistant backed by cited retrieved chunks.
+
+The active Android navigation is intentionally small:
+
+- Home
+- Library
+- Packs
+- Ask the Books
+
+Current limits are intentional for this slice: vector search from `embeddings.npy` is not active yet, and the assistant uses a deterministic grounded MVP responder behind the `AiEngine` boundary instead of `llama.cpp`.
 
 ## Roadmap
 
@@ -87,7 +96,7 @@ The next step is to define the Android local data model, add Room dependencies a
 - Create the local PC pack builder
 - Extract PDF text into citeable chunks
 - Generate embeddings and package metadata
-- Import packs into the Android app from local storage or microSD
+- Import packs into the Android app from a user-selected local storage or microSD folder
 
 ### Phase 3: Retrieval
 
@@ -137,15 +146,15 @@ The Android implementation has begun as a native multi-module project:
 - `android/feature/home/` for the home entry point
 - `android/feature/import/` for sourcebook pack import UI
 - `android/feature/library/` for library workflows
-- `android/feature/search/` for search UI
-- `android/feature/session/` for session mode
-- `android/feature/settings/` for settings
+- `android/feature/search/` for future search UI
+- `android/feature/session/` for future session mode
+- `android/feature/settings/` for future settings
 
-Gradle wrapper files still need to be generated from an Android-capable environment.
+The Android Gradle wrapper is committed so builds can run without a separately installed Gradle distribution.
 
 ## Android Commands
 
-From `android/`, after Gradle wrapper generation:
+From `android/`:
 
 ```bash
 ./gradlew assembleDebug
@@ -176,6 +185,13 @@ The pack builder can also be run through the local virtual environment directly 
 .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\pack-builder.exe --help
 ```
+
+## Continuous Integration
+
+GitHub Actions workflows live under `.github/workflows/`:
+
+- `android-ci.yml` runs Android unit tests and `assembleDebug` when Android files change.
+- `pack-builder-ci.yml` runs the pack-builder test suite on supported Python versions when pack-builder files change.
 
 ## Documentation Map
 

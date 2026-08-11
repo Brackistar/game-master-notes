@@ -4,7 +4,7 @@
 
 - File: `docs/android-app-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-08-11
 - User: brackistar
 
 Related diagram: [android-app-plan.mmd](android-app-plan.mmd)
@@ -36,7 +36,7 @@ The Android app is the user's session and prep tool. It must work offline on low
 
 Use `android/` for the native Android app.
 
-The initial implementation uses these modules:
+The Android project uses these modules:
 
 - `app`
 - `core:data`
@@ -55,14 +55,26 @@ The initial implementation uses these modules:
 
 The `app` module owns the navigation host and depends on feature modules. Feature modules depend on shared core modules, not on each other. Keep cross-feature coordination in `app` or future domain-level use cases.
 
+The current app navigation exposes only the useful first-slice surfaces:
+
+- Home
+- Library
+- Sourcebook Packs
+- Ask the Books
+
+The session, search, and settings feature modules remain in the repository as future placeholders, but they are not part of the current app navigation or `:app` dependencies.
+
 ## Main Screens
 
-- Home: recent campaigns, active session, quick search.
-- Library: systems, sourcebooks, campaigns, notes, entities, and tags.
-- Sourcebook Packs: import status, installed packs, pack metadata, and validation issues.
+- Home: indexed pack count and entry points for Library, Packs, and Ask the Books.
+- Library: indexed sourcebook packs and basic pack metadata.
+- Sourcebook Packs: selected folder, folder picker, manual rescan, import status, and validation errors.
+- Ask the Books: question input, deterministic grounded answer, and retrieved citations.
+
+Future screens:
+
 - Session Mode: quick note capture, pinned lore, current scene notes, search, and assistant panel.
 - Search: keyword and semantic results with filters and citations.
-- Assistant: retrieved context preview, prompt input, response, citations, and cancellation.
 - Benchmarks: local model load time, memory notes, tokens per second, and qualitative result notes.
 - Settings: storage locations, model files, import preferences, and privacy/offline status.
 
@@ -84,8 +96,9 @@ The session UI should avoid heavy decoration and favor readable, dense panels th
 
 - Create the Android project. Initial multi-module skeleton added under `android/`.
 - Add Compose navigation and app theme. Initial app host and shared theme added.
-- Add placeholder screens for Home, Library, Session, Import, Search, Assistant, and Settings. Initial placeholders added.
-- Document Gradle build and test commands. Initial commands documented; Gradle wrapper generation remains.
+- Add focused first-slice screens for Home, Library, Packs, and Ask the Books.
+- Keep Session, Search, and Settings as future modules outside current app navigation.
+- Document Gradle build and test commands. Initial commands and Gradle wrapper are in place.
 
 ### Phase 2: Notes and Library
 
@@ -96,23 +109,23 @@ The session UI should avoid heavy decoration and favor readable, dense panels th
 
 ### Phase 3: Pack Import
 
-- Add file picker support for `.gmnpack` archives.
-- Validate pack manifest before import.
-- Import metadata, chunks, citations, and embeddings.
-- Show import progress and errors.
+- Add folder picker support for a `.gmnpack` package folder. Implemented with Android Storage Access Framework.
+- Validate required pack archive members and manifest/chunk fields before import.
+- Import metadata, documents, chunks, citations, and embedding metadata.
+- Show scan status and errors.
 - Make imports resumable or safely retryable.
 
 ### Phase 4: Search and Retrieval UI
 
-- Add FTS-backed search.
+- Add FTS-backed sourcebook chunk retrieval. Initial Ask the Books flow uses this.
 - Add semantic search once vector storage is available.
 - Show mixed results with clear source labels.
 - Add context preview before assistant calls.
 
 ### Phase 5: Assistant Integration
 
-- Add `AiEngine` interface and fake implementation.
-- Build assistant UI with cancellation and response persistence.
+- Add `AiEngine` interface and deterministic grounded MVP implementation.
+- Build assistant UI with cited responses.
 - Integrate `llama.cpp` runtime behind the adapter.
 - Add model benchmark workflows.
 
@@ -122,6 +135,8 @@ The session UI should avoid heavy decoration and favor readable, dense panels th
 - Instrumented test database migrations.
 - UI tests for note creation, search, import flow, and session mode.
 - Manual device tests on low-requirement Android tablets for import time, memory pressure, and responsiveness.
+
+Android CI runs `testDebugUnitTest` and `assembleDebug` for changes under `android/`.
 
 ## Risks
 

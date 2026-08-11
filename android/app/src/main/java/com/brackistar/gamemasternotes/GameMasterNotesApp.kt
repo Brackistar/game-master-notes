@@ -2,6 +2,7 @@ package com.brackistar.gamemasternotes
 
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -9,13 +10,16 @@ import com.brackistar.gamemasternotes.feature.assistant.AssistantScreen
 import com.brackistar.gamemasternotes.feature.home.HomeScreen
 import com.brackistar.gamemasternotes.feature.importpacks.ImportPacksScreen
 import com.brackistar.gamemasternotes.feature.library.LibraryScreen
-import com.brackistar.gamemasternotes.feature.search.SearchScreen
-import com.brackistar.gamemasternotes.feature.session.SessionScreen
-import com.brackistar.gamemasternotes.feature.settings.SettingsScreen
 
 @Composable
-fun GameMasterNotesApp() {
+fun GameMasterNotesApp(container: AppContainer) {
     val navController = rememberNavController()
+
+    LaunchedEffect(Unit) {
+        container.packFolderStore.selectedFolderUri()?.let { uri ->
+            runCatching { container.packImporter.importFolder(uri) }
+        }
+    }
 
     Scaffold { paddingValues ->
         NavHost(
@@ -29,14 +33,29 @@ fun GameMasterNotesApp() {
                         .filterNot { it == AppRoute.Home }
                         .map { it.label to it.path },
                     onNavigate = navController::navigate,
+                    repository = container.sourcebookRepository,
                 )
             }
-            composable(AppRoute.Library.path) { LibraryScreen(paddingValues = paddingValues) }
-            composable(AppRoute.Session.path) { SessionScreen(paddingValues = paddingValues) }
-            composable(AppRoute.Import.path) { ImportPacksScreen(paddingValues = paddingValues) }
-            composable(AppRoute.Search.path) { SearchScreen(paddingValues = paddingValues) }
-            composable(AppRoute.Assistant.path) { AssistantScreen(paddingValues = paddingValues) }
-            composable(AppRoute.Settings.path) { SettingsScreen(paddingValues = paddingValues) }
+            composable(AppRoute.Library.path) {
+                LibraryScreen(
+                    paddingValues = paddingValues,
+                    repository = container.sourcebookRepository,
+                )
+            }
+            composable(AppRoute.Import.path) {
+                ImportPacksScreen(
+                    paddingValues = paddingValues,
+                    folderStore = container.packFolderStore,
+                    importer = container.packImporter,
+                )
+            }
+            composable(AppRoute.Assistant.path) {
+                AssistantScreen(
+                    paddingValues = paddingValues,
+                    repository = container.sourcebookRepository,
+                    aiEngine = container.aiEngine,
+                )
+            }
         }
     }
 }

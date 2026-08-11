@@ -22,5 +22,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:data"))
     implementation(project(":core:domain"))
+    implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 }

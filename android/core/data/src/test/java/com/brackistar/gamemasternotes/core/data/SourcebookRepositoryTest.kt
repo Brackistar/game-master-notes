@@ -64,6 +64,38 @@ class SourcebookRepositoryTest {
         assertEquals(emptyList<Any>(), repository.search(RetrievalQuery("citadel")))
     }
 
+    @Test
+    fun searchDoesNotReturnWeakPartialMatchesForMultiTermQuestions() = runTest {
+        repository.replaceImportedPack(testPack(text = "The ladder is stored near a mundane shed."))
+
+        val results = repository.search(RetrievalQuery("Silver Ladder"))
+
+        assertEquals(emptyList<Any>(), results)
+    }
+
+    @Test
+    fun searchReturnsRelevantParagraphInsteadOfChunkBeginning() = runTest {
+        repository.replaceImportedPack(
+            testPack(
+                text = """
+                    Opening fiction with unrelated imagery.
+
+                    The Silver Ladder guards the hidden library. Its members preserve the rites and laws of awakened society.
+
+                    Closing text.
+                """.trimIndent(),
+            ),
+        )
+
+        val results = repository.search(RetrievalQuery("Silver Ladder"))
+
+        assertEquals(1, results.size)
+        assertEquals(
+            "The Silver Ladder guards the hidden library. Its members preserve the rites and laws of awakened society.",
+            results.single().snippet,
+        )
+    }
+
     private fun testPack(text: String): ImportedPack {
         val pack = SourcebookPackEntity(
             packId = "pack-1",

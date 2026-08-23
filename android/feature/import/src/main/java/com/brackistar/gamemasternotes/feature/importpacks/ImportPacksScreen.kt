@@ -118,7 +118,11 @@ class ImportPacksViewModel(
             runCatching { importer.importFolder(uri) }
                 .onSuccess { summary ->
                     _state.update {
-                        it.copy(isScanning = false, summary = summary)
+                        it.copy(
+                            isScanning = false,
+                            summary = summary,
+                            message = summary.emptyScanMessage(),
+                        )
                     }
                 }
                 .onFailure { error ->
@@ -141,3 +145,10 @@ class ImportPacksViewModel(
             }
     }
 }
+
+private fun PackImportSummary.emptyScanMessage(): String? =
+    if (scannedCount == 0) {
+        "No .gmnpack files were found in the selected folder or its nearby subfolders."
+    } else {
+        null
+    }

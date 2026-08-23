@@ -16,7 +16,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
 import java.io.InputStreamReader
+import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 interface PackImporter {
@@ -61,8 +63,7 @@ class ContentResolverPackImporter(
     override suspend fun importFolder(treeUri: Uri): PackImportSummary = withContext(Dispatchers.IO) {
         val folder = DocumentFile.fromTreeUri(context, treeUri)
             ?: return@withContext PackImportSummary(0, 0, 0, 0, listOf("Selected folder is not available."))
-        val packFiles = folder.listFiles()
-            .filter { it.isFile && it.name?.endsWith(".gmnpack", ignoreCase = true) == true }
+        val packFiles = folder.findPackFiles()
 
         var imported = 0
         var skipped = 0
@@ -95,6 +96,25 @@ class ContentResolverPackImporter(
             removedCount = removed,
             errors = errors,
         )
+    }
+
+    private fun DocumentFile.findPackFiles(): List<DocumentFile> {
+        val packFiles = mutableListOf<DocumentFile>()
+
+        fun visit(folder: DocumentFile, depth: Int) {
+            if (depth > MAX_FOLDER_SCAN_DEPTH) return
+
+            folder.listFiles().forEach { child ->
+                val childName = child.name.orEmpty()
+                when {
+                    child.isDirectory -> visit(child, depth + 1)
+                    childName.endsWith(PACK_FILE_EXTENSION, ignoreCase = true) -> packFiles += child
+                }
+            }
+        }
+
+        visit(this, depth = 0)
+        return packFiles
     }
 
     private fun parsePack(folderUri: Uri, packFile: DocumentFile): ImportedPack {
@@ -175,14 +195,18 @@ class ContentResolverPackImporter(
 
     private fun readPackMembers(uri: Uri, readChunks: Boolean): PackMembers {
         val entries = mutableMapOf<String, ByteArray>()
+        val seenMembers = mutableSetOf<String>()
         resolver.openInputStream(uri)?.use { input ->
             ZipInputStream(input).use { zip ->
                 var entry = zip.nextEntry
                 while (entry != null) {
                     if (!entry.isDirectory) {
                         val name = entry.name
-                        if (name in requiredMembers || (readChunks && name == "chunks.jsonl")) {
-                            entries[name] = zip.readBytes()
+                        if (name in requiredMembers) {
+                            seenMembers += name
+                        }
+                        if (name in readableMembers || (readChunks && name == "chunks.jsonl")) {
+                            entries[name] = zip.readEntryBytes(entry, name)
                         }
                     }
                     entry = zip.nextEntry
@@ -191,7 +215,7 @@ class ContentResolverPackImporter(
         } ?: throw PackImportException("Could not open pack archive.")
 
         for (member in requiredMembers) {
-            if (entries[member] == null) throw PackImportException("Missing required archive member $member.")
+            if (member !in seenMembers) throw PackImportException("Missing required archive member $member.")
         }
 
         return PackMembers(
@@ -246,6 +270,46 @@ private val requiredMembers = setOf(
     "embeddings.npy",
     "extraction-report.json",
 )
+
+private val readableMembers = requiredMembers - setOf("embeddings.npy", "chunks.jsonl")
+
+private const val PACK_FILE_EXTENSION = ".gmnpack"
+private const val MAX_FOLDER_SCAN_DEPTH = 3
+private const val MAX_MANIFEST_BYTES = 256 * 1024
+private const val MAX_DOCUMENTS_BYTES = 2 * 1024 * 1024
+private const val MAX_CHUNKS_BYTES = 24 * 1024 * 1024
+private const val MAX_REPORT_BYTES = 4 * 1024 * 1024
+private const val READ_BUFFER_BYTES = 8 * 1024
+
+private fun ZipInputStream.readEntryBytes(entry: ZipEntry, name: String): ByteArray {
+    val maxBytes = maxBytesForMember(name)
+    if (entry.size > maxBytes) {
+        throw PackImportException("Archive member $name is too large.")
+    }
+
+    val buffer = ByteArray(READ_BUFFER_BYTES)
+    val output = ByteArrayOutputStream()
+    var totalBytes = 0L
+    while (true) {
+        val read = read(buffer)
+        if (read < 0) break
+        totalBytes += read
+        if (totalBytes > maxBytes) {
+            throw PackImportException("Archive member $name is too large.")
+        }
+        output.write(buffer, 0, read)
+    }
+    return output.toByteArray()
+}
+
+private fun maxBytesForMember(name: String): Int =
+    when (name) {
+        "manifest.json" -> MAX_MANIFEST_BYTES
+        "documents.json" -> MAX_DOCUMENTS_BYTES
+        "chunks.jsonl" -> MAX_CHUNKS_BYTES
+        "extraction-report.json" -> MAX_REPORT_BYTES
+        else -> MAX_CHUNKS_BYTES
+    }
 
 private fun Map<String, ByteArray>.requiredBytes(name: String): ByteArray =
     this[name] ?: throw PackImportException("Missing required archive member $name.")

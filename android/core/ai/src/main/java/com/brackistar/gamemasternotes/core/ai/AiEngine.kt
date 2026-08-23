@@ -13,7 +13,17 @@ data class AiModel(
     val displayName: String,
     val fileSizeBytes: Long?,
     val quantization: String?,
+    val minimumRamMb: Long = 0,
+    val description: String = "",
+    val isFallback: Boolean = false,
+    val availability: AiModelAvailability = AiModelAvailability.Ready,
 )
+
+enum class AiModelAvailability {
+    Ready,
+    MissingModelFile,
+    UnsupportedDevice,
+}
 
 data class AiRequest(
     val prompt: String,
@@ -29,65 +39,3 @@ data class AiRuntimeStatus(
     val loadedModelId: String?,
     val isGenerating: Boolean,
 )
-
-class GroundedMvpAiEngine : AiEngine {
-    override suspend fun availableModels(): List<AiModel> =
-        listOf(
-            AiModel(
-                id = MODEL_ID,
-                displayName = "Grounded MVP responder",
-                fileSizeBytes = null,
-                quantization = null,
-            ),
-        )
-
-    override suspend fun load(modelId: String): AiRuntimeStatus =
-        AiRuntimeStatus(loadedModelId = MODEL_ID, isGenerating = false)
-
-    override suspend fun unload() = Unit
-
-    override suspend fun generate(request: AiRequest): AiResponse {
-        if (request.context.isBlank()) {
-            return AiResponse(
-                text = "I could not find relevant passages in the loaded books for that question.",
-                citationIds = emptyList(),
-            )
-        }
-
-        val sections = request.context
-            .split("\n\n")
-            .filter { it.isNotBlank() }
-            .take(4)
-        val answer = buildString {
-            appendLine("Based on the loaded books:")
-            sections.forEachIndexed { index, section ->
-                val citation = section.substringBefore("\n").removePrefix("[")
-                    .substringBefore("]")
-                    .ifBlank { "source ${index + 1}" }
-                val body = section.lines().drop(1).joinToString(" ").trim()
-                appendLine()
-                append("- ")
-                append(body.take(420))
-                if (body.length > 420) append("...")
-                append(" [")
-                append(citation)
-                append("]")
-            }
-        }.trim()
-
-        return AiResponse(
-            text = answer,
-            citationIds = sections.mapIndexed { index, section ->
-                section.substringBefore("\n").removePrefix("[")
-                    .substringBefore("]")
-                    .ifBlank { "source-${index + 1}" }
-            },
-        )
-    }
-
-    override suspend fun cancel() = Unit
-
-    companion object {
-        private const val MODEL_ID = "grounded-mvp"
-    }
-}

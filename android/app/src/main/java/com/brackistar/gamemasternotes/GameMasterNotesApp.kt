@@ -54,6 +54,7 @@ fun GameMasterNotesApp(container: AppContainer) {
                     paddingValues = paddingValues,
                     repository = container.sourcebookRepository,
                     aiEngine = container.aiEngine,
+                    modelFileInstaller = container.modelFileInstaller,
                 )
             }
         }

@@ -4,6 +4,7 @@ data class RetrievalQuery(
     val text: String,
     val campaignId: String? = null,
     val systemId: String? = null,
+    val limit: Int = 4,
 )
 
 data class RetrievalResult(

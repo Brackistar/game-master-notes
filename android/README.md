@@ -4,7 +4,7 @@
 
 - File: `android/README.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-23
+- Last updated: 2026-08-28
 - User: brackistar
 
 This directory contains the native Android app for `game-master-notes`.
@@ -17,7 +17,7 @@ The first implementation uses a native Android multi-module structure so product
 - The app persists read access to that folder and scans immediate `.gmnpack` children on startup.
 - Imported packs are indexed into Room tables for packs, documents, chunks, and FTS search rows.
 - Library and Home show indexed pack state.
-- Ask the Books retrieves chunks with SQLite FTS, extracts a compact cited evidence brief, and exposes a model selector.
+- Ask the Books retrieves chunks with SQLite FTS, extracts a compact cited evidence brief, and exposes answer-style and model selectors.
 - The assistant checks device RAM, supported ABI, and installed model files on startup. For now, the UI only shows installed LFM2.5 350M GGUF models plus the deterministic grounded fallback.
 - Qwen, Gemma, and Phi adapter profiles remain in the `core:ai` compatibility layer for future work, but they are not exposed in the current selector.
 
@@ -32,11 +32,15 @@ Only installed files appear in the selector; missing placeholder rows are intent
 
 The local LLM path is optimized for tablets by using hybrid RAG:
 
-1. SQLite FTS retrieves the top 2 candidate sourcebook chunks for assistant questions.
-2. A deterministic evidence extractor selects up to 2 cited one-sentence evidence items.
-3. The local LLM receives a short prompt, the compact evidence brief, and a small answer budget so it can shape a more humane answer without decoding a large context.
+1. SQLite FTS retrieves candidate sourcebook chunks for assistant questions.
+2. Kotlin-side relevance filtering rejects weak partial matches.
+3. A deterministic evidence extractor selects up to 4 cited source blocks, preserving up to 3 relevant paragraphs per block and falling back to a nearby sentence window when source text has no paragraph breaks.
+4. The local LLM receives a compact multi-block evidence brief and is prompted to synthesize a direct 2-4 paragraph answer with citations instead of returning a single fragment.
+5. If the local model output is too short, malformed, citationless, or times out, the deterministic grounded responder displays the cited excerpts directly.
 
-This keeps an LLM in the answer path while reducing prompt size, prompt-evaluation time, and hallucination risk.
+The assistant now keeps the preceding user question in mind for short follow-ups such as "What about the second type?" while preserving the user's original wording in the conversation. It supports lookup, explain, summarize, brainstorm, and compare modes. When retrieval finds nothing, the app explains how to reformulate the request and skips model loading. Generated answers must contain usable prose and citations supported by the retrieved evidence; source blocks remain expandable below each answer for inspection.
+
+This keeps an LLM in the answer path while reducing prompt size, prompt-evaluation time, and hallucination risk. Vector search from pack embeddings is the next retrieval upgrade, not part of the current Android runtime path.
 
 ## Importing AI Models
 

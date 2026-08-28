@@ -4,7 +4,7 @@
 
 - File: `docs/android-offline-architecture.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-11
+- Last updated: 2026-08-28
 - User: brackistar
 
 Related diagram: [general-architecture.mmd](general-architecture.mmd)
@@ -51,11 +51,11 @@ The first Android sourcebook slice uses Android's Storage Access Framework inste
 
 1. The user chooses a folder that contains `.gmnpack` files.
 2. The app persists read permission for that folder.
-3. On startup and manual rescan, the app scans immediate folder children ending in `.gmnpack`.
+3. On startup and manual rescan, the app scans the selected folder and nearby subfolders ending in `.gmnpack`.
 4. New or changed packs are parsed from ZIP members and indexed into Room.
 5. Packs removed from the selected folder are pruned from the index so the library reflects currently available books.
 
-The importer currently reads `manifest.json`, `documents.json`, and `chunks.jsonl`. It validates that required pack members exist, records embedding metadata from the manifest, and defers use of `embeddings.npy` until vector search is implemented.
+The importer currently reads `manifest.json`, `documents.json`, and `chunks.jsonl`. It validates that required pack members exist, records embedding metadata from the manifest, bounds archive member reads to avoid oversized inputs, and defers use of `embeddings.npy` until vector search is implemented.
 
 ## Pack Builder CLI
 
@@ -84,7 +84,9 @@ Assistant requests and search requests should share a retrieval pipeline.
 6. Pass the context bundle to the assistant when the user asks for AI help.
 7. Require the assistant UI to show cited notes or sourcebook chunks when retrieved context was used.
 
-The database is the app's memory. The local model should answer from retrieved material instead of pretending to know sourcebooks or campaign continuity from its own weights. The first working assistant uses a deterministic `GroundedMvpAiEngine` that summarizes retrieved chunks with citations; it is a temporary implementation behind the same `AiEngine` boundary that `llama.cpp` will use later.
+The database is the app's memory. The local model should answer from retrieved material instead of pretending to know sourcebooks or campaign continuity from its own weights.
+
+The current implemented assistant uses SQLite FTS for sourcebook chunks plus Kotlin-side relevance filtering. It rejects weak partial matches, caps repeated citations/books, extracts up to four cited source blocks with multiple relevant paragraphs, builds a compact evidence brief, and then asks the selected `AiEngine` to synthesize a direct answer. Short follow-up questions are expanded with the previous user question for retrieval. Answer modes provide lookup, explanation, summarization, brainstorming, and comparison instructions. A deterministic `GroundedMvpAiEngine` remains available as a readable cited fallback when no GGUF model is installed, when generation times out, or when model output fails grounded-answer quality checks. Empty retrieval stops before model loading and gives the user reformulation guidance; retrieved source blocks are expandable in the assistant UI.
 
 ## Local AI Adapter Strategy
 
@@ -97,7 +99,7 @@ The app should define an `AiEngine` adapter before integrating any specific runt
 - Streaming tokens when supported.
 - Benchmark collection for load time, memory use, tokens per second, context length, and qualitative notes.
 
-The first runtime target is `llama.cpp` on Android with GGUF models. Other runtimes such as MLC LLM, LiteRT, or LEAP can be evaluated later behind the same adapter.
+The first runtime target is implemented with `llama.cpp` on Android and GGUF models. Current native packaging is `arm64-v8a`, optimized for 16 KB page-size compatibility, and centered on LFM2.5-350M quantized files. Other runtimes such as MLC LLM, LiteRT, or LEAP can be evaluated later behind the same adapter.
 
 Initial benchmark candidates:
 

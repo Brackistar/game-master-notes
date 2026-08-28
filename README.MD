@@ -4,7 +4,7 @@
 
 - File: `README.MD`
 - Created: 2026-08-10
-- Last updated: 2026-08-11
+- Last updated: 2026-08-28
 - User: brackistar
 
 An offline Android lore and notes assistant for game masters running multiple roleplaying systems.
@@ -55,9 +55,16 @@ This keeps copyrighted sourcebooks private, avoids slow tablet-side PDF processi
 
 ## Local AI Strategy
 
-The app will use an `AiEngine` adapter so different local runtimes and models can be tested without rewriting the product workflow.
+The app uses an `AiEngine` adapter so different local runtimes and models can be tested without rewriting the product workflow. The current Android slice includes a real local model path through `llama.cpp` and GGUF files, with LFM2.5-350M as the active low-requirement tablet target.
 
-Initial benchmark candidates include:
+Current model handling:
+
+- The app discovers installed model files in app-private storage.
+- The model selector shows only installed compatible LFM2.5 files plus the deterministic grounded fallback.
+- Qwen, Gemma, and Phi profiles remain behind the adapter for future testing, but they are not exposed as placeholders in the current UI.
+- The deterministic fallback remains available when the local model is missing, too slow, or produces unusable output.
+
+Future benchmark candidates include:
 
 - LFM2.5-350M
 - SmolLM2-360M-Instruct
@@ -80,7 +87,9 @@ The active Android navigation is intentionally small:
 - Packs
 - Ask the Books
 
-Current limits are intentional for this slice: vector search from `embeddings.npy` is not active yet, and the assistant uses a deterministic grounded MVP responder behind the `AiEngine` boundary instead of `llama.cpp`.
+Current limits are intentional for this slice: vector search from `embeddings.npy` is not active yet, campaign/note retrieval is not active yet, and the local LLM is constrained to short grounded answers over retrieved sourcebook context.
+
+The assistant retrieval path currently uses SQLite FTS plus Kotlin-side relevance filtering. It searches sourcebook chunks, rejects weak partial matches, diversifies results across citations and books, and extracts up to four cited source blocks while preserving multiple relevant paragraphs per block. Short conversational follow-ups reuse the previous user question during retrieval. The local LLM receives a compact multi-block evidence brief and is prompted to synthesize a direct cited answer in a selected lookup, explain, summarize, brainstorm, or compare mode. The deterministic fallback displays separated cited blocks when the LLM is unavailable, too slow, uncited, malformed, or otherwise fails grounded-answer checks. Retrieved source blocks are expandable in the chat UI, and no-result searches return recovery guidance without invoking the model.
 
 ## Roadmap
 
@@ -101,15 +110,15 @@ Current limits are intentional for this slice: vector search from `embeddings.np
 ### Phase 3: Retrieval
 
 - Add keyword search
-- Add local vector search
+- Add hybrid local vector search from pack embeddings
 - Merge note, lore, and sourcebook results into a context assembler
 - Show citations for retrieved source material
 
 ### Phase 4: Local Assistant
 
 - Add the `AiEngine` interface
-- Integrate the first local runtime path
-- Build grounded assistant prompts over retrieved context
+- Integrate the first local runtime path with `llama.cpp`
+- Build grounded assistant prompts over retrieved paragraph excerpts
 - Add tablet benchmark workflows for candidate models
 
 ### Phase 5: Session Polish

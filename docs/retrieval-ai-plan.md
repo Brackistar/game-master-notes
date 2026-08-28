@@ -4,7 +4,7 @@
 
 - File: `docs/retrieval-ai-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-08-28
 - User: brackistar
 
 Related diagram: [retrieval-ai-plan.mmd](retrieval-ai-plan.mmd)
@@ -34,6 +34,17 @@ The pipeline should be shared by search and assistant workflows:
 6. Build a compact context bundle.
 7. Pass the context bundle to the assistant or render it in search results.
 
+Current Android status:
+
+- Sourcebook chunk retrieval is implemented with SQLite FTS.
+- Query normalization keeps meaningful terms and removes common filler words.
+- FTS matching is intentionally strict for multi-term questions to avoid weak partial matches.
+- Retrieved chunks are post-filtered in Kotlin and converted into up to four cited source blocks, preserving multiple relevant paragraphs within each block.
+- If paragraph breaks are unavailable, retrieval falls back to the best matching sentence with nearby context.
+- Natural-language follow-up questions reuse the previous user question during retrieval, while the original wording remains visible in chat.
+- The assistant supports lookup, explanation, summarization, brainstorming, and comparison modes; empty retrieval produces a recovery message without loading or invoking the local model.
+- Vector search is still planned; `embeddings.npy` is imported only as metadata today.
+
 ## Ranking Inputs
 
 Ranking should consider:
@@ -62,6 +73,19 @@ The context bundle passed to local AI should include:
 
 The assistant prompt should explicitly say when context is insufficient and should avoid inventing citations.
 
+The current assistant evidence brief is compact and citation-first:
+
+```text
+Evidence:
+1. [Book Title, pp. 10-11] Useful paragraph excerpt.
+
+2. [Book Title, pp. 42-43] Another useful paragraph excerpt.
+```
+
+The deterministic fallback renders the same evidence as separated cited excerpts for readability.
+
+Generated answers are accepted only when they contain usable prose, supported citations, and evidence-related wording. Otherwise the deterministic cited evidence response is shown. Chat answers keep their source blocks expandable so the user can inspect the exact retrieved text without leaving the conversation.
+
 ## AiEngine Adapter
 
 Define an `AiEngine` interface before integrating a real runtime.
@@ -77,10 +101,11 @@ Required capabilities:
 - Stream tokens when supported.
 - Report runtime status and benchmark metrics.
 
-Initial implementations:
+Current implementations:
 
-- `FakeAiEngine` for UI and tests.
-- `LlamaCppAiEngine` for `llama.cpp` on Android.
+- `GroundedMvpAiEngine` for deterministic cited fallback answers.
+- `ModelSelectingAiEngine` for discovering installed compatible local models.
+- `LlamaCppLocalModelRuntime` for `llama.cpp` on Android.
 
 Potential later implementations:
 
@@ -91,7 +116,7 @@ Potential later implementations:
 
 ## Model Strategy
 
-The first runtime target is `llama.cpp` with GGUF models.
+The first runtime target is `llama.cpp` with GGUF models and is implemented for `arm64-v8a` devices. The current UI focuses on installed LFM2.5-350M files and hides missing model placeholders. Qwen, Gemma, and Phi profiles remain available in the compatibility layer for later experiments.
 
 Benchmark candidates:
 
@@ -138,7 +163,7 @@ Benchmark runs should record:
 - Unit test result merging and ranking.
 - Unit test context bundle construction.
 - Test assistant prompt generation with fixed retrieved inputs.
-- Use fake AI responses for deterministic UI tests.
+- Use deterministic fallback responses for reliable tests.
 - Manually test real local models on the target tablet.
 
 ## Risks

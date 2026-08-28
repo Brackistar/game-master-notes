@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -21,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -32,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.brackistar.gamemasternotes.core.ai.AiEngine
+import com.brackistar.gamemasternotes.core.ai.AnswerMode
 import com.brackistar.gamemasternotes.core.ai.AiModelAvailability
 import com.brackistar.gamemasternotes.core.ai.AiModel
 import com.brackistar.gamemasternotes.core.ai.AiRequest
@@ -72,6 +75,11 @@ fun AssistantScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(text = "Ask the Books", style = MaterialTheme.typography.headlineSmall)
+        AnswerModeSelector(
+            mode = state.answerMode,
+            isEnabled = !state.isGenerating,
+            onSelectMode = viewModel::selectAnswerMode,
+        )
         ModelSelector(
             models = state.availableModels,
             selectedModelId = state.selectedModelId,
@@ -108,13 +116,25 @@ fun AssistantScreen(
                     style = if (message.isUser) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
                 )
                 if (!message.isUser) {
-                    message.citations.forEach { citation ->
-                        Text(
-                            text = citation.citationLabel ?: citation.title,
-                            style = MaterialTheme.typography.labelMedium,
-                        )
+                    message.citations.distinctBy { it.sourceId }.forEach { citation ->
+                        var expanded by androidx.compose.runtime.remember(message.text, citation.sourceId) {
+                            androidx.compose.runtime.mutableStateOf(false)
+                        }
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                TextButton(onClick = { expanded = !expanded }) {
+                                    Text(text = if (expanded) "Hide source" else "Show source: ${citation.citationLabel ?: citation.title}")
+                                }
+                                if (expanded) {
+                                    Text(text = citation.snippet, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
                     }
                 }
+            }
+            if (state.isGenerating) {
+                Text(text = "Searching the loaded books and composing an answer...")
             }
             state.error?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
         }
@@ -130,6 +150,48 @@ fun AssistantScreen(
             enabled = state.question.isNotBlank() && !state.isGenerating,
         ) {
             Text(text = if (state.isGenerating) "Asking..." else "Ask")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AnswerModeSelector(
+    mode: AnswerMode,
+    isEnabled: Boolean,
+    onSelectMode: (AnswerMode) -> Unit,
+) {
+    var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (isEnabled) expanded = !expanded },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = mode.displayName,
+            onValueChange = {},
+            readOnly = true,
+            enabled = isEnabled,
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = isEnabled).fillMaxWidth(),
+            label = { Text(text = "Answer style") },
+            supportingText = { Text(text = mode.description) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            AnswerMode.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(text = option.displayName)
+                            Text(text = option.description, style = MaterialTheme.typography.labelSmall)
+                        }
+                    },
+                    onClick = {
+                        expanded = false
+                        onSelectMode(option)
+                    },
+                )
+            }
         }
     }
 }
@@ -217,6 +279,7 @@ data class AssistantUiState(
     val pendingImportModelId: String? = null,
     val messages: List<ChatMessage> = emptyList(),
     val error: String? = null,
+    val answerMode: AnswerMode = AnswerMode.Explain,
 )
 
 class AssistantViewModel(
@@ -235,6 +298,10 @@ class AssistantViewModel(
 
     fun updateQuestion(question: String) {
         _state.update { it.copy(question = question) }
+    }
+
+    fun selectAnswerMode(mode: AnswerMode) {
+        _state.update { it.copy(answerMode = mode) }
     }
 
     fun selectModel(modelId: String) {
@@ -338,7 +405,10 @@ class AssistantViewModel(
 
             runCatching {
                 val retrievalStartedAt = System.currentTimeMillis()
-                val results = repository.search(RetrievalQuery(text = question, limit = ASSISTANT_RETRIEVAL_LIMIT))
+                val previousQuestion = state.value.messages.dropLast(1).lastOrNull { it.isUser }?.text
+                val queryPlan = AssistantQueryPlanner.plan(question, previousQuestion)
+                Log.i(TAG, "Retrieval query planned questionHash=$questionHash followUp=${queryPlan.isFollowUp} retrievalChars=${queryPlan.retrievalText.length}")
+                val results = repository.search(RetrievalQuery(text = queryPlan.retrievalText, limit = ASSISTANT_RETRIEVAL_LIMIT))
                 Log.i(
                     TAG,
                     "Retrieval finished questionHash=$questionHash resultCount=${results.size} elapsedMs=${System.currentTimeMillis() - retrievalStartedAt} citations=${results.citationSummary()}",
@@ -351,6 +421,12 @@ class AssistantViewModel(
                     TAG,
                     "Evidence brief built questionHash=$questionHash contextChars=${context.length} evidenceChars=${evidenceBrief.text.length} citationCount=${evidenceBrief.citationIds.size}",
                 )
+                if (results.isEmpty() || evidenceBrief.isEmpty) {
+                    return@runCatching ChatMessage(
+                        text = "I couldn't find enough support in the loaded books for this question.\n\nTry naming a specific rule, character, place, or book term, or ask a broader question.",
+                        isUser = false,
+                    )
+                }
                 val generationStartedAt = System.currentTimeMillis()
                 Log.i(
                     TAG,
@@ -358,7 +434,7 @@ class AssistantViewModel(
                 )
                 val response = withTimeoutOrNull(ASK_TIMEOUT_MILLIS) {
                     state.value.selectedModelId?.let { aiEngine.load(it) }
-                    aiEngine.generate(AiRequest(prompt = question, context = evidenceBrief.text))
+                    aiEngine.generate(AiRequest(prompt = question, context = evidenceBrief.text, answerMode = state.value.answerMode))
                 } ?: run {
                     Log.w(
                         TAG,
@@ -397,8 +473,8 @@ class AssistantViewModel(
     }
 
     companion object {
-        private const val ASK_TIMEOUT_MILLIS = 25_000L
-        private const val ASSISTANT_RETRIEVAL_LIMIT = 2
+        private const val ASK_TIMEOUT_MILLIS = 40_000L
+        private const val ASSISTANT_RETRIEVAL_LIMIT = 4
         private const val TAG = "GmnAssistant"
 
         fun factory(

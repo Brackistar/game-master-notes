@@ -91,10 +91,11 @@ class LlamaCppLocalModelRuntime(
             ).trim()
             val generated = rawGenerated.removePromptEchoMarkers().trim()
             val elapsedMs = System.currentTimeMillis() - startedAt
-            val shouldFallback = generated.shouldUseGroundedFallback(evidenceBrief.citationIds)
+            val quality = validateGroundedAnswer(request.prompt, generated, evidenceBrief)
+            val shouldFallback = !quality.usable
             Log.i(
                 TAG,
-                "Generated model=${model.model.id} rawOutputChars=${rawGenerated.length} outputChars=${generated.length} fallback=$shouldFallback elapsedMs=$elapsedMs",
+                "Generated model=${model.model.id} rawOutputChars=${rawGenerated.length} outputChars=${generated.length} fallback=$shouldFallback reason=${quality.reason} elapsedMs=$elapsedMs",
             )
             val responseText = if (shouldFallback) {
                 evidenceBrief.toReadableAnswer()
@@ -122,9 +123,9 @@ class LlamaCppLocalModelRuntime(
     }
 
     companion object {
-        private const val CONTEXT_TOKENS = 512
-        private const val MAX_RESPONSE_TOKENS = 64
-        private const val MAX_GENERATION_MILLIS = 12_000L
+        private const val CONTEXT_TOKENS = 1_024
+        private const val MAX_RESPONSE_TOKENS = 96
+        private const val MAX_GENERATION_MILLIS = 30_000L
         private const val TAG = "GmnLlamaRuntime"
     }
 }
@@ -139,16 +140,3 @@ private fun String.removePromptEchoMarkers(): String =
                 trimmed.startsWith("<|")
         }
         .joinToString("\n")
-
-private fun String.shouldUseGroundedFallback(citationIds: List<String>): Boolean {
-    val normalized = replace(Regex("""\s+"""), " ").trim()
-    if (normalized.length < MIN_USABLE_OUTPUT_CHARS) return true
-    if (citationIds.isNotEmpty() && citationIds.none { normalized.contains("[$it]") }) return true
-    val letterCount = normalized.count { it.isLetter() }
-    if (letterCount < MIN_USABLE_LETTERS) return true
-    val asciiLetters = normalized.count { it in 'A'..'Z' || it in 'a'..'z' }
-    return asciiLetters * 2 < letterCount
-}
-
-private const val MIN_USABLE_OUTPUT_CHARS = 24
-private const val MIN_USABLE_LETTERS = 12

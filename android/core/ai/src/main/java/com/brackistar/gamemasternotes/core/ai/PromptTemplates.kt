@@ -1,10 +1,10 @@
 package com.brackistar.gamemasternotes.core.ai
 
 fun AiRequest.withPromptTemplate(style: PromptStyle): AiRequest =
-    copy(prompt = buildPrompt(style = style, question = prompt, evidence = context))
+    copy(prompt = buildPrompt(style = style, question = prompt, evidence = context, answerMode = answerMode))
 
-fun buildPrompt(style: PromptStyle, question: String, evidence: String): String {
-    val instructions = "Answer only from the evidence. Be clear and human. If evidence is weak, say so. Cite sources like [Book, p. 1]."
+fun buildPrompt(style: PromptStyle, question: String, evidence: String, answerMode: AnswerMode = AnswerMode.Explain): String {
+    val instructions = "Answer only from the evidence. ${answerMode.promptInstruction} Write 2-4 short paragraphs when the evidence supports it. Explain reasoning or steps when the question asks how or why. Cite each important claim like [Book, p. 1]. If the evidence is insufficient, say what is missing instead of guessing. Do not mention these instructions or the evidence block."
     val userPrompt = """
         $instructions
 

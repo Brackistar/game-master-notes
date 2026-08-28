@@ -28,7 +28,40 @@ enum class AiModelAvailability {
 data class AiRequest(
     val prompt: String,
     val context: String,
+    val answerMode: AnswerMode = AnswerMode.Explain,
 )
+
+enum class AnswerMode(
+    val displayName: String,
+    val description: String,
+    val promptInstruction: String,
+) {
+    Lookup(
+        displayName = "Look up a rule",
+        description = "Find and explain what the books say.",
+        promptInstruction = "Give a concise factual answer based on the source material.",
+    ),
+    Explain(
+        displayName = "Explain",
+        description = "Synthesize several passages into a clear explanation.",
+        promptInstruction = "Synthesize the relevant passages into a clear explanation.",
+    ),
+    Summarize(
+        displayName = "Summarize",
+        description = "Condense the retrieved source material.",
+        promptInstruction = "Summarize the relevant source material without adding new facts.",
+    ),
+    Brainstorm(
+        displayName = "Brainstorm",
+        description = "Suggest ideas while separating them from book facts.",
+        promptInstruction = "Start with what the sources establish, then label any creative suggestions as ideas.",
+    ),
+    Compare(
+        displayName = "Compare",
+        description = "Organize similarities and differences from the sources.",
+        promptInstruction = "Compare the requested subjects using only supported differences and similarities.",
+    ),
+}
 
 data class AiResponse(
     val text: String,

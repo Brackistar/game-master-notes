@@ -74,6 +74,18 @@ class SourcebookRepositoryTest {
     }
 
     @Test
+    fun searchRelaxesNaturalLanguageQuestionsWithoutAcceptingSingleTermMatches() = runTest {
+        repository.replaceImportedPack(
+            testPack(text = "The Silver Ladder protects the hidden library."),
+        )
+
+        val results = repository.search(RetrievalQuery("How does the Silver Ladder protect lore?"))
+
+        assertEquals(1, results.size)
+        assertTrue(results.single().snippet.contains("Silver Ladder"))
+    }
+
+    @Test
     fun searchReturnsRelevantParagraphInsteadOfChunkBeginning() = runTest {
         repository.replaceImportedPack(
             testPack(
@@ -94,6 +106,27 @@ class SourcebookRepositoryTest {
             "The Silver Ladder guards the hidden library. Its members preserve the rites and laws of awakened society.",
             results.single().snippet,
         )
+    }
+
+    @Test
+    fun searchReturnsMultipleRelevantParagraphsFromOneChunk() = runTest {
+        repository.replaceImportedPack(
+            testPack(
+                text = """
+                    The Silver Ladder guards the hidden library.
+
+                    The Silver Ladder members preserve the rites and laws of awakened society.
+
+                    The Silver Ladder also trains archivists to protect dangerous lore.
+                """.trimIndent(),
+            ),
+        )
+
+        val result = repository.search(RetrievalQuery("Silver Ladder"))
+
+        assertEquals(1, result.size)
+        assertTrue(result.single().snippet.contains("The Silver Ladder guards the hidden library."))
+        assertTrue(result.single().snippet.contains("The Silver Ladder also trains archivists"))
     }
 
     private fun testPack(text: String): ImportedPack {

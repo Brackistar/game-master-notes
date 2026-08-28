@@ -37,9 +37,22 @@ class SourcebookRepository(
             .joinToString(" AND ") { "\"$it\"" }
         if (ftsQuery.isBlank()) return emptyList()
 
-        return dao.searchChunks(ftsQuery, limit = query.limit.coerceIn(1, 8) * CANDIDATE_MULTIPLIER)
+        val resultLimit = query.limit.coerceIn(1, 8)
+        val candidateLimit = resultLimit * CANDIDATE_MULTIPLIER
+        val strictRows = dao.searchChunks(ftsQuery, limit = candidateLimit)
+        val (rows, minimumScore) = if (strictRows.isNotEmpty()) {
+            strictRows to MIN_EXCERPT_SCORE
+        } else {
+            val relaxedQuery = terms
+                .take(MAX_QUERY_TERMS)
+                .joinToString(" OR ") { "\"$it\"" }
+            dao.searchChunks(relaxedQuery, limit = candidateLimit) to
+                minOf(MIN_RELAXED_EXCERPT_SCORE, terms.size)
+        }
+
+        return rows
             .mapNotNull { row ->
-                val excerpt = row.text.bestExcerptFor(terms) ?: return@mapNotNull null
+                val excerpt = row.text.bestExcerptFor(terms, minimumScore) ?: return@mapNotNull null
                 RetrievalResult(
                     sourceId = row.chunkId,
                     title = row.packTitle,
@@ -49,16 +62,40 @@ class SourcebookRepository(
                 )
             }
             .sortedByDescending { it.score }
-            .take(query.limit.coerceIn(1, 8))
+            .diversifyResults(resultLimit)
     }
 
 }
 
+private fun List<RetrievalResult>.diversifyResults(limit: Int): List<RetrievalResult> {
+    val byCitation = mutableMapOf<String, Int>()
+    val byTitle = mutableMapOf<String, Int>()
+    return asSequence()
+        .filter { result ->
+            val citationKey = result.citationLabel ?: result.sourceId
+            val citationCount = byCitation[citationKey] ?: 0
+            val titleCount = byTitle[result.title] ?: 0
+            if (citationCount >= MAX_RESULTS_PER_CITATION || titleCount >= MAX_RESULTS_PER_TITLE) {
+                false
+            } else {
+                byCitation[citationKey] = citationCount + 1
+                byTitle[result.title] = titleCount + 1
+                true
+            }
+        }
+        .take(limit)
+        .toList()
+}
+
 private const val MAX_QUERY_TERMS = 5
-private const val MAX_SNIPPET_CHARS = 900
-private const val FALLBACK_SENTENCE_RADIUS = 1
+private const val MAX_SNIPPET_CHARS = 1_800
+private const val FALLBACK_SENTENCE_RADIUS = 2
+private const val MAX_PARAGRAPHS_PER_SNIPPET = 3
 private const val MIN_EXCERPT_SCORE = 1
+private const val MIN_RELAXED_EXCERPT_SCORE = 2
 private const val CANDIDATE_MULTIPLIER = 3
+private const val MAX_RESULTS_PER_CITATION = 2
+private const val MAX_RESULTS_PER_TITLE = 3
 
 private val STOP_WORDS = setOf(
     "the",
@@ -94,18 +131,23 @@ private fun String.significantTerms(): List<String> =
         .filter { it.length >= 3 && it !in STOP_WORDS }
         .distinct()
 
-private fun String.bestExcerptFor(terms: List<String>): RankedExcerpt? {
+private fun String.bestExcerptFor(terms: List<String>, minimumScore: Int): RankedExcerpt? {
     if (terms.isEmpty()) return null
-    val paragraph = paragraphs()
+    val allParagraphs = paragraphs()
+    val paragraph = allParagraphs
         .map { text -> text to text.scoreAgainst(terms) }
-        .filter { it.second >= MIN_EXCERPT_SCORE }
+        .filter { it.second >= minimumScore }
         .sortedByDescending { it.second }
         .firstOrNull()
     if (paragraph != null) {
-        return RankedExcerpt(text = paragraph.first.takeCleanly(MAX_SNIPPET_CHARS), score = paragraph.second.toDouble())
+        val usefulBlock = allParagraphs
+            .filter { text -> text.scoreAgainst(terms) >= minimumScore }
+            .take(MAX_PARAGRAPHS_PER_SNIPPET)
+            .joinToString("\n")
+        return RankedExcerpt(text = usefulBlock.takeCleanly(MAX_SNIPPET_CHARS), score = paragraph.second.toDouble())
     }
 
-    return bestSentenceWindowFor(terms)
+    return bestSentenceWindowFor(terms, minimumScore)
 }
 
 private fun String.paragraphs(): List<String> =
@@ -113,14 +155,14 @@ private fun String.paragraphs(): List<String> =
         .map { it.normalizeWhitespace() }
         .filter { it.isNotBlank() }
 
-private fun String.bestSentenceWindowFor(terms: List<String>): RankedExcerpt? {
+private fun String.bestSentenceWindowFor(terms: List<String>, minimumScore: Int): RankedExcerpt? {
     val sentences = split(Regex("""(?<=[.!?])\s+"""))
         .map { it.normalizeWhitespace() }
         .filter { it.isNotBlank() }
     val bestIndex = sentences
         .indices
         .map { index -> index to sentences[index].scoreAgainst(terms) }
-        .filter { it.second >= MIN_EXCERPT_SCORE }
+        .filter { it.second >= minimumScore }
         .maxByOrNull { it.second }
         ?: return null
     val start = maxOf(0, bestIndex.first - FALLBACK_SENTENCE_RADIUS)

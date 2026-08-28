@@ -16,9 +16,12 @@ object EvidenceBriefBuilder {
 
         if (evidenceItems.isEmpty()) return EvidenceBrief(items = emptyList(), citationIds = emptyList())
 
+        val excerpts = evidenceItems
+            .map { EvidenceExcerpt(citation = it.citation, text = it.text) }
+            .takeWithinCharacterBudget(MAX_TOTAL_EVIDENCE_CHARS)
         return EvidenceBrief(
-            items = evidenceItems.map { EvidenceExcerpt(citation = it.citation, text = it.text) },
-            citationIds = evidenceItems.map { it.citation }.distinct(),
+            items = excerpts,
+            citationIds = excerpts.map { it.citation }.distinct(),
         )
     }
 
@@ -30,21 +33,21 @@ object EvidenceBriefBuilder {
             .removePrefix("[")
             .substringBefore("]")
             .ifBlank { "source" }
-        val body = lines.drop(1).joinToString(" ").normalizeWhitespace()
+        val body = lines.drop(1)
+            .joinToString("\n") { it.normalizeWhitespace() }
+            .trim()
         if (body.isBlank()) return null
 
-        val selectedText = body
-            .split(Regex("""(?<=[.!?])\s+"""))
-            .asSequence()
-            .map { sentence -> sentence.trim() }
+        val paragraphs = body
+            .split(Regex("""\n+"""))
+            .map { it.trim() }
             .filter { it.isNotBlank() }
-            .map { sentence -> sentence to sentence.scoreAgainst(terms) }
-            .sortedByDescending { it.second }
-            .take(MAX_SENTENCES_PER_SOURCE)
-            .map { it.first }
-            .joinToString(" ")
-            .ifBlank { body }
-            .take(MAX_EVIDENCE_CHARS)
+        val selectedText = paragraphs
+            .filter { it.scoreAgainst(terms) > 0 }
+            .ifEmpty { paragraphs.take(1) }
+            .take(MAX_PARAGRAPHS_PER_SOURCE)
+            .joinToString("\n\n")
+            .takeCleanly(MAX_EVIDENCE_CHARS)
 
         return EvidenceItem(
             citation = citation,
@@ -68,6 +71,27 @@ object EvidenceBriefBuilder {
 
     private fun String.normalizeWhitespace(): String =
         replace(Regex("""\s+"""), " ").trim()
+
+    private fun String.takeCleanly(maxChars: Int): String {
+        if (length <= maxChars) return this
+        val clipped = take(maxChars)
+        return clipped.substringBeforeLast(" ").ifBlank { clipped }.trimEnd() + "..."
+    }
+
+    private fun List<EvidenceExcerpt>.takeWithinCharacterBudget(maxChars: Int): List<EvidenceExcerpt> {
+        var usedChars = 0
+        val bounded = mutableListOf<EvidenceExcerpt>()
+        for (item in this) {
+            val separatorChars = if (usedChars == 0) 0 else 2
+            val availableChars = maxChars - usedChars - separatorChars
+            if (availableChars <= 0) break
+            val boundedText = item.text.takeCleanly(availableChars)
+            if (boundedText.isBlank()) break
+            usedChars += separatorChars + boundedText.length
+            bounded += item.copy(text = boundedText)
+        }
+        return bounded
+    }
 
     private fun parseExistingBrief(context: String): EvidenceBrief? {
         val items = context.lineSequence()
@@ -95,9 +119,10 @@ object EvidenceBriefBuilder {
         val index: Int,
     )
 
-    private const val MAX_EVIDENCE_ITEMS = 2
-    private const val MAX_SENTENCES_PER_SOURCE = 1
-    private const val MAX_EVIDENCE_CHARS = 180
+    private const val MAX_EVIDENCE_ITEMS = 4
+    private const val MAX_PARAGRAPHS_PER_SOURCE = 3
+    private const val MAX_EVIDENCE_CHARS = 1_400
+    private const val MAX_TOTAL_EVIDENCE_CHARS = 1_800
     private const val MIN_TERM_LENGTH = 3
     private val NUMBERED_CITATION = Regex("""^\d+\.\s+\[([^\]]+)]\s*(.*)$""")
 
@@ -127,6 +152,9 @@ data class EvidenceBrief(
     val items: List<EvidenceExcerpt>,
     val citationIds: List<String>,
 ) {
+    val isEmpty: Boolean
+        get() = items.isEmpty()
+
     val text: String = toPromptText()
 
     fun toPromptText(): String {

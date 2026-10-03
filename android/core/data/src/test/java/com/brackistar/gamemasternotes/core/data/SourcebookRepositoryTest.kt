@@ -39,7 +39,12 @@ class SourcebookRepositoryTest {
         assertEquals("Synthetic Book", packs.single().title)
         assertEquals(1, results.size)
         assertTrue(results.single().snippet.contains("Silver Ladder"))
-        assertEquals("Synthetic Book, pp. 4-5", results.single().citationLabel)
+        assertEquals("Synthetic Book pp. 4-5", results.single().citationLabel)
+        assertEquals("pack-1", results.single().packId)
+        assertEquals("doc-1", results.single().documentId)
+        assertEquals("chunk-1", results.single().sourceId)
+        assertEquals(4, results.single().pageStart)
+        assertEquals(5, results.single().pageEnd)
     }
 
     @Test
@@ -53,6 +58,17 @@ class SourcebookRepositoryTest {
         assertEquals(1, packs.size)
         assertEquals(1, results.size)
         assertTrue(results.single().snippet.contains("Second text"))
+        assertFtsMatchesActiveChunks()
+    }
+
+    @Test
+    fun replacingPackRemovesOldFtsTerms() = runTest {
+        repository.replaceImportedPack(testPack(text = "The old citadel sank below the marsh."))
+        repository.replaceImportedPack(testPack(text = "The new observatory studies clear stars."))
+
+        assertEquals(emptyList<Any>(), repository.search(RetrievalQuery("citadel marsh")))
+        assertEquals(1, repository.search(RetrievalQuery("observatory stars")).size)
+        assertFtsMatchesActiveChunks()
     }
 
     @Test
@@ -62,6 +78,58 @@ class SourcebookRepositoryTest {
 
         assertEquals(0, repository.observePacks().first().size)
         assertEquals(emptyList<Any>(), repository.search(RetrievalQuery("citadel")))
+        assertFtsMatchesActiveChunks()
+    }
+
+    @Test
+    fun pruningSubsetKeepsOnlyAvailablePackFtsRows() = runTest {
+        repository.replaceImportedPack(
+            testPack(packId = "pack-1", chunkId = "chunk-1", text = "A silver bridge."),
+        )
+        repository.replaceImportedPack(
+            testPack(packId = "pack-2", chunkId = "chunk-2", text = "A golden library."),
+        )
+
+        repository.pruneToAvailablePacks(listOf("pack-2"))
+
+        assertEquals(emptyList<Any>(), repository.search(RetrievalQuery("silver bridge")))
+        assertEquals(1, repository.search(RetrievalQuery("golden library")).size)
+        assertFtsMatchesActiveChunks()
+    }
+
+    @Test
+    fun replacingPackRejectsDuplicateIncomingChunkIds() = runTest {
+        val pack = testPack(text = "One chunk.").let { imported ->
+            imported.copy(
+                chunks = imported.chunks + imported.chunks.single().copy(text = "Duplicate chunk."),
+                ftsRows = imported.ftsRows + imported.ftsRows.single().copy(text = "Duplicate chunk."),
+            )
+        }
+
+        val error = runCatching { repository.replaceImportedPack(pack) }.exceptionOrNull()
+
+        assertTrue(error is IllegalArgumentException)
+        assertTrue(error?.message.orEmpty().contains("duplicate chunk ID"))
+        assertFtsMatchesActiveChunks()
+    }
+
+    @Test
+    fun replacingPackRejectsChunkIdOwnedByAnotherPack() = runTest {
+        repository.replaceImportedPack(
+            testPack(packId = "pack-1", chunkId = "shared-chunk", text = "First owner text."),
+        )
+
+        val error = runCatching {
+            repository.replaceImportedPack(
+                testPack(packId = "pack-2", chunkId = "shared-chunk", text = "Second owner text."),
+            )
+        }.exceptionOrNull()
+
+        assertTrue(error is IllegalArgumentException)
+        assertTrue(error?.message.orEmpty().contains("owned by pack pack-1"))
+        assertEquals(1, repository.search(RetrievalQuery("First owner")).size)
+        assertEquals(emptyList<Any>(), repository.search(RetrievalQuery("Second owner")))
+        assertFtsMatchesActiveChunks()
     }
 
     @Test
@@ -129,10 +197,34 @@ class SourcebookRepositoryTest {
         assertTrue(result.single().snippet.contains("The Silver Ladder also trains archivists"))
     }
 
-    private fun testPack(text: String): ImportedPack {
+    @Test
+    fun rankingRecoversStrongHitAfterOldRowLimit() = runTest {
+        val weak = "silver filler filler ladder filler filler protects filler filler moon filler filler archive"
+        val texts = List(40) { index -> "$weak weak-$index" } +
+            "silver ladder protects moon archive with an exact compact rule"
+        repository.replaceImportedPack(testPack(texts))
+
+        val results = repository.search(RetrievalQuery("silver ladder protects moon archive", limit = 4))
+
+        assertEquals("chunk-40", results.first().sourceId)
+    }
+
+    private suspend fun assertFtsMatchesActiveChunks() {
+        val dao = database.sourcebookDao()
+        assertEquals(dao.activeChunkCount(), dao.chunkFtsRowCount())
+        assertEquals(0, dao.orphanChunkFtsRowCount())
+        assertEquals(emptyList<FtsDuplicateRow>(), dao.duplicateChunkFtsRows())
+    }
+
+    private fun testPack(
+        packId: String = "pack-1",
+        chunkId: String = "chunk-1",
+        text: String,
+    ): ImportedPack {
+        val numericSuffix = packId.substringAfterLast("-").toIntOrNull() ?: 1
         val pack = SourcebookPackEntity(
-            packId = "pack-1",
-            title = "Synthetic Book",
+            packId = packId,
+            title = if (packId == "pack-1") "Synthetic Book" else "Synthetic Book $numericSuffix",
             system = "Test System",
             edition = "1e",
             language = "en",
@@ -144,19 +236,19 @@ class SourcebookRepositoryTest {
             sourceFolderUri = "content://folder",
             sourceDisplayName = "synthetic.gmnpack",
             archiveDocumentUri = "content://folder/synthetic.gmnpack",
-            archiveFingerprint = "fingerprint",
+            archiveFingerprint = "fingerprint-$packId-${text.hashCode()}",
             importedAtEpochMillis = 1L,
         )
         val document = SourceDocumentEntity(
             documentId = "doc-1",
-            packId = "pack-1",
+            packId = packId,
             sourceFilename = "synthetic.pdf",
             sourceChecksum = "checksum",
             pageCount = 10,
         )
         val chunk = SourceChunkEntity(
-            chunkId = "chunk-1",
-            packId = "pack-1",
+            chunkId = chunkId,
+            packId = packId,
             documentId = "doc-1",
             pageStart = 4,
             pageEnd = 5,
@@ -178,6 +270,31 @@ class SourcebookRepositoryTest {
                     text = chunk.text,
                 ),
             ),
+        )
+    }
+
+    private fun testPack(texts: List<String>): ImportedPack {
+        val first = testPack(text = texts.first())
+        val chunks = texts.mapIndexed { index, text ->
+            first.chunks.single().copy(
+                chunkId = "chunk-$index",
+                pageStart = index + 1,
+                pageEnd = index + 1,
+                citationLabel = "Synthetic Book p. ${index + 1}",
+                text = text,
+                charCount = text.length,
+                embeddingRowIndex = index,
+            )
+        }
+        return first.copy(
+            pack = first.pack.copy(chunkCount = chunks.size),
+            chunks = chunks,
+            ftsRows = chunks.map { chunk ->
+                first.ftsRows.single().copy(
+                    chunkId = chunk.chunkId,
+                    text = chunk.text,
+                )
+            },
         )
     }
 }

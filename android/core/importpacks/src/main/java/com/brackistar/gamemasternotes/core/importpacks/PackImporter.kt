@@ -12,6 +12,7 @@ import com.brackistar.gamemasternotes.core.data.SourceDocumentEntity
 import com.brackistar.gamemasternotes.core.data.SourcebookPackEntity
 import com.brackistar.gamemasternotes.core.data.SourcebookRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -29,7 +30,7 @@ interface PackImporter {
 data class PackInspection(
     val packId: String,
     val title: String,
-    val schemaVersion: Int,
+    val schemaVersion: String,
     val chunkCount: Int,
     val embeddingCount: Int,
 )
@@ -45,6 +46,7 @@ data class PackImportSummary(
 class ContentResolverPackImporter(
     private val context: Context,
     private val repository: SourcebookRepository,
+    private val vectorSidecarStore: VectorSidecarStore,
 ) : PackImporter {
     private val resolver: ContentResolver = context.contentResolver
 
@@ -54,7 +56,7 @@ class ContentResolverPackImporter(
         PackInspection(
             packId = manifest.requiredString("pack_id"),
             title = manifest.requiredString("title"),
-            schemaVersion = manifest.requiredInt("schema_version"),
+            schemaVersion = manifest.requiredSupportedSchemaVersion(),
             chunkCount = manifest.requiredInt("chunk_count"),
             embeddingCount = manifest.optInt("chunk_count"),
         )
@@ -73,21 +75,45 @@ class ContentResolverPackImporter(
         for (packFile in packFiles) {
             try {
                 val parsed = parsePack(treeUri, packFile)
-                seenPackIds += parsed.pack.packId
-                if (repository.existingFingerprint(parsed.pack.packId) == parsed.pack.archiveFingerprint) {
+                seenPackIds += parsed.importedPack.pack.packId
+                val pack = parsed.importedPack.pack
+                val vectorsCurrent = vectorSidecarStore.isCurrent(
+                    pack.packId,
+                    pack.archiveFingerprint,
+                    parsed.embeddingModelId,
+                    parsed.embeddingModelRevision,
+                )
+                if (repository.existingFingerprint(pack.packId) == pack.archiveFingerprint && vectorsCurrent) {
                     skipped += 1
                 } else {
-                    repository.replaceImportedPack(parsed)
+                    repository.replaceImportedPack(parsed.importedPack)
+                    vectorSidecarStore.installAtomic(
+                        packId = pack.packId,
+                        fingerprint = pack.archiveFingerprint,
+                        modelId = parsed.embeddingModelId,
+                        modelRevision = parsed.embeddingModelRevision,
+                        dimensions = parsed.embeddingDimensions,
+                        chunkIds = parsed.importedPack.chunks
+                            .sortedBy { it.embeddingRowIndex }
+                            .map { it.chunkId },
+                        npyBytes = parsed.embeddings,
+                    )
                     imported += 1
                 }
-            } catch (error: PackImportException) {
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
                 errors += "${packFile.name ?: "Unknown pack"}: ${error.message}"
             }
         }
 
-        val beforePrune = repository.packIds()
-        repository.pruneToAvailablePacks(seenPackIds)
-        val removed = (beforePrune - seenPackIds.toSet()).size
+        val removed = if (shouldPruneAfterScan(errors)) {
+            val beforePrune = repository.packIds()
+            repository.pruneToAvailablePacks(seenPackIds)
+            vectorSidecarStore.pruneToPackIds(seenPackIds.toSet())
+            (beforePrune - seenPackIds.toSet()).size
+        } else {
+            0
+        }
 
         PackImportSummary(
             scannedCount = packFiles.size,
@@ -117,10 +143,11 @@ class ContentResolverPackImporter(
         return packFiles
     }
 
-    private fun parsePack(folderUri: Uri, packFile: DocumentFile): ImportedPack {
+    private fun parsePack(folderUri: Uri, packFile: DocumentFile): ParsedPack {
         val uri = packFile.uri
         val members = readPackMembers(uri, readChunks = true)
         val manifest = members.manifest
+        manifest.requiredSupportedSchemaVersion()
         val packId = manifest.requiredString("pack_id")
         val title = manifest.requiredString("title")
         val system = manifest.requiredString("system")
@@ -160,18 +187,25 @@ class ContentResolverPackImporter(
         if (chunks.size != manifest.requiredInt("chunk_count")) {
             throw PackImportException("Manifest chunk count does not match chunks.jsonl.")
         }
+        val embeddingDimensions = manifest.optIntOrNull("embedding_dimensions")
+            ?: throw PackImportException("Missing required field embedding_dimensions.")
+        val embeddingModelId = manifest.optStringOrNull("embedding_model_id")
+            ?: throw PackImportException("Missing required field embedding_model_id.")
+        val embeddingModelRevision = manifest.optStringOrNull("embedding_model_revision") ?: "unversioned"
+        NpyFloatMatrix.validate(members.embeddings, chunks.size, embeddingDimensions)
 
-        return ImportedPack(
-            pack = SourcebookPackEntity(
+        return ParsedPack(
+            importedPack = ImportedPack(
+                pack = SourcebookPackEntity(
                 packId = packId,
                 title = title,
                 system = system,
                 edition = manifest.requiredString("edition"),
                 language = manifest.requiredString("language"),
-                schemaVersion = manifest.requiredInt("schema_version"),
+                schemaVersion = SUPPORTED_PACK_SCHEMA_STORAGE_VERSION,
                 generatorVersion = manifest.requiredString("generator_version"),
-                embeddingModelId = manifest.optStringOrNull("embedding_model_id"),
-                embeddingDimensions = manifest.optIntOrNull("embedding_dimensions"),
+                embeddingModelId = embeddingModelId,
+                embeddingDimensions = embeddingDimensions,
                 chunkCount = chunks.size,
                 sourceFolderUri = folderUri.toString(),
                 sourceDisplayName = packFile.name ?: title,
@@ -179,17 +213,22 @@ class ContentResolverPackImporter(
                 archiveFingerprint = fingerprint,
                 importedAtEpochMillis = importedAt,
             ),
-            documents = documents,
-            chunks = chunks,
-            ftsRows = chunks.map { chunk ->
-                SourceChunkFtsEntity(
-                    chunkId = chunk.chunkId,
-                    packId = packId,
-                    title = title,
-                    system = system,
-                    text = chunk.text,
-                )
-            },
+                documents = documents,
+                chunks = chunks,
+                ftsRows = chunks.map { chunk ->
+                    SourceChunkFtsEntity(
+                        chunkId = chunk.chunkId,
+                        packId = packId,
+                        title = title,
+                        system = system,
+                        text = chunk.text,
+                    )
+                },
+            ),
+            embeddings = members.embeddings,
+            embeddingModelId = embeddingModelId,
+            embeddingModelRevision = embeddingModelRevision,
+            embeddingDimensions = embeddingDimensions,
         )
     }
 
@@ -205,7 +244,7 @@ class ContentResolverPackImporter(
                         if (name in requiredMembers) {
                             seenMembers += name
                         }
-                        if (name in readableMembers || (readChunks && name == "chunks.jsonl")) {
+                        if (name in readableMembers || (readChunks && name in setOf("chunks.jsonl", "embeddings.npy"))) {
                             entries[name] = zip.readEntryBytes(entry, name)
                         }
                     }
@@ -230,6 +269,7 @@ class ContentResolverPackImporter(
             } else {
                 emptyList()
             },
+            embeddings = if (readChunks) entries.requiredBytes("embeddings.npy") else byteArrayOf(),
         )
     }
 }
@@ -259,6 +299,15 @@ private data class PackMembers(
     val manifest: JSONObject,
     val documents: JSONObject,
     val chunks: List<JSONObject>,
+    val embeddings: ByteArray,
+)
+
+private data class ParsedPack(
+    val importedPack: ImportedPack,
+    val embeddings: ByteArray,
+    val embeddingModelId: String,
+    val embeddingModelRevision: String,
+    val embeddingDimensions: Int,
 )
 
 class PackImportException(message: String) : Exception(message)
@@ -279,7 +328,10 @@ private const val MAX_MANIFEST_BYTES = 256 * 1024
 private const val MAX_DOCUMENTS_BYTES = 2 * 1024 * 1024
 private const val MAX_CHUNKS_BYTES = 24 * 1024 * 1024
 private const val MAX_REPORT_BYTES = 4 * 1024 * 1024
+private const val MAX_EMBEDDINGS_BYTES = 64 * 1024 * 1024
 private const val READ_BUFFER_BYTES = 8 * 1024
+private const val SUPPORTED_PACK_SCHEMA_VERSION = "1.0"
+private const val SUPPORTED_PACK_SCHEMA_STORAGE_VERSION = 1
 
 private fun ZipInputStream.readEntryBytes(entry: ZipEntry, name: String): ByteArray {
     val maxBytes = maxBytesForMember(name)
@@ -308,6 +360,7 @@ private fun maxBytesForMember(name: String): Int =
         "documents.json" -> MAX_DOCUMENTS_BYTES
         "chunks.jsonl" -> MAX_CHUNKS_BYTES
         "extraction-report.json" -> MAX_REPORT_BYTES
+        "embeddings.npy" -> MAX_EMBEDDINGS_BYTES
         else -> MAX_CHUNKS_BYTES
     }
 
@@ -317,6 +370,20 @@ private fun Map<String, ByteArray>.requiredBytes(name: String): ByteArray =
 private fun JSONObject.requiredString(name: String): String =
     optString(name).takeIf { it.isNotBlank() }
         ?: throw PackImportException("Missing required field $name.")
+
+private fun JSONObject.requiredSupportedSchemaVersion(): String =
+    validatePackSchemaVersion(if (has("schema_version") && !isNull("schema_version")) get("schema_version") else null)
+
+internal fun validatePackSchemaVersion(value: Any?): String {
+    if (value !is String || value != SUPPORTED_PACK_SCHEMA_VERSION) {
+        throw PackImportException(
+            "Unsupported schema_version ${value ?: "missing"}; expected \"$SUPPORTED_PACK_SCHEMA_VERSION\".",
+        )
+    }
+    return value
+}
+
+internal fun shouldPruneAfterScan(errors: List<String>): Boolean = errors.isEmpty()
 
 private fun JSONObject.requiredInt(name: String): Int {
     if (!has(name)) throw PackImportException("Missing required field $name.")

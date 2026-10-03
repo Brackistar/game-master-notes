@@ -19,6 +19,8 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    sourceSets["test"].resources.srcDir("../../../pack-builder/tests/fixtures")
 }
 
 dependencies {
@@ -26,4 +28,6 @@ dependencies {
     implementation(project(":core:domain"))
     implementation("androidx.documentfile:documentfile:1.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

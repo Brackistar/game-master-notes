@@ -103,6 +103,7 @@ data class SourcebookPackSummary(
 data class SourceChunkSearchRow(
     val chunkId: String,
     val packId: String,
+    val documentId: String,
     val packTitle: String,
     val system: String,
     val pageStart: Int,
@@ -110,4 +111,15 @@ data class SourceChunkSearchRow(
     val citationLabel: String,
     val text: String,
     val rank: Double,
+)
+
+data class ChunkOwnerRow(
+    val chunkId: String,
+    val packId: String,
+)
+
+data class FtsDuplicateRow(
+    val packId: String,
+    val chunkId: String,
+    val rowCount: Int,
 )

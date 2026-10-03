@@ -20,8 +20,21 @@ abstract class LocalModelAiEngine(
 
     override suspend fun unload() = runtime.unload()
 
-    override suspend fun generate(request: AiRequest): AiResponse =
-        runtime.generate(profile, request.withPromptTemplate(profile.promptStyle))
+    override suspend fun generate(request: AiRequest): AiResponse {
+        val response = runtime.generate(profile, request.withPromptTemplate(profile.promptStyle))
+        // Normalize provenance to this engine's model identity, but preserve a
+        // deterministic-fallback signal from the runtime: it already distinguishes a
+        // genuine model-generated answer from an internal quality-gate fallback (e.g.
+        // generation failed or produced an ungrounded answer). Blindly stamping every
+        // response as "localModel" would mask those fallbacks as if the model had
+        // produced them.
+        val provenance = if (response.provenance.mode == AiResponseMode.DeterministicFallback) {
+            AiAnswerProvenance.deterministicFallback(profile.model)
+        } else {
+            AiAnswerProvenance.localModel(profile.model)
+        }
+        return response.copy(provenance = provenance)
+    }
 
     override suspend fun cancel() = runtime.cancel()
 }

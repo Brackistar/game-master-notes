@@ -5,6 +5,19 @@ data class LocalModelProfile(
     val family: LocalModelFamily,
     val promptStyle: PromptStyle,
     val modelFileName: String,
+    val generation: GenerationProfile = GenerationProfile(),
+)
+
+data class GenerationProfile(
+    val contextTokens: Int = 1_024,
+    val outputTokens: Int = 96,
+    val deadlineMs: Long = 30_000L,
+    val batchTokens: Int = 32,
+    val temperature: Float = 0.1f,
+    val topK: Int = 50,
+    val repetitionPenalty: Float = 1.05f,
+    val seed: Int = 42,
+    val greedy: Boolean = false,
 )
 
 enum class LocalModelFamily {
@@ -92,6 +105,20 @@ object LocalModelProfiles {
         modelFileName = "gemma-3-1b-it-q4.gguf",
     )
 
+    val Lfm25Experiment12B = LocalModelProfile(
+        model = AiModel(
+            id = "lfm2.5-1.2b-instruct-q4-experiment",
+            displayName = "LFM2.5 1.2B Instruct (Experiment)",
+            fileSizeBytes = 800_000_000L,
+            quantization = "Q4_K_M",
+            minimumRamMb = 4_096,
+            description = "Evaluation-only quality candidate; promote only after tablet memory, latency, thermal, and answer gates pass.",
+        ),
+        family = LocalModelFamily.Lfm25,
+        promptStyle = PromptStyle.Plain,
+        modelFileName = "lfm2.5-1.2b-instruct-q4-k-m.gguf",
+    )
+
     val Qwen3 = LocalModelProfile(
         model = AiModel(
             id = "qwen3-1.7b-instruct-q4",
@@ -121,5 +148,5 @@ object LocalModelProfiles {
     )
 
     val Lfm25Family = listOf(Lfm25TinyQ2, Lfm25TinyQ3, Lfm25FastQ4, Lfm25)
-    val All = Lfm25Family + listOf(Gemma3, Qwen3, Phi4)
+    val All = Lfm25Family + listOf(Lfm25Experiment12B, Gemma3, Qwen3, Phi4)
 }

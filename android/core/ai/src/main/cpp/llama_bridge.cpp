@@ -1,11 +1,10 @@
 #include <jni.h>
 #include <llama.h>
 #include <android/log.h>
-
-#include <atomic>
 #include <algorithm>
-#include <cstdint>
+#include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <stdexcept>
@@ -13,383 +12,99 @@
 #include <vector>
 
 namespace {
+using Clock = std::chrono::steady_clock;
+int64_t elapsed(const Clock::time_point & start) { return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count(); }
+struct Result { std::string text, reason, template_hash; int prompt = 0, generated = 0; int64_t prompt_ms = 0, first_ms = -1, generation_ms = 0, total_ms = 0; };
+class Stop : public std::runtime_error { public: Stop(const char * reason) : std::runtime_error(reason), reason(reason) {} const char * reason; };
 
-constexpr const char * LOG_TAG = "GmnLlamaNative";
-
-#define GMN_LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define GMN_LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
-#define GMN_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
-int64_t elapsed_millis(const std::chrono::steady_clock::time_point & started_at) {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - started_at
-    ).count();
-}
-
-class LlamaSession {
+class Session {
 public:
-    LlamaSession(const char * model_path, int thread_count, int context_tokens) {
-        const auto started_at = std::chrono::steady_clock::now();
-        GMN_LOGI("Session load started pathHash=%zu threads=%d requestedContext=%d", std::hash<std::string>{}(model_path), thread_count, context_tokens);
-        static std::once_flag backend_once;
-        std::call_once(backend_once, [] {
-            GMN_LOGI("llama_backend_init started");
-            llama_backend_init();
-            GMN_LOGI("llama_backend_init finished");
-        });
-
-        llama_model_params model_params = llama_model_default_params();
-        model_params.n_gpu_layers = 0;
-
-        model_ = llama_model_load_from_file(model_path, model_params);
-        if (model_ == nullptr) {
-            GMN_LOGE("Model load failed pathHash=%zu", std::hash<std::string>{}(model_path));
-            throw std::runtime_error("Could not load GGUF model file.");
-        }
-        GMN_LOGI("Model file loaded elapsedMs=%lld", static_cast<long long>(elapsed_millis(started_at)));
-
-        llama_context_params context_params = llama_context_default_params();
-        context_params.n_ctx = static_cast<uint32_t>(context_tokens);
-        context_params.n_batch = BATCH_TOKENS;
-        context_params.no_perf = true;
-
-        context_ = llama_init_from_model(model_, context_params);
-        if (context_ == nullptr) {
-            llama_model_free(model_);
-            model_ = nullptr;
-            throw std::runtime_error("Could not create llama.cpp context.");
-        }
-
-        llama_set_n_threads(context_, thread_count, thread_count);
-        context_tokens_ = llama_n_ctx(context_);
-        batch_tokens_ = llama_n_batch(context_);
-
-        llama_sampler_chain_params sampler_params = llama_sampler_chain_default_params();
-        sampler_ = llama_sampler_chain_init(sampler_params);
-        llama_sampler_chain_add(sampler_, llama_sampler_init_greedy());
-        GMN_LOGI(
-            "Session load finished actualContext=%d batchTokens=%d elapsedMs=%lld",
-            context_tokens_,
-            batch_tokens_,
-            static_cast<long long>(elapsed_millis(started_at))
-        );
+    Session(const char * path, int threads, int context_tokens, int batch_tokens) {
+        static std::once_flag once; std::call_once(once, [] { llama_backend_init(); });
+        auto mp = llama_model_default_params(); mp.n_gpu_layers = 0;
+        model = llama_model_load_from_file(path, mp); if (!model) throw std::runtime_error("Could not load GGUF model file.");
+        auto cp = llama_context_default_params(); cp.n_ctx = context_tokens; cp.n_batch = batch_tokens; cp.no_perf = true;
+        context = llama_init_from_model(model, cp);
+        if (!context) { llama_model_free(model); model = nullptr; throw std::runtime_error("Could not create llama.cpp context."); }
+        llama_set_n_threads(context, threads, threads); context_size = llama_n_ctx(context); batch_size = llama_n_batch(context);
     }
+    ~Session() { if (context) llama_free(context); if (model) llama_model_free(model); }
+    void cancel() { cancelled.store(true); }
 
-    ~LlamaSession() {
-        GMN_LOGI("Session unload started");
-        const auto started_at = std::chrono::steady_clock::now();
-        if (sampler_ != nullptr) {
-            llama_sampler_free(sampler_);
+    Result generate(const std::string & request_id, const std::string & system, const std::string & user,
+                    int max_tokens, int64_t deadline, float temp, int top_k, float repeat, uint32_t seed, bool greedy) {
+        std::lock_guard<std::mutex> lock(mutex); cancelled.store(false); const auto started = Clock::now(); Result out;
+        const char * tmpl = llama_model_chat_template(model, nullptr);
+        if (!tmpl || !*tmpl) return finish(out, "unsupported_template", started);
+        out.template_hash = std::to_string(std::hash<std::string>{}(tmpl));
+        const llama_chat_message messages[] = {{"system", system.c_str()}, {"user", user.c_str()}};
+        int32_t size = llama_chat_apply_template(tmpl, messages, 2, true, nullptr, 0);
+        if (size <= 0) return finish(out, "unsupported_template", started);
+        std::vector<char> buffer(static_cast<size_t>(size) + 1);
+        size = llama_chat_apply_template(tmpl, messages, 2, true, buffer.data(), static_cast<int32_t>(buffer.size()));
+        if (size <= 0) return finish(out, "unsupported_template", started);
+        std::string prompt(buffer.data(), static_cast<size_t>(size)); const llama_vocab * vocab = llama_model_get_vocab(model);
+        int count = llama_tokenize(vocab, prompt.c_str(), prompt.size(), nullptr, 0, true, true); if (count < 0) count = -count;
+        if (count <= 0) return finish(out, "prompt_decode_error", started);
+        std::vector<llama_token> tokens(count); count = llama_tokenize(vocab, prompt.c_str(), prompt.size(), tokens.data(), count, true, true);
+        if (count <= 0) return finish(out, "prompt_decode_error", started); tokens.resize(count); out.prompt = count;
+        if (count + max_tokens + 8 > context_size) return finish(out, "context_overflow", started);
+        llama_memory_clear(llama_get_memory(context), true); int32_t position = 0; const auto prompt_started = Clock::now();
+        try { decode(tokens, position, started, deadline); }
+        catch (const Stop & stop) { out.prompt_ms = elapsed(prompt_started); return finish(out, stop.reason, started); }
+        catch (...) { out.prompt_ms = elapsed(prompt_started); return finish(out, "prompt_decode_error", started); }
+        out.prompt_ms = elapsed(prompt_started);
+        llama_sampler * sampler = llama_sampler_chain_init(llama_sampler_chain_default_params());
+        if (greedy) llama_sampler_chain_add(sampler, llama_sampler_init_greedy());
+        else {
+            llama_sampler_chain_add(sampler, llama_sampler_init_top_k(top_k));
+            llama_sampler_chain_add(sampler, llama_sampler_init_penalties(llama_vocab_n_tokens(vocab), 64, repeat, 0, 0));
+            llama_sampler_chain_add(sampler, llama_sampler_init_temp(temp)); llama_sampler_chain_add(sampler, llama_sampler_init_dist(seed));
         }
-        if (context_ != nullptr) {
-            llama_free(context_);
-        }
-        if (model_ != nullptr) {
-            llama_model_free(model_);
-        }
-        GMN_LOGI("Session unload finished elapsedMs=%lld", static_cast<long long>(elapsed_millis(started_at)));
-    }
-
-    std::string generate(const std::string & prompt, int max_tokens, int64_t max_duration_millis) {
-        cancelled_.store(false);
-        const auto started_at = std::chrono::steady_clock::now();
-        GMN_LOGI(
-            "Generate started promptChars=%zu maxTokens=%d timeoutMs=%lld contextTokens=%d batchTokens=%d",
-            prompt.size(),
-            max_tokens,
-            static_cast<long long>(max_duration_millis),
-            context_tokens_,
-            batch_tokens_
-        );
-
-        const llama_vocab * vocab = llama_model_get_vocab(model_);
-        const auto tokenize_started_at = std::chrono::steady_clock::now();
-        int token_count = llama_tokenize(
-            vocab,
-            prompt.c_str(),
-            static_cast<int32_t>(prompt.size()),
-            nullptr,
-            0,
-            true,
-            true
-        );
-        if (token_count < 0) {
-            token_count = -token_count;
-        }
-        if (token_count == 0) {
-            throw std::runtime_error("Prompt did not produce tokens.");
-        }
-
-        std::vector<llama_token> tokens(static_cast<size_t>(token_count));
-        const int actual_token_count = llama_tokenize(
-            vocab,
-            prompt.c_str(),
-            static_cast<int32_t>(prompt.size()),
-            tokens.data(),
-            token_count,
-            true,
-            true
-        );
-        if (actual_token_count < 0) {
-            throw std::runtime_error("Prompt tokenization failed.");
-        }
-        tokens.resize(static_cast<size_t>(actual_token_count));
-        const int prompt_tokens_before_trim = static_cast<int>(tokens.size());
-        trim_to_context(tokens, max_tokens);
-        GMN_LOGI(
-            "Prompt tokenized promptTokens=%d promptTokensAfterTrim=%zu tokenizeElapsedMs=%lld",
-            prompt_tokens_before_trim,
-            tokens.size(),
-            static_cast<long long>(elapsed_millis(tokenize_started_at))
-        );
-
-        llama_memory_clear(llama_get_memory(context_), true);
-
-        int32_t current_position = 0;
-        const auto prompt_decode_started_at = std::chrono::steady_clock::now();
-        decode_tokens(tokens, current_position, true, started_at, max_duration_millis, "prompt");
-        GMN_LOGI(
-            "Prompt decoded promptTokens=%zu elapsedMs=%lld",
-            tokens.size(),
-            static_cast<long long>(elapsed_millis(prompt_decode_started_at))
-        );
-
-        std::string output;
-        llama_sampler_reset(sampler_);
-
-        int generated_tokens = 0;
-        const char * stop_reason = "max_tokens";
-        const auto token_generation_started_at = std::chrono::steady_clock::now();
-        for (int i = 0; i < max_tokens && !cancelled_.load(); ++i) {
-            if (is_timed_out(started_at, max_duration_millis)) {
-                stop_reason = "timeout";
-                break;
-            }
-            const llama_token token = llama_sampler_sample(sampler_, context_, -1);
-            llama_sampler_accept(sampler_, token);
-            if (llama_vocab_is_eog(vocab, token)) {
-                stop_reason = "eog";
-                break;
-            }
-
-            char piece[256];
-            const int piece_length = llama_token_to_piece(vocab, token, piece, sizeof(piece), 0, false);
-            if (piece_length > 0) {
-                output.append(piece, piece + piece_length);
-            }
-
-            const std::vector<llama_token> next_tokens = { token };
-            decode_tokens(next_tokens, current_position, true, started_at, max_duration_millis, "generation");
-            generated_tokens++;
-        }
-        if (cancelled_.load()) {
-            stop_reason = "cancelled";
-        }
-
-        GMN_LOGI(
-            "Generate finished stopReason=%s generatedTokens=%d outputChars=%zu tokenLoopElapsedMs=%lld totalElapsedMs=%lld",
-            stop_reason,
-            generated_tokens,
-            output.size(),
-            static_cast<long long>(elapsed_millis(token_generation_started_at)),
-            static_cast<long long>(elapsed_millis(started_at))
-        );
-
-        return output;
-    }
-
-    void cancel() {
-        GMN_LOGW("Cancel flag set");
-        cancelled_.store(true);
-    }
-
-private:
-    static bool is_timed_out(
-        const std::chrono::steady_clock::time_point & started_at,
-        int64_t max_duration_millis
-    ) {
-        if (max_duration_millis <= 0) return false;
-        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - started_at
-        ).count();
-        return elapsed >= max_duration_millis;
-    }
-
-    void trim_to_context(std::vector<llama_token> & tokens, int max_tokens) const {
-        const int32_t reserved_response_tokens = std::max(1, max_tokens);
-        const int32_t prompt_budget = std::max(
-            1,
-            context_tokens_ - reserved_response_tokens - CONTEXT_HEADROOM
-        );
-        if (static_cast<int32_t>(tokens.size()) > prompt_budget) {
-            GMN_LOGW(
-                "Prompt trimmed originalTokens=%zu promptBudget=%d reservedResponseTokens=%d",
-                tokens.size(),
-                prompt_budget,
-                reserved_response_tokens
-            );
-            tokens.erase(tokens.begin(), tokens.end() - prompt_budget);
-        }
-    }
-
-    void decode_tokens(
-        const std::vector<llama_token> & tokens,
-        int32_t & current_position,
-        bool compute_last_logit,
-        const std::chrono::steady_clock::time_point & started_at,
-        int64_t max_duration_millis,
-        const char * phase
-    ) {
-        llama_batch batch = llama_batch_init(batch_tokens_, 0, 1);
+        const auto generation_started = Clock::now(); out.reason = "max_tokens";
         try {
-            for (size_t offset = 0; offset < tokens.size(); offset += batch_tokens_) {
-                if (cancelled_.load()) {
-                    GMN_LOGW("Decode cancelled phase=%s offset=%zu totalTokens=%zu", phase, offset, tokens.size());
-                    throw std::runtime_error("llama.cpp generation was cancelled.");
-                }
-                if (is_timed_out(started_at, max_duration_millis)) {
-                    GMN_LOGW(
-                        "Decode timed out phase=%s offset=%zu totalTokens=%zu timeoutMs=%lld",
-                        phase,
-                        offset,
-                        tokens.size(),
-                        static_cast<long long>(max_duration_millis)
-                    );
-                    throw std::runtime_error("llama.cpp prompt evaluation timed out.");
-                }
-                batch.n_tokens = 0;
-                const size_t batch_size = std::min(
-                    static_cast<size_t>(batch_tokens_),
-                    tokens.size() - offset
-                );
-
-                for (size_t i = 0; i < batch_size; ++i) {
-                    const size_t token_index = offset + i;
-                    batch.token[batch.n_tokens] = tokens[token_index];
-                    batch.pos[batch.n_tokens] = current_position++;
-                    batch.n_seq_id[batch.n_tokens] = 1;
-                    batch.seq_id[batch.n_tokens][0] = 0;
-                    batch.logits[batch.n_tokens] =
-                        compute_last_logit && token_index == tokens.size() - 1;
-                    batch.n_tokens++;
-                }
-
-                const auto batch_started_at = std::chrono::steady_clock::now();
-                GMN_LOGI(
-                    "Decode batch started phase=%s offset=%zu batchSize=%zu currentPosition=%d computeLastLogit=%d",
-                    phase,
-                    offset,
-                    batch_size,
-                    current_position,
-                    compute_last_logit ? 1 : 0
-                );
-                if (llama_decode(context_, batch) != 0) {
-                    throw std::runtime_error("llama.cpp failed to decode tokens.");
-                }
-                GMN_LOGI(
-                    "Decode batch finished phase=%s offset=%zu batchSize=%zu elapsedMs=%lld",
-                    phase,
-                    offset,
-                    batch_size,
-                    static_cast<long long>(elapsed_millis(batch_started_at))
-                );
+            for (int i = 0; i < max_tokens; ++i) {
+                check(started, deadline); llama_token token = llama_sampler_sample(sampler, context, -1); llama_sampler_accept(sampler, token);
+                if (llama_vocab_is_eog(vocab, token)) { out.reason = "eog"; break; }
+                if (out.first_ms < 0) out.first_ms = elapsed(started); char piece[512];
+                int length = llama_token_to_piece(vocab, token, piece, sizeof(piece), 0, false); if (length > 0) out.text.append(piece, piece + length);
+                decode(std::vector<llama_token>{token}, position, started, deadline); ++out.generated;
             }
-            llama_batch_free(batch);
-        } catch (...) {
-            llama_batch_free(batch);
-            throw;
-        }
+        } catch (const Stop & stop) { out.reason = stop.reason; } catch (...) { out.reason = "native_error"; }
+        llama_sampler_free(sampler); out.generation_ms = elapsed(generation_started); out.total_ms = elapsed(started);
+        __android_log_print(ANDROID_LOG_INFO, "GmnLlamaNative", "requestId=%s stop=%s promptTokens=%d generatedTokens=%d", request_id.c_str(), out.reason.c_str(), out.prompt, out.generated);
+        return out;
     }
-
-    llama_model * model_ = nullptr;
-    llama_context * context_ = nullptr;
-    llama_sampler * sampler_ = nullptr;
-    int32_t context_tokens_ = 0;
-    int32_t batch_tokens_ = 0;
-    std::atomic_bool cancelled_ = false;
-
-    static constexpr int32_t BATCH_TOKENS = 32;
-    static constexpr int32_t CONTEXT_HEADROOM = 8;
+private:
+    Result finish(Result out, const char * reason, const Clock::time_point & started) { out.reason = reason; out.total_ms = elapsed(started); return out; }
+    void check(const Clock::time_point & started, int64_t deadline) const { if (cancelled.load()) throw Stop("cancelled"); if (deadline > 0 && elapsed(started) >= deadline) throw Stop("timeout"); }
+    void decode(const std::vector<llama_token> & tokens, int32_t & position, const Clock::time_point & started, int64_t deadline) {
+        llama_batch batch = llama_batch_init(batch_size, 0, 1);
+        try { for (size_t offset = 0; offset < tokens.size(); offset += batch_size) { check(started, deadline); batch.n_tokens = 0; size_t n = std::min(static_cast<size_t>(batch_size), tokens.size() - offset);
+            for (size_t i = 0; i < n; ++i) { size_t index = offset + i; batch.token[batch.n_tokens] = tokens[index]; batch.pos[batch.n_tokens] = position++; batch.n_seq_id[batch.n_tokens] = 1; batch.seq_id[batch.n_tokens][0] = 0; batch.logits[batch.n_tokens] = index == tokens.size() - 1; ++batch.n_tokens; }
+            if (llama_decode(context, batch) != 0) throw std::runtime_error("llama_decode failed"); }
+            llama_batch_free(batch); } catch (...) { llama_batch_free(batch); throw; }
+    }
+    llama_model * model = nullptr; llama_context * context = nullptr; int32_t context_size = 0, batch_size = 0; std::atomic_bool cancelled = false; std::mutex mutex;
 };
 
-jstring to_jstring(JNIEnv * env, const std::string & value) {
-    return env->NewStringUTF(value.c_str());
+void illegal(JNIEnv * env, const char * message) { env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), message); }
+jobjectArray array(JNIEnv * env, const Result & r) {
+    std::string values[] = {r.text, r.reason, std::to_string(r.prompt), std::to_string(r.generated), std::to_string(r.prompt_ms), std::to_string(r.first_ms), std::to_string(r.generation_ms), std::to_string(r.total_ms), r.template_hash};
+    jclass type = env->FindClass("java/lang/String"); jobjectArray out = env->NewObjectArray(9, type, nullptr);
+    for (int i = 0; i < 9; ++i) { jstring value = env->NewStringUTF(values[i].c_str()); env->SetObjectArrayElement(out, i, value); env->DeleteLocalRef(value); } return out;
 }
-
-void throw_illegal_state(JNIEnv * env, const std::string & message) {
-    jclass exception_class = env->FindClass("java/lang/IllegalStateException");
-    env->ThrowNew(exception_class, message.c_str());
-}
-
 } // namespace
 
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeLoad(
-    JNIEnv * env,
-    jobject,
-    jstring model_path,
-    jint thread_count,
-    jint context_tokens
-) {
-    const char * path = env->GetStringUTFChars(model_path, nullptr);
-    try {
-        auto * session = new LlamaSession(path, thread_count, context_tokens);
-        env->ReleaseStringUTFChars(model_path, path);
-        return reinterpret_cast<jlong>(session);
-    } catch (const std::exception & error) {
-        GMN_LOGE("nativeLoad failed: %s", error.what());
-        env->ReleaseStringUTFChars(model_path, path);
-        throw_illegal_state(env, error.what());
-        return 0;
-    }
+extern "C" JNIEXPORT jlong JNICALL Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeLoad(JNIEnv * env, jobject, jstring path_value, jint threads, jint context, jint batch) {
+    const char * path = env->GetStringUTFChars(path_value, nullptr); try { auto * session = new Session(path, threads, context, batch); env->ReleaseStringUTFChars(path_value, path); return reinterpret_cast<jlong>(session); }
+    catch (const std::exception & e) { env->ReleaseStringUTFChars(path_value, path); illegal(env, e.what()); return 0; }
 }
-
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeGenerate(
-    JNIEnv * env,
-    jobject,
-    jlong handle,
-    jstring prompt,
-    jint max_tokens,
-    jlong max_duration_millis
-) {
-    auto * session = reinterpret_cast<LlamaSession *>(handle);
-    if (session == nullptr) {
-        throw_illegal_state(env, "No llama.cpp model is loaded.");
-        return nullptr;
-    }
-
-    const char * prompt_text = env->GetStringUTFChars(prompt, nullptr);
-    try {
-        std::string output = session->generate(prompt_text, max_tokens, max_duration_millis);
-        env->ReleaseStringUTFChars(prompt, prompt_text);
-        return to_jstring(env, output);
-    } catch (const std::exception & error) {
-        GMN_LOGE("nativeGenerate failed: %s", error.what());
-        env->ReleaseStringUTFChars(prompt, prompt_text);
-        throw_illegal_state(env, error.what());
-        return nullptr;
-    }
+extern "C" JNIEXPORT jobjectArray JNICALL Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeGenerate(JNIEnv * env, jobject, jlong handle, jstring request_value, jstring system_value, jstring user_value, jint max_tokens, jlong deadline, jfloat temp, jint top_k, jfloat repeat, jint seed, jboolean greedy) {
+    auto * session = reinterpret_cast<Session *>(handle); if (!session) { illegal(env, "No llama.cpp model is loaded."); return nullptr; }
+    const char * request = env->GetStringUTFChars(request_value, nullptr); const char * system = env->GetStringUTFChars(system_value, nullptr); const char * user = env->GetStringUTFChars(user_value, nullptr);
+    try { Result result = session->generate(request, system, user, max_tokens, deadline, temp, top_k, repeat, static_cast<uint32_t>(seed), greedy); env->ReleaseStringUTFChars(request_value, request); env->ReleaseStringUTFChars(system_value, system); env->ReleaseStringUTFChars(user_value, user); return array(env, result); }
+    catch (const std::exception & e) { env->ReleaseStringUTFChars(request_value, request); env->ReleaseStringUTFChars(system_value, system); env->ReleaseStringUTFChars(user_value, user); illegal(env, e.what()); return nullptr; }
 }
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeCancel(
-    JNIEnv *,
-    jobject,
-    jlong handle
-) {
-    auto * session = reinterpret_cast<LlamaSession *>(handle);
-    if (session != nullptr) {
-        session->cancel();
-    }
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeUnload(
-    JNIEnv *,
-    jobject,
-    jlong handle
-) {
-    auto * session = reinterpret_cast<LlamaSession *>(handle);
-    delete session;
-}
+extern "C" JNIEXPORT void JNICALL Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeCancel(JNIEnv *, jobject, jlong handle) { auto * session = reinterpret_cast<Session *>(handle); if (session) session->cancel(); }
+extern "C" JNIEXPORT void JNICALL Java_com_brackistar_gamemasternotes_core_ai_LlamaCppBridge_nativeUnload(JNIEnv *, jobject, jlong handle) { delete reinterpret_cast<Session *>(handle); }

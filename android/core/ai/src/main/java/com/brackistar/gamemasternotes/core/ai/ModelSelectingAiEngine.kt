@@ -57,9 +57,9 @@ class ModelSelectingAiEngine(
 
     override suspend fun generate(request: AiRequest): AiResponse {
         val startedAt = System.currentTimeMillis()
-        logInfo(TAG, "Generate routed promptChars=${request.prompt.length} contextChars=${request.context.length}")
+        logInfo(TAG, "Generate routed requestId=${request.requestId} questionChars=${request.originalQuestion.length} evidenceCount=${request.evidence.size}")
         return selectedEngine.generate(request).also {
-            logInfo(TAG, "Generate routed finished outputChars=${it.text.length} citationCount=${it.citationIds.size} elapsedMs=${System.currentTimeMillis() - startedAt}")
+            logInfo(TAG, "Generate routed finished requestId=${request.requestId} outputChars=${it.text.length} citationCount=${it.citationIds.size} elapsedMs=${System.currentTimeMillis() - startedAt}")
         }
     }
 

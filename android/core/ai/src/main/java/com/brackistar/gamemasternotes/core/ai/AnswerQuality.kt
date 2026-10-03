@@ -12,8 +12,8 @@ fun validateGroundedAnswer(question: String, answer: String, evidence: EvidenceB
         return AnswerQuality(false, "prompt-echo")
     }
     val citedIds = normalized.extractCitationIds()
-    if (citedIds.any { it !in evidence.citationIds }) return AnswerQuality(false, "unsupported-citation")
-    if (evidence.citationIds.isNotEmpty() && citedIds.none { it in evidence.citationIds }) {
+    if (citedIds.any { it !in evidence.evidenceIds }) return AnswerQuality(false, "unsupported-citation")
+    if (evidence.evidenceIds.isNotEmpty() && citedIds.none { it in evidence.evidenceIds }) {
         return AnswerQuality(false, "missing-supported-citation")
     }
     if (normalized.count { it.isLetter() } < 12) return AnswerQuality(false, "too-few-letters")

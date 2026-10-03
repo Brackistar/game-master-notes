@@ -1,7 +1,11 @@
 package com.brackistar.gamemasternotes.core.ai
 
 import android.util.Log
+import com.brackistar.gamemasternotes.core.domain.diagnostics.DiagnosticEvent
+import com.brackistar.gamemasternotes.core.domain.diagnostics.DiagnosticsJournal
+import com.brackistar.gamemasternotes.core.domain.diagnostics.NoOpDiagnosticsJournal
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -11,7 +15,8 @@ import kotlin.math.max
 class LlamaCppLocalModelRuntime(
     private val modelsDirectory: File,
     private val deviceProfile: DeviceAiProfile,
-    private val bridge: LlamaCppBridge = LlamaCppBridge(),
+    private val bridge: NativeModelBridge = LlamaCppBridge(),
+    private val diagnosticsJournal: DiagnosticsJournal = NoOpDiagnosticsJournal,
 ) : LocalModelRuntime {
     private var loadedProfile: LocalModelProfile? = null
     private val mutex = Mutex()
@@ -42,11 +47,12 @@ class LlamaCppLocalModelRuntime(
             bridge.load(
                 modelPath = modelFile.absolutePath,
                 threadCount = threadCount,
-                contextTokens = CONTEXT_TOKENS,
+                contextTokens = model.generation.contextTokens,
+                batchTokens = model.generation.batchTokens,
             )
             Log.d(
                 TAG,
-                "Loaded ${model.model.id} threads=$threadCount contextTokens=$CONTEXT_TOKENS elapsedMs=${System.currentTimeMillis() - startedAt}",
+                "Loaded ${model.model.id} threads=$threadCount contextTokens=${model.generation.contextTokens} elapsedMs=${System.currentTimeMillis() - startedAt}",
             )
             loadedProfile = model
         } else {
@@ -69,33 +75,73 @@ class LlamaCppLocalModelRuntime(
                 loadLocked(model)
             }
 
-            if (request.context.isBlank()) {
-                Log.i(TAG, "Generation skipped because evidence context is blank model=${model.model.id}")
+            if (request.evidence.isEmpty()) {
+                Log.i(TAG, "Generation skipped requestId=${request.requestId} because evidence is empty model=${model.model.id}")
                 return@withLock AiResponse(
-                    text = "I could not find relevant passages in the loaded books for that question.",
+                    requestId = request.requestId,
+                    text = GroundedMvpAiEngine.NO_CLEAR_ANSWER_MESSAGE,
                     citationIds = emptyList(),
+                    provenance = AiAnswerProvenance.deterministicFallback(model.model),
                 )
             }
 
-            val prompt = request.prompt
-            val evidenceBrief = EvidenceBriefBuilder.build(question = request.prompt, context = request.context)
+            val systemMessage = request.messages.singleOrNull { it.role == AiMessageRole.System }?.content
+                ?: error("A system message is required for local generation.")
+            val userMessage = request.messages.singleOrNull { it.role == AiMessageRole.User }?.content
+                ?: error("A user message is required for local generation.")
+            val evidenceBrief = EvidenceBrief(request.evidence)
             val startedAt = System.currentTimeMillis()
+            recordDiagnostic(
+                requestId = request.requestId,
+                stage = "native-generation",
+                outcome = "started",
+                fields = mapOf(
+                    "modelId" to model.model.id,
+                    "context" to model.generation.contextTokens.toString(),
+                    "output" to model.generation.outputTokens.toString(),
+                    "deadlineMs" to model.generation.deadlineMs.toString(),
+                    "selectedEvidenceIds" to evidenceBrief.sourceIds.joinToString(","),
+                ),
+            )
             Log.d(
                 TAG,
-                "Generating model=${model.model.id} promptChars=${prompt.length} contextChars=${request.context.length} maxTokens=$MAX_RESPONSE_TOKENS timeoutMs=$MAX_GENERATION_MILLIS",
+                "Generating requestId=${request.requestId} model=${model.model.id} evidenceCount=${request.evidence.size} maxTokens=${model.generation.outputTokens} timeoutMs=${model.generation.deadlineMs}",
             )
-            val rawGenerated = bridge.generate(
-                prompt = prompt,
-                maxTokens = MAX_RESPONSE_TOKENS,
-                maxDurationMillis = MAX_GENERATION_MILLIS,
-            ).trim()
+            val nativeResult = bridge.generate(
+                requestId = request.requestId,
+                systemMessage = systemMessage,
+                userMessage = userMessage,
+                profile = model.generation,
+            )
+            if (nativeResult.stopReason == NativeStopReason.Cancelled) {
+                throw CancellationException("Local generation was cancelled.")
+            }
+            val rawGenerated = nativeResult.text.trim()
             val generated = rawGenerated.removePromptEchoMarkers().trim()
             val elapsedMs = System.currentTimeMillis() - startedAt
-            val quality = validateGroundedAnswer(request.prompt, generated, evidenceBrief)
-            val shouldFallback = !quality.usable
+            val quality = validateGroundedAnswer(request.originalQuestion, generated, evidenceBrief)
+            val shouldFallback = !nativeResult.completedNormally || !quality.usable
+            recordDiagnostic(
+                requestId = request.requestId,
+                stage = "validation",
+                outcome = if (shouldFallback) "fallback" else "accepted",
+                elapsedMs = elapsedMs,
+                fields = mapOf(
+                    "modelId" to model.model.id,
+                    "qualityReason" to (quality.reason ?: "usable"),
+                    "stopReason" to nativeResult.stopReason.name,
+                    "promptTokens" to nativeResult.promptTokens.toString(),
+                    "generatedTokens" to nativeResult.generatedTokens.toString(),
+                    "promptEvalMs" to nativeResult.promptEvalMs.toString(),
+                    "firstTokenMs" to (nativeResult.firstTokenMs?.toString() ?: "none"),
+                    "generationMs" to nativeResult.generationMs.toString(),
+                    "templateHash" to nativeResult.templateHash,
+                    "responseCitationIds" to generated.extractCitationIds().joinToString(","),
+                ),
+            )
             Log.i(
                 TAG,
-                "Generated model=${model.model.id} rawOutputChars=${rawGenerated.length} outputChars=${generated.length} fallback=$shouldFallback reason=${quality.reason} elapsedMs=$elapsedMs",
+                "Generated requestId=${request.requestId} model=${model.model.id} stopReason=${nativeResult.stopReason} rawOutputChars=${rawGenerated.length} outputChars=${generated.length} fallback=$shouldFallback reason=${quality.reason} elapsedMs=$elapsedMs",
             )
             val responseText = if (shouldFallback) {
                 evidenceBrief.toReadableAnswer()
@@ -103,8 +149,21 @@ class LlamaCppLocalModelRuntime(
                 generated
             }
             AiResponse(
+                requestId = request.requestId,
                 text = responseText,
-                citationIds = evidenceBrief.citationIds,
+                citationIds = if (shouldFallback) {
+                    evidenceBrief.sourceIds
+                } else {
+                    generated.extractCitationIds()
+                        .flatMap { evidenceId -> evidenceBrief.items.filter { it.evidenceId == evidenceId } }
+                        .map { it.sourceId }
+                        .distinct()
+                },
+                provenance = if (shouldFallback) {
+                    AiAnswerProvenance.deterministicFallback(model.model)
+                } else {
+                    AiAnswerProvenance.localModel(model.model)
+                },
             )
         }
     }
@@ -112,6 +171,29 @@ class LlamaCppLocalModelRuntime(
     override suspend fun cancel() {
         Log.w(TAG, "Runtime cancel requested loadedModel=${loadedProfile?.model?.id}")
         bridge.cancel()
+    }
+
+    private suspend fun recordDiagnostic(
+        requestId: String,
+        stage: String,
+        outcome: String,
+        elapsedMs: Long? = null,
+        fields: Map<String, String> = emptyMap(),
+    ) {
+        runCatching {
+            diagnosticsJournal.record(
+                DiagnosticEvent(
+                    requestId = requestId,
+                    timestampEpochMillis = System.currentTimeMillis(),
+                    stage = stage,
+                    outcome = outcome,
+                    elapsedMs = elapsedMs,
+                    fields = fields,
+                ),
+            )
+        }.onFailure { error ->
+            Log.w(TAG, "Diagnostics event failed requestId=$requestId stage=$stage", error)
+        }
     }
 
     private fun recommendedThreadCount(): Int {
@@ -123,9 +205,6 @@ class LlamaCppLocalModelRuntime(
     }
 
     companion object {
-        private const val CONTEXT_TOKENS = 1_024
-        private const val MAX_RESPONSE_TOKENS = 96
-        private const val MAX_GENERATION_MILLIS = 30_000L
         private const val TAG = "GmnLlamaRuntime"
     }
 }

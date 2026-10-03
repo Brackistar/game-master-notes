@@ -27,6 +27,7 @@ dependencies {
     implementation(project(":core:ai"))
     implementation(project(":core:data"))
     implementation(project(":core:design"))
+    implementation(project(":core:domain"))
     implementation(project(":core:retrieval"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.compose.foundation:foundation")

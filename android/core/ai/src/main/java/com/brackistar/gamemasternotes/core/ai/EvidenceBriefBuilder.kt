@@ -1,72 +1,62 @@
 package com.brackistar.gamemasternotes.core.ai
 
 object EvidenceBriefBuilder {
-    fun build(question: String, context: String): EvidenceBrief {
-        if (context.isBlank()) return EvidenceBrief(items = emptyList(), citationIds = emptyList())
-        parseExistingBrief(context)?.let { return it }
-
-        val terms = question.significantTerms()
-        val evidenceItems = context
-            .split("\n\n")
+    fun build(question: String, evidence: List<AiEvidence>): EvidenceBrief {
+        if (evidence.isEmpty()) return EvidenceBrief(emptyList())
+        val intent = DeterministicQuestionIntentParser.parse(question)
+        val evidenceItems = evidence
             .asSequence()
-            .mapIndexedNotNull { index, section -> section.toEvidenceItem(terms, index) }
+            .mapIndexedNotNull { index, item -> item.toEvidenceItem(intent, index) }
             .sortedWith(compareByDescending<EvidenceItem> { it.score }.thenBy { it.index })
             .take(MAX_EVIDENCE_ITEMS)
             .toList()
 
-        if (evidenceItems.isEmpty()) return EvidenceBrief(items = emptyList(), citationIds = emptyList())
+        if (evidenceItems.isEmpty()) return EvidenceBrief(emptyList())
 
         val excerpts = evidenceItems
-            .map { EvidenceExcerpt(citation = it.citation, text = it.text) }
+            .mapIndexed { index, item ->
+                AiEvidence(
+                    sourceId = item.sourceId,
+                    citationLabel = item.citationLabel,
+                    text = item.text,
+                    evidenceId = "E${index + 1}",
+                )
+            }
             .takeWithinCharacterBudget(MAX_TOTAL_EVIDENCE_CHARS)
-        return EvidenceBrief(
-            items = excerpts,
-            citationIds = excerpts.map { it.citation }.distinct(),
-        )
+        return EvidenceBrief(excerpts)
     }
 
-    private fun String.toEvidenceItem(terms: Set<String>, index: Int): EvidenceItem? {
-        val lines = lineSequence().filter { it.isNotBlank() }.toList()
-        if (lines.isEmpty()) return null
+    internal fun analyze(question: String): DeterministicQuestionIntent =
+        DeterministicQuestionIntentParser.parse(question)
 
-        val citation = lines.first()
-            .removePrefix("[")
-            .substringBefore("]")
-            .ifBlank { "source" }
-        val body = lines.drop(1)
-            .joinToString("\n") { it.normalizeWhitespace() }
-            .trim()
-        if (body.isBlank()) return null
-
-        val paragraphs = body
-            .split(Regex("""\n+"""))
-            .map { it.trim() }
+    private fun AiEvidence.toEvidenceItem(intent: DeterministicQuestionIntent, index: Int): EvidenceItem? {
+        val paragraphs = text
+            .lineSequence()
+            .map { it.normalizeWhitespace() }
             .filter { it.isNotBlank() }
+            .toList()
+        if (paragraphs.isEmpty()) return null
+
         val selectedText = paragraphs
-            .filter { it.scoreAgainst(terms) > 0 }
-            .ifEmpty { paragraphs.take(1) }
+            .map { paragraph -> paragraph to intent.score(paragraph) }
+            .filter { (_, match) -> match.isRelevant }
+            .sortedByDescending { (_, match) -> match.score }
+            .map { (paragraph, _) -> paragraph }
             .take(MAX_PARAGRAPHS_PER_SOURCE)
             .joinToString("\n\n")
             .takeCleanly(MAX_EVIDENCE_CHARS)
+        if (selectedText.isBlank()) return null
+
+        val match = intent.score(selectedText)
+        if (!match.isRelevant) return null
 
         return EvidenceItem(
-            citation = citation,
+            sourceId = sourceId,
+            citationLabel = citationLabel,
             text = selectedText,
-            score = selectedText.scoreAgainst(terms),
+            score = match.score,
             index = index,
         )
-    }
-
-    private fun String.significantTerms(): Set<String> =
-        lowercase()
-            .split(Regex("""[^a-z0-9]+"""))
-            .filter { it.length >= MIN_TERM_LENGTH && it !in STOP_WORDS }
-            .toSet()
-
-    private fun String.scoreAgainst(terms: Set<String>): Int {
-        if (terms.isEmpty()) return 0
-        val lower = lowercase()
-        return terms.count { it in lower }
     }
 
     private fun String.normalizeWhitespace(): String =
@@ -78,9 +68,9 @@ object EvidenceBriefBuilder {
         return clipped.substringBeforeLast(" ").ifBlank { clipped }.trimEnd() + "..."
     }
 
-    private fun List<EvidenceExcerpt>.takeWithinCharacterBudget(maxChars: Int): List<EvidenceExcerpt> {
+    private fun List<AiEvidence>.takeWithinCharacterBudget(maxChars: Int): List<AiEvidence> {
         var usedChars = 0
-        val bounded = mutableListOf<EvidenceExcerpt>()
+        val bounded = mutableListOf<AiEvidence>()
         for (item in this) {
             val separatorChars = if (usedChars == 0) 0 else 2
             val availableChars = maxChars - usedChars - separatorChars
@@ -93,27 +83,9 @@ object EvidenceBriefBuilder {
         return bounded
     }
 
-    private fun parseExistingBrief(context: String): EvidenceBrief? {
-        val items = context.lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotBlank() && !it.equals("Evidence:", ignoreCase = true) }
-            .mapNotNull { line ->
-                val match = NUMBERED_CITATION.find(line) ?: return@mapNotNull null
-                EvidenceExcerpt(
-                    citation = match.groupValues[1],
-                    text = match.groupValues[2].normalizeWhitespace(),
-                )
-            }
-            .toList()
-        if (items.isEmpty()) return null
-        return EvidenceBrief(
-            items = items,
-            citationIds = items.map { it.citation }.distinct(),
-        )
-    }
-
     private data class EvidenceItem(
-        val citation: String,
+        val sourceId: String,
+        val citationLabel: String,
         val text: String,
         val score: Int,
         val index: Int,
@@ -123,35 +95,15 @@ object EvidenceBriefBuilder {
     private const val MAX_PARAGRAPHS_PER_SOURCE = 3
     private const val MAX_EVIDENCE_CHARS = 1_400
     private const val MAX_TOTAL_EVIDENCE_CHARS = 1_800
-    private const val MIN_TERM_LENGTH = 3
-    private val NUMBERED_CITATION = Regex("""^\d+\.\s+\[([^\]]+)]\s*(.*)$""")
-
-    private val STOP_WORDS = setOf(
-        "the",
-        "and",
-        "for",
-        "from",
-        "what",
-        "when",
-        "where",
-        "which",
-        "with",
-        "about",
-        "that",
-        "this",
-        "does",
-        "have",
-        "how",
-        "are",
-        "was",
-        "were",
-    )
 }
 
 data class EvidenceBrief(
-    val items: List<EvidenceExcerpt>,
-    val citationIds: List<String>,
+    val items: List<AiEvidence>,
 ) {
+    val sourceIds: List<String> = items.map { it.sourceId }.distinct()
+    val citationLabels: List<String> = items.map { it.citationLabel }.distinct()
+    val evidenceIds: List<String> = items.mapNotNull { it.evidenceId }.distinct()
+
     val isEmpty: Boolean
         get() = items.isEmpty()
 
@@ -165,7 +117,7 @@ data class EvidenceBrief(
                 if (index > 0) appendLine()
                 append(index + 1)
                 append(". [")
-                append(item.citation)
+                append(requireNotNull(item.evidenceId) { "Prompt evidence requires a stable evidence ID." })
                 append("] ")
                 appendLine(item.text)
             }
@@ -180,14 +132,9 @@ data class EvidenceBrief(
             appendLine("I found these relevant passages in the loaded books:")
             items.forEach { item ->
                 appendLine()
-                appendLine("[${item.citation}]")
+                appendLine("[${item.citationLabel}]")
                 appendLine(item.text)
             }
         }.trim()
     }
 }
-
-data class EvidenceExcerpt(
-    val citation: String,
-    val text: String,
-)

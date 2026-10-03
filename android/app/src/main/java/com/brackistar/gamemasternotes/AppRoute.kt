@@ -1,8 +1,8 @@
 package com.brackistar.gamemasternotes
 
 enum class AppRoute(val path: String, val label: String) {
-    Home("home", "Home"),
+    Assistant("assistant", "Ask"),
     Library("library", "Library"),
-    Import("import", "Packs"),
-    Assistant("assistant", "Ask the Books"),
+    Settings("settings", "Settings"),
+    Import("import", "Manage sources"),
 }

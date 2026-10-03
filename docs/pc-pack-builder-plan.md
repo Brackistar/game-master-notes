@@ -4,7 +4,7 @@
 
 - File: `docs/pc-pack-builder-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-08-28
 - User: brackistar
 
 Related diagram: [pc-pack-builder-plan.mmd](pc-pack-builder-plan.mmd)
@@ -117,6 +117,13 @@ Implemented archive layout:
 - `chunks.jsonl`
 - `embeddings.npy`
 - `extraction-report.json`
+
+Android integration status:
+
+- The Android importer consumes `manifest.json`, `documents.json`, and `chunks.jsonl`.
+- It validates required archive members and records embedding metadata from `manifest.json`.
+- `embeddings.npy` is still packaged for future hybrid vector retrieval, but Android does not query vectors yet.
+- Current Android retrieval works best when chunks preserve paragraph boundaries, because the app now selects useful paragraph-sized excerpts for assistant evidence.
 
 ## V1 Pack Archive Layout
 

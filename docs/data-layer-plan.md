@@ -4,7 +4,7 @@
 
 - File: `docs/data-layer-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-08-28
 - User: brackistar
 
 Related diagram: [data-layer-plan.mmd](data-layer-plan.mmd)
@@ -62,6 +62,14 @@ Pack import should preserve:
 
 Imported chunk ids should remain stable so citations, search results, and saved assistant context can refer back to the same source.
 
+Current Android status:
+
+- `sourcebook_packs`, `source_documents`, `source_chunks`, and `source_chunks_fts` are implemented in Room.
+- The sourcebook repository can list packs, replace imported packs, compare archive fingerprints, prune removed packs, and search chunks.
+- Search currently returns normalized citation labels in the form `Pack Title, pp. start-end`.
+- Retrieval snippets are paragraph-sized excerpts selected from matching chunks, not raw chunk prefixes.
+- Embedding metadata is stored on pack rows, but vector rows from `embeddings.npy` are not active yet.
+
 ## Note and Lore Model
 
 Avoid over-modeling RPG-specific details early. Use a flexible shared model:
@@ -87,7 +95,7 @@ Vector search should cover:
 - User notes.
 - Lore entity summaries.
 
-For v1, vector search can be implemented with a simple local index if the corpus is modest. If performance becomes poor, replace the index behind a repository interface.
+For v1, vector search can be implemented with a simple local index if the corpus is modest. If performance becomes poor, replace the index behind a repository interface. The next planned retrieval upgrade is hybrid search: FTS candidates plus local vector candidates, followed by a lightweight rerank/merge step before evidence is sent to the assistant.
 
 ## Import Behavior
 
@@ -99,6 +107,7 @@ Pack import should:
 - Import in a transaction where practical.
 - Record import status and errors.
 - Avoid loading entire large packs into memory.
+- Bound ZIP member reads and report user-readable failures for oversized or missing required archive members.
 
 ## Migration Strategy
 

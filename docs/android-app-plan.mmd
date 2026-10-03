@@ -1,12 +1,12 @@
 flowchart TD
   subgraph App[Android App]
     Shell[App shell\nnavigation + theme + settings]
-    Home[Home\nrecent campaigns + search]
-    Library[Library\nsystems + campaigns + lore]
+    Home[Home\npack count + entry points]
+    Library[Library\nindexed sourcebook packs]
     Session[Session Mode\nquick notes + pinned lore]
     Import[Import\npack picker + progress]
-    Search[Search\nkeyword + semantic results]
-    Assistant[Assistant\ncontext preview + response]
+    Search[Search\nfuture keyword + semantic results]
+    Assistant[Ask the Books\nmodel selector + citations]
     Bench[Benchmarks\nmodel performance]
   end
 
@@ -18,18 +18,18 @@ flowchart TD
 
   subgraph Platform[Platform Services]
     Room[Room database]
-    Work[WorkManager\nlong imports]
+    Work[Coroutines\nIO import + scan work]
     Files[Android file storage\npacks + models]
-    Llama[llama.cpp runtime]
+    Llama[llama.cpp runtime\nLFM2.5 GGUF]
   end
 
   Shell --> Home
   Shell --> Library
-  Shell --> Session
+  Shell -.future.-> Session
   Shell --> Import
-  Shell --> Search
+  Shell -.future.-> Search
   Shell --> Assistant
-  Shell --> Bench
+  Shell -.future.-> Bench
 
   Home --> UseCases
   Library --> UseCases

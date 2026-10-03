@@ -4,7 +4,7 @@
 
 - File: `docs/android-app-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-11
+- Last updated: 2026-08-28
 - User: brackistar
 
 Related diagram: [android-app-plan.mmd](android-app-plan.mmd)
@@ -69,7 +69,7 @@ The session, search, and settings feature modules remain in the repository as fu
 - Home: indexed pack count and entry points for Library, Packs, and Ask the Books.
 - Library: indexed sourcebook packs and basic pack metadata.
 - Sourcebook Packs: selected folder, folder picker, manual rescan, import status, and validation errors.
-- Ask the Books: question input, deterministic grounded answer, and retrieved citations.
+- Ask the Books: question input, model selector, manual LFM2.5 GGUF import, local llama.cpp answering, deterministic grounded fallback, and retrieved citations.
 
 Future screens:
 
@@ -118,6 +118,7 @@ The session UI should avoid heavy decoration and favor readable, dense panels th
 ### Phase 4: Search and Retrieval UI
 
 - Add FTS-backed sourcebook chunk retrieval. Initial Ask the Books flow uses this.
+- Add paragraph-sized excerpt extraction and weak-match rejection. Implemented for sourcebook chunks.
 - Add semantic search once vector storage is available.
 - Show mixed results with clear source labels.
 - Add context preview before assistant calls.
@@ -126,7 +127,9 @@ The session UI should avoid heavy decoration and favor readable, dense panels th
 
 - Add `AiEngine` interface and deterministic grounded MVP implementation.
 - Build assistant UI with cited responses.
-- Integrate `llama.cpp` runtime behind the adapter.
+- Integrate `llama.cpp` runtime behind the adapter. Implemented for `arm64-v8a` GGUF models, centered on LFM2.5-350M.
+- Discover installed model files and hide missing model placeholders. Implemented for LFM2.5 slots.
+- Fall back to deterministic cited excerpts when generation times out or produces unusable output.
 - Add model benchmark workflows.
 
 ## Testing
@@ -148,7 +151,7 @@ Android CI runs `testDebugUnitTest` and `assembleDebug` for changes under `andro
 ## Suggestions
 
 - Make the non-AI app excellent first.
-- Add a fake AI engine early so UI and retrieval can be tested before model integration.
+- Keep the deterministic grounded fallback so UI and retrieval remain testable even when no local model is installed.
 - Keep assistant output saveable as normal notes.
 - Design for one active model loaded at a time.
 - Add an explicit offline/privacy indicator so the user trusts the app during sessions.

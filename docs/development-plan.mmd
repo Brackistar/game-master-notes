@@ -2,8 +2,9 @@ flowchart TD
   Vision[Offline Android Lore Assistant] --> Contracts[Milestone 1\nDocs + contracts]
   Contracts --> Library[Milestone 2\nMinimal offline library]
   Library --> Import[Milestone 3\nSourcebook pack import]
-  Import --> Retrieval[Milestone 4\nKeyword + vector retrieval]
-  Retrieval --> Assistant[Milestone 5\nLocal assistant]
+  Import --> Retrieval[Milestone 4\nFTS + paragraph retrieval]
+  Retrieval --> Assistant[Milestone 5\nllama.cpp local assistant]
+  Assistant --> Hybrid[Next\nhybrid vector retrieval]
 
   subgraph Tracks[Independent Development Tracks]
     PC[PC Pack Builder\nPDFs to packs]
@@ -25,7 +26,7 @@ flowchart TD
   AI --> Retrieval
   AI --> Assistant
 
-  Assistant --> Device[Test on low-requirement Android tablet]
+  Hybrid --> Device[Test on low-requirement Android tablet]
   Device --> Defaults[Choose model defaults\nfrom benchmarks]
 
   classDef milestone fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;

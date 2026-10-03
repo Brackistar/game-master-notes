@@ -175,6 +175,7 @@ On Windows PowerShell:
 ```powershell
 .\gradlew.bat assembleDebug
 .\gradlew.bat testDebugUnitTest
+.\gradlew.bat :core:ai:externalNativeBuildDebug
 ```
 
 ## Pack Builder Commands

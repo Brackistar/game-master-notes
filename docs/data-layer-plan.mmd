@@ -18,7 +18,7 @@ flowchart TD
     Tables[Relational Tables]
     Links[Links\nnotes + lore + chunks]
     FTS[FTS Index\nkeyword search]
-    Vector[Vector Store\nsemantic search]
+    Vector[Planned Vector Store\nsemantic search]
     Files[File Storage\npack archives + GGUF models]
   end
 
@@ -53,9 +53,9 @@ flowchart TD
   Note --> FTS
   Lore --> FTS
   Chunk --> FTS
-  Note --> Vector
-  Lore --> Vector
-  Chunk --> Vector
+  Note -.future.-> Vector
+  Lore -.future.-> Vector
+  Chunk -.future.-> Vector
 
   Models --> Files
   Models --> Bench

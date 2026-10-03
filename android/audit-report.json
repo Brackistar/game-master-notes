@@ -1,0 +1,348 @@
+{
+  "schema_version": "1.0",
+  "report_type": "static_audit",
+  "generated_at": "2026-08-23",
+  "repository_root": "C:\\Users\\brack\\Documents\\Proyectos\\github.com\\Brackistar\\game-master-notes\\android",
+  "scope": {
+    "included": [
+      "app/**",
+      "core/**",
+      "feature/**",
+      "*.gradle.kts",
+      "settings.gradle.kts",
+      "AndroidManifest.xml",
+      "first-party Kotlin, Gradle, XML, and JNI bridge sources"
+    ],
+    "excluded": [
+      "third_party/**",
+      "**/build/**",
+      "gradle/wrapper/gradle-wrapper.jar",
+      "vendored external repositories"
+    ],
+    "notes": [
+      "The user explicitly requested that third-party repositories not be checked.",
+      "Semgrep MCP SAST scan was run only against first-party source/config files."
+    ]
+  },
+  "tool_runs": [
+    {
+      "tool": "mcp__semgrep.semgrep_scan",
+      "version": "1.172.0",
+      "status": "completed",
+      "scanned_file_count": 35,
+      "finding_count": 1,
+      "errors": []
+    },
+    {
+      "tool": "mcp__semgrep.semgrep_scan_supply_chain",
+      "status": "inconclusive",
+      "error": "Workspace directory not found"
+    },
+    {
+      "tool": "manual_audit",
+      "status": "completed",
+      "focus": [
+        "vulnerabilities",
+        "code duplication",
+        "cognitive complexity",
+        "resource-exhaustion risks",
+        "Android offline data handling"
+      ]
+    }
+  ],
+  "summary": {
+    "total_findings": 8,
+    "by_severity": {
+      "critical": 0,
+      "high": 1,
+      "medium": 3,
+      "low": 4,
+      "info": 0
+    },
+    "by_category": {
+      "vulnerability": 4,
+      "code_smell": 3,
+      "maintainability": 1
+    },
+    "highest_priority": [
+      "Bound model imports by expected size and free-space checks before copy.",
+      "Disable or explicitly scope Android backups before local user/sourcebook data becomes sensitive.",
+      "Split assistant and pack-import workflows to reduce cognitive complexity."
+    ]
+  },
+  "findings": [
+    {
+      "id": "GMN-AUDIT-001",
+      "title": "Unbounded model-file import can exhaust app storage",
+      "category": "vulnerability",
+      "severity": "high",
+      "confidence": "high",
+      "source": "manual_audit",
+      "cwe": [
+        "CWE-400"
+      ],
+      "locations": [
+        {
+          "path": "core/ai/src/main/java/com/brackistar/gamemasternotes/core/ai/ModelFileInstaller.kt",
+          "line": 20,
+          "symbol": "ModelFileInstaller.importModel"
+        },
+        {
+          "path": "core/ai/src/main/java/com/brackistar/gamemasternotes/core/ai/ModelFileInstaller.kt",
+          "line": 35,
+          "symbol": "InputStream.copyTo"
+        }
+      ],
+      "evidence": "The selected SAF input stream is copied to internal storage with input.copyTo(output) and no maximum byte limit, ContentResolver size check, or free-space guard.",
+      "impact": "A malicious or accidental oversized file can fill app/private storage and cause denial of service. The risk is local/user-assisted but directly reachable from the model import UI.",
+      "recommendation": "Add per-model expected maximum sizes, check OpenableColumns.SIZE when available, stream with a counted bounded copy loop, reject overflow, delete partial temp files in failure paths, and check usable space before copying.",
+      "suggested_tests": [
+        "Importing an empty model fails and cleans up temp files.",
+        "Importing a file larger than the configured model limit fails before or during copy.",
+        "A failed import leaves the previous installed model intact."
+      ]
+    },
+    {
+      "id": "GMN-AUDIT-002",
+      "title": "Application data is currently eligible for Android backup",
+      "category": "vulnerability",
+      "severity": "medium",
+      "confidence": "high",
+      "source": "manual_audit",
+      "cwe": [
+        "CWE-200"
+      ],
+      "locations": [
+        {
+          "path": "app/src/main/AndroidManifest.xml",
+          "line": 4,
+          "symbol": "android:allowBackup"
+        }
+      ],
+      "evidence": "The application manifest sets android:allowBackup=\"true\" while the app stores sourcebook metadata, local notes roadmap data, persisted SAF folder URIs, and local model files under app storage.",
+      "impact": "Future user notes, indexed sourcebook metadata, and local model artifacts may be included in device/cloud backup flows unless backup rules explicitly exclude them.",
+      "recommendation": "Set android:allowBackup=\"false\" for the v1 offline app, or add explicit dataExtractionRules/fullBackupContent that exclude databases, shared preferences containing SAF URIs, imported packs, and model files.",
+      "suggested_tests": [
+        "Manifest merge test or static check verifies backup policy.",
+        "Backup rules exclude Room database, model directory, and pack-folder preferences if backups stay enabled."
+      ]
+    },
+    {
+      "id": "GMN-AUDIT-003",
+      "title": "Launcher activity is exported",
+      "category": "vulnerability",
+      "severity": "low",
+      "confidence": "medium",
+      "source": "semgrep",
+      "semgrep": {
+        "check_id": "java.android.security.exported_activity.exported_activity",
+        "severity": "WARNING",
+        "cwe": [
+          "CWE-926"
+        ],
+        "owasp": [
+          "A5:2021 Security Misconfiguration"
+        ]
+      },
+      "locations": [
+        {
+          "path": "app/src/main/AndroidManifest.xml",
+          "line": 10,
+          "symbol": "MainActivity"
+        }
+      ],
+      "evidence": "MainActivity is exported and has the LAUNCHER intent filter.",
+      "impact": "Any app can launch MainActivity. This is normal for a launcher activity, but it becomes risky if startup later performs privileged imports, destructive operations, or consumes attacker-controlled intent extras.",
+      "recommendation": "Keep MainActivity exported for launcher use, but avoid processing untrusted extras without validation. Keep other activities, services, receivers, and providers non-exported by default.",
+      "suggested_tests": [
+        "Static manifest check verifies only the launcher activity is exported.",
+        "Intent-handling tests reject unexpected extras when deep links are introduced."
+      ]
+    },
+    {
+      "id": "GMN-AUDIT-004",
+      "title": "Pack import parser is improved but still materializes full chunks.jsonl in memory",
+      "category": "vulnerability",
+      "severity": "medium",
+      "confidence": "medium",
+      "source": "manual_audit",
+      "cwe": [
+        "CWE-400"
+      ],
+      "locations": [
+        {
+          "path": "core/importpacks/src/main/java/com/brackistar/gamemasternotes/core/importpacks/PackImporter.kt",
+          "line": 196,
+          "symbol": "readPackMembers"
+        },
+        {
+          "path": "core/importpacks/src/main/java/com/brackistar/gamemasternotes/core/importpacks/PackImporter.kt",
+          "line": 284,
+          "symbol": "readEntryBytes"
+        }
+      ],
+      "evidence": "Archive members are byte-limited before materialization, which is good. However, chunks.jsonl can still be read into a 24 MiB byte array, decoded, converted to a full JSONObject list, then mapped again into entities.",
+      "impact": "On the target low-end Android tablet profile, large but allowed packs can create avoidable memory pressure and import failures.",
+      "recommendation": "Stream chunks.jsonl line-by-line from the ZipInputStream into bounded batches, enforce max chunk count and max line bytes, and bulk insert in chunks rather than building all JSON objects and all entities at once.",
+      "suggested_tests": [
+        "A pack with a chunks.jsonl entry over the byte limit is rejected.",
+        "A pack with excessive chunk_count is rejected.",
+        "A valid large pack imports in bounded batches."
+      ]
+    },
+    {
+      "id": "GMN-AUDIT-005",
+      "title": "AssistantViewModel mixes UI orchestration, model installation, retrieval, generation, logging, and fallback policy",
+      "category": "code_smell",
+      "severity": "medium",
+      "confidence": "high",
+      "source": "manual_audit",
+      "locations": [
+        {
+          "path": "feature/assistant/src/main/java/com/brackistar/gamemasternotes/feature/assistant/AssistantScreen.kt",
+          "line": 222,
+          "symbol": "AssistantViewModel"
+        },
+        {
+          "path": "feature/assistant/src/main/java/com/brackistar/gamemasternotes/feature/assistant/AssistantScreen.kt",
+          "line": 321,
+          "symbol": "AssistantViewModel.ask"
+        }
+      ],
+      "evidence": "The ViewModel handles model loading, SAF model import completion, retrieval, evidence prompt assembly, timeout handling, AI cancellation, response conversion, UI message history, and telemetry in one class.",
+      "impact": "Cognitive complexity is concentrated in one feature file, making cancellation, timeout, loading, and error states harder to reason about and easier to regress.",
+      "recommendation": "Extract AssistantUseCase or AskBooksInteractor for retrieval-plus-generation, ModelImportCoordinator for model import, and small UI reducers for state transitions. Keep the Composable, ViewModel, and domain orchestration in separate files.",
+      "suggested_tests": [
+        "Unit-test ask success, timeout, blank retrieval, and generation failure without Compose.",
+        "Unit-test model import state transitions independently from question asking."
+      ]
+    },
+    {
+      "id": "GMN-AUDIT-006",
+      "title": "PackImporter has excessive parser/import responsibilities in one class",
+      "category": "code_smell",
+      "severity": "medium",
+      "confidence": "high",
+      "source": "manual_audit",
+      "locations": [
+        {
+          "path": "core/importpacks/src/main/java/com/brackistar/gamemasternotes/core/importpacks/PackImporter.kt",
+          "line": 45,
+          "symbol": "ContentResolverPackImporter"
+        },
+        {
+          "path": "core/importpacks/src/main/java/com/brackistar/gamemasternotes/core/importpacks/PackImporter.kt",
+          "line": 101,
+          "symbol": "findPackFiles"
+        },
+        {
+          "path": "core/importpacks/src/main/java/com/brackistar/gamemasternotes/core/importpacks/PackImporter.kt",
+          "line": 120,
+          "symbol": "parsePack"
+        },
+        {
+          "path": "core/importpacks/src/main/java/com/brackistar/gamemasternotes/core/importpacks/PackImporter.kt",
+          "line": 196,
+          "symbol": "readPackMembers"
+        }
+      ],
+      "evidence": "One file/class owns folder traversal, archive validation, JSON parsing, entity mapping, repository replacement, pruning, SAF permission storage, constants, and JSON helper functions.",
+      "impact": "The most security-sensitive import path is harder to audit and extend safely. Future schema support, embeddings validation, or streaming import will increase complexity further.",
+      "recommendation": "Split into PackFolderScanner, PackArchiveReader, PackManifestParser, ImportedPackMapper, and PackImportService. Keep size/resource constants close to PackArchiveReader.",
+      "suggested_tests": [
+        "Archive reader tests for missing members, oversized members, and malformed JSON.",
+        "Mapper tests for manifest/document/chunk invariants.",
+        "Import service tests for skip, replace, and prune behavior."
+      ]
+    },
+    {
+      "id": "GMN-AUDIT-007",
+      "title": "Repeated anonymous ViewModelProvider.Factory boilerplate",
+      "category": "code_smell",
+      "severity": "low",
+      "confidence": "high",
+      "source": "manual_audit",
+      "locations": [
+        {
+          "path": "feature/home/src/main/java/com/brackistar/gamemasternotes/feature/home/HomeScreen.kt",
+          "line": 59,
+          "symbol": "HomeViewModel.factory"
+        },
+        {
+          "path": "feature/library/src/main/java/com/brackistar/gamemasternotes/feature/library/LibraryScreen.kt",
+          "line": 60,
+          "symbol": "LibraryViewModel.factory"
+        },
+        {
+          "path": "feature/assistant/src/main/java/com/brackistar/gamemasternotes/feature/assistant/AssistantScreen.kt",
+          "line": 408,
+          "symbol": "AssistantViewModel.factory"
+        }
+      ],
+      "evidence": "Multiple feature ViewModels create nearly identical anonymous factories with unchecked casts.",
+      "impact": "Small duplication now, but it will spread across features and increase boilerplate risk.",
+      "recommendation": "Introduce a small shared factory helper in a first-party Android utility/design module, or move to a DI approach once the app architecture is ready.",
+      "suggested_tests": [
+        "No behavioral tests required if replaced by a simple generic factory helper.",
+        "Compile/testDebugUnitTest is sufficient for the refactor."
+      ]
+    },
+    {
+      "id": "GMN-AUDIT-008",
+      "title": "First-party SCA check did not complete through MCP",
+      "category": "maintainability",
+      "severity": "low",
+      "confidence": "high",
+      "source": "tooling",
+      "locations": [
+        {
+          "path": "build.gradle.kts",
+          "line": 1,
+          "symbol": "Gradle dependency manifests"
+        }
+      ],
+      "evidence": "mcp__semgrep.semgrep_scan_supply_chain returned: Workspace directory not found.",
+      "impact": "The audit does not contain a Semgrep SCA vulnerability verdict for Gradle dependencies.",
+      "recommendation": "Run a working dependency audit in CI or locally, for example Semgrep SCA with the correct workspace configuration, Gradle dependency verification, Dependabot, or an OWASP Dependency-Check/Snyk equivalent.",
+      "suggested_tests": [
+        "CI job fails on known vulnerable direct dependencies.",
+        "Dependency lock or version catalog review is included before release."
+      ]
+    }
+  ],
+  "non_findings": [
+    {
+      "id": "GMN-NONFINDING-001",
+      "title": "No first-party shell execution patterns found",
+      "evidence": "Text audit found no Runtime.exec or ProcessBuilder use outside excluded third_party code."
+    },
+    {
+      "id": "GMN-NONFINDING-002",
+      "title": "No first-party raw SQL construction patterns found",
+      "evidence": "Room DAO queries use parameter binding for search and pack identifiers; no rawQuery hit was found outside excluded third_party code."
+    },
+    {
+      "id": "GMN-NONFINDING-003",
+      "title": "Pack archive reads have byte caps",
+      "evidence": "readEntryBytes enforces per-member byte limits and reads through an 8 KiB buffer. This partially mitigates prior unbounded archive materialization risk."
+    }
+  ],
+  "recommended_next_actions": [
+    {
+      "priority": 1,
+      "action": "Fix GMN-AUDIT-001 by replacing copyTo with a bounded counted copy and model-size policy."
+    },
+    {
+      "priority": 2,
+      "action": "Decide backup policy and update AndroidManifest/data extraction rules for GMN-AUDIT-002."
+    },
+    {
+      "priority": 3,
+      "action": "Refactor AssistantViewModel and PackImporter before adding more model/runtime/import behavior."
+    },
+    {
+      "priority": 4,
+      "action": "Add a working dependency vulnerability scan to CI because Semgrep SCA MCP was inconclusive."
+    }
+  ]
+}

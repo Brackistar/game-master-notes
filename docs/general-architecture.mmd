@@ -12,7 +12,7 @@ flowchart LR
     subgraph UI[Kotlin + Jetpack Compose UI]
       Library[Library\nsystems + campaigns + lore]
       Session[Session Mode\nquick notes + pinned lore]
-      AssistantPanel[Assistant Panel\nbrainstorming + continuity]
+      AssistantPanel[Ask the Books\ncited answers]
       Benchmarks[Model Benchmarks]
     end
 
@@ -20,41 +20,44 @@ flowchart LR
       Room[Room DAOs]
       SQLite[(SQLite Database)]
       FTS[SQLite FTS\nkeyword index]
-      Vectors[Local Vector Index\nsemantic chunks]
+      Vectors[Planned Vector Index\nsemantic chunks]
       Files[App File Storage\npacks + GGUF models]
     end
 
     subgraph Retrieval[Retrieval Pipeline]
       Query[User Query]
-      Keyword[Keyword Search]
-      Semantic[Semantic Search]
-      Rank[Merge + Rank Results]
-      Context[Context Bundle\nnotes + lore + cited chunks]
+      Keyword[SQLite FTS\nstrict keyword search]
+      Semantic[Planned Semantic Search]
+      Rank[Filter + Rank Results]
+      Context[Evidence Brief\nparagraph citations]
     end
 
     subgraph AI[Local AI Runtime]
       Adapter[AiEngine Adapter]
+      Fallback[Grounded Fallback\nreadable excerpts]
       Llama[llama.cpp Android Runtime]
-      Model[GGUF Small Model\n350M-class target]
+      Model[LFM2.5 GGUF\n350M-class target]
     end
 
     Importer --> Room
     Importer --> SQLite
     Importer --> FTS
-    Importer --> Vectors
+    Importer -.future.-> Vectors
     Importer --> Files
 
     Library --> Room
     Session --> Room
     AssistantPanel --> Query
     Query --> Keyword --> Rank
-    Query --> Semantic --> Rank
+    Query -.future.-> Semantic -.future.-> Rank
     FTS --> Keyword
     Vectors --> Semantic
     SQLite --> Rank
     Room --> SQLite
     Rank --> Context
-    Context --> Adapter --> Llama --> Model
+    Context --> Adapter
+    Adapter --> Fallback
+    Adapter --> Llama --> Model
     Model --> AssistantPanel
     Benchmarks --> Adapter
   end

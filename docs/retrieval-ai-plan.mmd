@@ -2,23 +2,25 @@ flowchart LR
   User[User request\nsearch or assistant] --> Normalize[Normalize query]
 
   subgraph Retrieval[Shared Retrieval Pipeline]
-    Normalize --> Keyword[SQLite FTS\nkeyword search]
-    Normalize --> Semantic[Vector search\nsemantic matches]
-    Keyword --> Rank[Merge + rank]
-    Semantic --> Rank
+    Normalize --> Keyword[SQLite FTS\nstrict keyword search]
+    Normalize -.future.-> Semantic[Vector search\nsemantic matches]
+    Keyword --> Filter[Weak-match rejection\nparagraph excerpts]
+    Filter --> Rank[Rank candidates]
+    Semantic -.future.-> Rank
     Filters[Campaign + system + tag filters] --> Rank
     Pinned[Pinned lore\nactive session context] --> Rank
-    Rank --> Bundle[Context bundle\nnotes + lore + cited chunks]
+    Rank --> Bundle[Evidence brief\nparagraph citations]
   end
 
   subgraph Assistant[Assistant Orchestration]
     Bundle --> Prompt[Grounded prompt builder]
     Prompt --> Engine[AiEngine adapter]
-    Engine --> Fake[Fake engine\nUI tests]
+    Engine --> Fallback[Grounded fallback\nreadable excerpts]
     Engine --> Llama[llama.cpp engine]
-    Llama --> Model[GGUF model\n350M-class target]
-    Model --> Response[Streamed response]
-    Fake --> Response
+    Llama --> Model[LFM2.5 GGUF\n350M-class target]
+    Model --> Guard[Quality guard\ntimeout + bad output fallback]
+    Guard --> Response[Grounded response]
+    Fallback --> Response
   end
 
   subgraph Output[User-Facing Output]
@@ -33,6 +35,6 @@ flowchart LR
   classDef input fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
 
   class User,Normalize input;
-  class Keyword,Semantic,Rank,Filters,Pinned,Bundle retrieval;
-  class Prompt,Engine,Fake,Llama,Model,Response ai;
+  class Keyword,Semantic,Filter,Rank,Filters,Pinned,Bundle retrieval;
+  class Prompt,Engine,Fallback,Llama,Model,Guard,Response ai;
   class Citations,Save,Bench output;

@@ -4,7 +4,7 @@
 
 - File: `docs/development-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-11
+- Last updated: 2026-08-28
 - User: brackistar
 
 Related diagram: [development-plan.mmd](development-plan.mmd)
@@ -46,7 +46,7 @@ Related local steering files live in `.github/instructions/`, including project,
 
 This order keeps risk visible. The app becomes useful as a searchable offline library before local generation is fully solved.
 
-Current implementation note: steps 1-5 have an initial working path for sourcebook packs. The Android app can select a package folder, import `.gmnpack` metadata/documents/chunks into Room, retrieve chunks with SQLite FTS, and answer through a deterministic grounded MVP assistant. Vector search, campaign notes, and `llama.cpp` are still future work.
+Current implementation note: steps 1-5 have an initial working path for sourcebook packs, and the first real local AI runtime path is implemented. The Android app can select a package folder, import `.gmnpack` metadata/documents/chunks into Room, retrieve chunks with SQLite FTS, extract paragraph-sized cited excerpts, answer through a deterministic grounded MVP assistant, and route compatible installed LFM2.5 GGUF files through a llama.cpp bridge. Vector search and campaign/note retrieval are still future work.
 
 ## Milestones
 
@@ -75,15 +75,18 @@ Current implementation note: steps 1-5 have an initial working path for sourcebo
 ### Milestone 4: Retrieval
 
 - Add SQLite FTS for sourcebook chunks first; add notes later.
-- Add local vector search.
+- Reject weak partial matches and extract useful paragraph-sized sourcebook excerpts. Initial sourcebook path implemented.
+- Add local vector search from pack embeddings.
 - Merge keyword and semantic results.
-- Build context bundles with citations.
+- Build context bundles with citations across sourcebooks, notes, and lore.
 
 ### Milestone 5: Local Assistant
 
 - Add the `AiEngine` interface.
 - Create a deterministic grounded MVP engine for app development and tests.
-- Integrate `llama.cpp` as the first real engine.
+- Integrate `llama.cpp` as the first real engine. Initial LFM2.5 Android runtime implemented.
+- Add model import/discovery UX and hide missing model placeholders. Initial LFM2.5 flow implemented.
+- Add output quality guards and deterministic cited fallback. Implemented.
 - Add a benchmark screen and record model suitability on the target tablet.
 
 ## Cross-Track Decisions

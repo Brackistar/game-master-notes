@@ -4,7 +4,7 @@
 
 - File: `android/README.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-28
+- Last updated: 2026-10-03
 - User: brackistar
 
 This directory contains the native Android app for `game-master-notes`.
@@ -100,6 +100,6 @@ On Windows PowerShell:
 .\gradlew.bat testDebugUnitTest
 ```
 
-The Gradle wrapper is committed in this directory. Local Android SDK paths belong in `local.properties`, which is intentionally ignored.
+The Android build pins its toolchain and dependency versions in `gradle/libs.versions.toml`: Gradle 8.14.3, Android Gradle Plugin 8.13.2, Kotlin 2.3.21, the matching Compose compiler plugin, KSP 2.3.12, and Room 2.8.5. This deliberately uses the explicit Kotlin Android plugin rather than AGP 9 built-in Kotlin while validating the Room/KSP toolchain. CI and local builds use JDK 17. The Android Gradle Plugin, Kotlin, KSP, Room, Gradle wrapper, SDK, NDK, and CMake versions must be upgraded as a tested set; independently selecting each latest version is not a compatibility strategy.
 
-The llama.cpp bridge requires the Android SDK CMake and NDK packages. Current native packaging is restricted to `arm64-v8a`; 32-bit Android devices only see the deterministic fallback model.
+CI installs Android API 35, NDK 28.2.13676358, and CMake 3.22.1, then runs unit tests and assembles the debug APK with Gradle deprecation warnings treated as errors. Local builds require those same SDK packages and the llama.cpp submodule. Native packaging is restricted to `arm64-v8a`; 32-bit Android devices only see the deterministic fallback model.

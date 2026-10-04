@@ -4,10 +4,14 @@ on:
   push:
     paths:
       - "android/**"
+      - "pack-builder/**"
+      - "pack-builder/tests/fixtures/v1/synthetic.gmnpack"
       - ".github/workflows/android-ci.yml"
   pull_request:
     paths:
       - "android/**"
+      - "pack-builder/**"
+      - "pack-builder/tests/fixtures/v1/synthetic.gmnpack"
       - ".github/workflows/android-ci.yml"
 
 permissions:
@@ -34,14 +38,19 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-35" "ndk;28.2.13676358" "cmake;3.22.1"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
-
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
+      - name: Run tests and build debug APK
+        run: ./gradlew testDebugUnitTest assembleDebug --warning-mode=fail

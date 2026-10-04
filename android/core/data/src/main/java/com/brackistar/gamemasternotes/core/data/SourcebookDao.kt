@@ -95,7 +95,7 @@ interface SourcebookDao {
     @Query(
         """
         SELECT c.chunkId, c.packId, c.documentId, p.title AS packTitle, p.system, c.pageStart, c.pageEnd,
-               c.citationLabel, c.text, 0.0 AS rank
+               c.citationLabel, c.text, 0.0 AS "rank"
         FROM source_chunks_fts
         JOIN source_chunks c
             ON source_chunks_fts.chunkId = c.chunkId
@@ -111,7 +111,7 @@ interface SourcebookDao {
     @Query(
         """
         SELECT c.chunkId, c.packId, c.documentId, p.title AS packTitle, p.system, c.pageStart, c.pageEnd,
-               c.citationLabel, c.text, 0.0 AS rank
+               c.citationLabel, c.text, 0.0 AS "rank"
         FROM source_chunks c
         JOIN sourcebook_packs p ON c.packId = p.packId
         WHERE c.chunkId IN (:chunkIds)
@@ -122,7 +122,7 @@ interface SourcebookDao {
     @Query(
         """
         SELECT DISTINCT c.chunkId, c.packId, c.documentId, p.title AS packTitle, p.system,
-               c.pageStart, c.pageEnd, c.citationLabel, c.text, 0.0 AS rank
+               c.pageStart, c.pageEnd, c.citationLabel, c.text, 0.0 AS "rank"
         FROM source_chunks seed
         JOIN source_chunks c ON c.documentId = seed.documentId AND c.chunkId != seed.chunkId
         JOIN sourcebook_packs p ON c.packId = p.packId

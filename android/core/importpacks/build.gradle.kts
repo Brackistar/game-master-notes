@@ -1,14 +1,14 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
 }
 
 android {
     namespace = "com.brackistar.gamemasternotes.core.importpacks"
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        minSdk = 29
+        minSdk = libs.versions.minSdk.get().toInt()
     }
 
     compileOptions {
@@ -16,18 +16,24 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    sourceSets {
+        getByName("test") {
+            resources.srcDir(rootProject.file("../pack-builder/tests/fixtures"))
+        }
     }
+}
 
-    sourceSets["test"].resources.srcDir("../../../pack-builder/tests/fixtures")
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
-    implementation("androidx.documentfile:documentfile:1.0.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.json:json:20240303")
+    implementation(libs.documentfile)
+    implementation(libs.coroutinesAndroid)
+    testImplementation(libs.junit)
+    testImplementation(libs.json)
 }

@@ -39,6 +39,8 @@ build/
 
 # Generated sourcebook packs
 *.gmnpack
+# Keep the synthetic pack fixture available to Android contract tests.
+!pack-builder/tests/fixtures/v1/synthetic.gmnpack
 
 # Editor/IDE
 # .idea/

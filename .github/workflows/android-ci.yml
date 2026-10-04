@@ -4,14 +4,10 @@ on:
   push:
     paths:
       - "android/**"
-      - "pack-builder/**"
-      - "pack-builder/tests/fixtures/v1/synthetic.gmnpack"
       - ".github/workflows/android-ci.yml"
   pull_request:
     paths:
       - "android/**"
-      - "pack-builder/**"
-      - "pack-builder/tests/fixtures/v1/synthetic.gmnpack"
       - ".github/workflows/android-ci.yml"
 
 permissions:
@@ -40,6 +36,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install pinned Android SDK packages
         run: |

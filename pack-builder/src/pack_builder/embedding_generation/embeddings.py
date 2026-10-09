@@ -8,11 +8,13 @@ import numpy as np
 from pack_builder.core_domain.constants import (
     DEFAULT_EMBEDDING_DIMENSIONS,
     DEFAULT_EMBEDDING_MODEL_ID,
+    DEFAULT_EMBEDDING_MODEL_REVISION,
 )
 
 
 class EmbeddingProvider(Protocol):
     model_id: str
+    model_revision: str
     dimensions: int
 
     def encode(self, texts: list[str]) -> np.ndarray:
@@ -24,7 +26,8 @@ class SentenceTransformerEmbeddingProvider:
         from sentence_transformers import SentenceTransformer
 
         self.model_id = model_id
-        self._model = SentenceTransformer(model_id)
+        self.model_revision = DEFAULT_EMBEDDING_MODEL_REVISION
+        self._model = SentenceTransformer(model_id, revision=self.model_revision)
         dimension = sentence_transformer_dimensions(self._model)
         self.dimensions = int(dimension or DEFAULT_EMBEDDING_DIMENSIONS)
 
@@ -54,6 +57,7 @@ class DeterministicEmbeddingProvider:
     """Offline test provider that preserves the pack contract without model files."""
 
     model_id = "deterministic-test-embedding"
+    model_revision = "deterministic-v1"
 
     def __init__(self, dimensions: int = DEFAULT_EMBEDDING_DIMENSIONS) -> None:
         self.dimensions = dimensions

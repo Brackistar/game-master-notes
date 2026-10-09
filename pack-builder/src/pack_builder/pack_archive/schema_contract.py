@@ -31,6 +31,7 @@ def pack_schema_contract() -> dict[str, object]:
             "generator_version",
             "extractor_name",
             "embedding_model_id",
+            "embedding_model_revision",
             "embedding_dimensions",
             "chunk_count",
             "created_at",

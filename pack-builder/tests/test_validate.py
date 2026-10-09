@@ -24,6 +24,7 @@ def write_minimal_pack(
     embedding_dimensions: int = 384,
     rows: int = 1,
     malformed_chunk: bool = False,
+    non_finite_embedding: bool = False,
 ) -> None:
     manifest = {
         "schema_version": "1.0",
@@ -36,6 +37,7 @@ def write_minimal_pack(
         "generator_version": "0.1.0",
         "extractor_name": "pymupdf",
         "embedding_model_id": "deterministic-test-embedding",
+        "embedding_model_revision": "deterministic-v1",
         "embedding_dimensions": manifest_dimensions,
         "chunk_count": rows,
         "created_at": "2026-08-10T00:00:00+00:00",
@@ -52,9 +54,13 @@ def write_minimal_pack(
     }
     chunk_payload = {"chunk_id": "broken"} if malformed_chunk else chunk
     embedding_buffer = io.BytesIO()
+    embeddings = np.zeros((rows, embedding_dimensions), dtype=np.float32)
+    embeddings[:, 0] = 1.0
+    if non_finite_embedding:
+        embeddings[0, 0] = np.nan
     np.save(
         embedding_buffer,
-        np.zeros((rows, embedding_dimensions), dtype=np.float32),
+        embeddings,
         allow_pickle=False,
     )
 
@@ -102,6 +108,16 @@ def test_validate_rejects_malformed_chunks(tmp_path: Path) -> None:
 
     assert not result.ok
     assert any("missing field" in error for error in result.errors)
+
+
+def test_validate_rejects_non_finite_embeddings(tmp_path: Path) -> None:
+    pack = tmp_path / "non-finite.gmnpack"
+    write_minimal_pack(pack, non_finite_embedding=True)
+
+    result = validate_pack(pack)
+
+    assert not result.ok
+    assert any("non-finite" in error for error in result.errors)
 
 
 

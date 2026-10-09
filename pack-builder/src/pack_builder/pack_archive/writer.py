@@ -85,6 +85,7 @@ def manifest_data(
         "generator_version": GENERATOR_VERSION,
         "extractor_name": extractor_name,
         "embedding_model_id": embedding_provider.model_id,
+        "embedding_model_revision": embedding_provider.model_revision,
         "embedding_dimensions": embedding_provider.dimensions,
         "chunk_count": chunk_count,
         "build_options": build_options,
@@ -274,6 +275,7 @@ def preview_pack(
         "generator_version": GENERATOR_VERSION,
         "extractor_name": extractor.name,
         "embedding_model_id": None,
+        "embedding_model_revision": None,
         "embedding_dimensions": None,
         "chunk_count": len(pack_content.chunks),
         "build_options": build_options_data(

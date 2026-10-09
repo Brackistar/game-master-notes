@@ -124,6 +124,7 @@ def validate_manifest(manifest: dict[str, object], errors: list[str]) -> None:
         "generator_version",
         "extractor_name",
         "embedding_model_id",
+        "embedding_model_revision",
         "embedding_dimensions",
         "chunk_count",
         "created_at",
@@ -158,6 +159,11 @@ def validate_embedding_shape(
     if len(embeddings.shape) != 2:
         errors.append("embeddings.npy must be a 2D array")
     else:
+        if not np.isfinite(embeddings).all():
+            errors.append("embeddings.npy contains non-finite values")
+        row_norms = np.linalg.norm(embeddings, axis=1)
+        if not np.allclose(row_norms, 1.0, rtol=0.0, atol=0.01):
+            errors.append("embeddings.npy rows must be normalized")
         if embeddings.shape[0] != len(chunks):
             errors.append(
                 f"embedding rows {embeddings.shape[0]} do not match chunks {len(chunks)}"

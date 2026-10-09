@@ -287,4 +287,39 @@ def test_cli_compare_extractors_outputs_summary(
     assert "layout_delta" in payload["summary"]
 
 
+def test_cli_split_dry_run_reports_no_qualifying_category(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    runner = CliRunner()
+    base = tmp_path / "small.gmnpack"
+    report = tmp_path / "split-report.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "build",
+            "--system",
+            "Test System",
+            "--edition",
+            "1e",
+            "--title",
+            "Small Book",
+            "--out",
+            str(base),
+            "--split-content-types",
+            "--dry-run",
+            "--report-out",
+            str(report),
+            str(synthetic_pdf),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "No category contained enough" in result.output
+    assert report.exists()
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["content_classification"]["classifier_version"] == "rules-narrative-v1"
+    assert not base.exists()
+
+
 

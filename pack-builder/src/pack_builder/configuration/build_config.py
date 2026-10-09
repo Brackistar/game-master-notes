@@ -30,6 +30,7 @@ class BuildOptions:
     remove_toc_pages: bool = True
     toc_max_page: int = 20
     deduplicate_chunks: bool = True
+    split_content_types: bool = False
     force: bool = False
     dry_run: bool = False
     report_out: Path | None = None
@@ -54,6 +55,7 @@ class BuildOverrides:
     remove_toc_pages: bool | None = None
     toc_max_page: int | None = None
     deduplicate_chunks: bool | None = None
+    split_content_types: bool | None = None
     force: bool = False
     dry_run: bool = False
     report_out: Path | None = None
@@ -134,6 +136,11 @@ def resolve_build_options(
             overrides.deduplicate_chunks,
             True,
         ),
+        split_content_types=_optional_bool(
+            config,
+            "split_content_types",
+            overrides.split_content_types,
+        ),
         force=_optional_bool(config, "force", overrides.force),
         dry_run=_optional_bool(config, "dry_run", overrides.dry_run),
         report_out=_optional_path(config, "report_out", overrides.report_out),
@@ -159,7 +166,10 @@ def validate_build_options(options: BuildOptions) -> None:
     if options.toc_max_page < 0:
         raise ValueError("--toc-max-page must be zero or greater")
     if options.out_path.exists() and not options.force and not options.dry_run:
-        raise FileExistsError(f"output already exists: {options.out_path}")
+        if not options.split_content_types:
+            raise FileExistsError(f"output already exists: {options.out_path}")
+    if options.split_content_types and options.out_path.suffix.lower() != ".gmnpack":
+        raise ValueError("--out must end in .gmnpack when splitting content types")
 
 
 def _config_value(

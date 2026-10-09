@@ -168,4 +168,29 @@ def test_resolve_build_options_uses_cli_overrides(
     assert options.remove_front_matter is False
 
 
+def test_resolve_build_options_supports_split_content_types(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    config = tmp_path / "build.json"
+    payload = base_config(synthetic_pdf, tmp_path / "book.gmnpack")
+    payload["split_content_types"] = True
+    write_config(config, payload)
+
+    options = resolve_build_options(config, BuildOverrides())
+
+    assert options.split_content_types is True
+
+
+def test_split_content_types_requires_gmnpack_output(
+    synthetic_pdf: Path, tmp_path: Path
+) -> None:
+    config = tmp_path / "build.json"
+    payload = base_config(synthetic_pdf, tmp_path / "book.zip")
+    payload["split_content_types"] = True
+    write_config(config, payload)
+
+    with pytest.raises(ValueError, match="must end in .gmnpack"):
+        resolve_build_options(config, BuildOverrides())
+
+
 

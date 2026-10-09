@@ -16,7 +16,13 @@ from pack_builder.configuration.build_config import (
 from pack_builder.embedding_generation.embeddings import get_embedding_provider
 from pack_builder.pdf_extraction.compare import compare_extractors
 from pack_builder.pack_archive.reader import read_chunks, read_extraction_report
-from pack_builder.pack_archive.writer import build_pack, preview_pack
+from pack_builder.pack_archive.writer import (
+    SplitBuildResult,
+    build_pack,
+    build_split_packs,
+    preview_pack,
+    preview_split_packs,
+)
 from pack_builder.pdf_extraction.extract import get_extractor
 from pack_builder.pack_archive.schema_contract import pack_schema_contract
 from pack_builder.pack_archive.validate import validate_pack
@@ -145,6 +151,13 @@ def build(
             help="Remove duplicate normalized chunk text.",
         ),
     ] = None,
+    split_content_types: Annotated[
+        bool | None,
+        typer.Option(
+            "--split-content-types/--no-split-content-types",
+            help="Build separate Ruleset and Narrative packs with abstention.",
+        ),
+    ] = None,
     force: Annotated[
         bool,
         typer.Option("--force", help="Overwrite an existing output pack."),
@@ -186,6 +199,7 @@ def build(
                 remove_toc_pages=remove_toc_pages,
                 toc_max_page=toc_max_page,
                 deduplicate_chunks=deduplicate_chunks,
+                split_content_types=split_content_types,
                 force=force,
                 dry_run=dry_run,
                 report_out=report_out,
@@ -202,12 +216,26 @@ def build(
         write_json_file(options.report_out, build_result.extraction_report)
         console.print(f"[green]Wrote report[/green] {options.report_out}")
 
+    if isinstance(build_result, SplitBuildResult) and not build_result.success:
+        print_split_summary(build_result, dry_run=options.dry_run)
+        console.print("[red]No category contained enough confidently classified content.[/red]")
+        raise typer.Exit(code=1)
+
     if options.dry_run:
         console.print("[green]Dry run complete.[/green]")
-        console.print(
-            f"Pack {build_result.manifest['pack_id']} would contain "
-            f"{build_result.manifest['chunk_count']} chunks."
-        )
+        if isinstance(build_result, SplitBuildResult):
+            print_split_summary(build_result, dry_run=True)
+        else:
+            console.print(
+                f"Pack {build_result.manifest['pack_id']} would contain "
+                f"{build_result.manifest['chunk_count']} chunks."
+            )
+        if verbose:
+            print_quality_summary(build_result.extraction_report)
+        return
+
+    if isinstance(build_result, SplitBuildResult):
+        print_split_summary(build_result, dry_run=False)
         if verbose:
             print_quality_summary(build_result.extraction_report)
         return
@@ -231,6 +259,34 @@ def build(
 
 def run_build(options: BuildOptions):
     pdf_extractor = get_extractor(options.extractor)
+    if options.split_content_types:
+        common = dict(
+            pdf_paths=options.pdf_paths,
+            out_path=options.out_path,
+            title=options.title,
+            system=options.system,
+            edition=options.edition,
+            language=options.language,
+            extractor=pdf_extractor,
+            max_chars_per_chunk=options.max_chars_per_chunk,
+            clean_text=options.clean_text,
+            remove_front_matter=options.remove_front_matter,
+            front_matter_max_page=options.front_matter_max_page,
+            remove_toc_pages=options.remove_toc_pages,
+            toc_max_page=options.toc_max_page,
+            deduplicate_chunks=options.deduplicate_chunks,
+            chunk_overlap_chars=options.chunk_overlap_chars,
+        )
+        if options.dry_run:
+            with console.status("Extracting, classifying, and chunking PDFs..."):
+                return preview_split_packs(**common)
+        embeddings = get_embedding_provider(options.embedding_provider, options.embedding_model)
+        with console.status("Extracting, classifying, embedding, and writing packs..."):
+            return build_split_packs(
+                **common,
+                embedding_provider=embeddings,
+                force=options.force,
+            )
     if options.dry_run:
         with console.status("Extracting and chunking PDFs..."):
             return preview_pack(
@@ -273,6 +329,22 @@ def run_build(options: BuildOptions):
             deduplicate_chunks=options.deduplicate_chunks,
             chunk_overlap_chars=options.chunk_overlap_chars,
         )
+
+
+def print_split_summary(result: SplitBuildResult, *, dry_run: bool) -> None:
+    for category, decision in result.decisions.items():
+        if decision["qualifies"]:
+            verb = "Would write" if dry_run else "Wrote"
+            console.print(
+                f"[green]{verb}[/green] {decision['output_path']} "
+                f"({decision['chunk_count']} chunks)."
+            )
+        else:
+            console.print(
+                f"[yellow]Skipped {category}:[/yellow] {decision['reason']} "
+                f"({decision['confident_characters']} confident characters, "
+                f"{decision['confident_paragraphs']} paragraphs)."
+            )
 
 
 def print_quality_summary(extraction_report: dict[str, object]) -> None:

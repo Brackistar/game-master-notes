@@ -110,8 +110,26 @@ def chunk_pages(
 ) -> list[SourceChunk]:
     paragraphs: list[Paragraph] = []
     for page in pages:
-        for paragraph in split_page_paragraphs(page):
-            paragraphs.extend(split_long_paragraph(paragraph, max_chars))
+        paragraphs.extend(split_page_paragraphs(page))
+
+    return chunk_paragraphs(
+        pack_id=pack_id,
+        document_id=document_id,
+        paragraphs=paragraphs,
+        max_chars=max_chars,
+    )
+
+
+def chunk_paragraphs(
+    *,
+    pack_id: str,
+    document_id: str,
+    paragraphs: list[Paragraph],
+    max_chars: int = DEFAULT_MAX_CHARS_PER_CHUNK,
+) -> list[SourceChunk]:
+    expanded: list[Paragraph] = []
+    for paragraph in paragraphs:
+        expanded.extend(split_long_paragraph(paragraph, max_chars))
 
     chunks: list[SourceChunk] = []
     current_texts: list[str] = []
@@ -142,7 +160,7 @@ def chunk_pages(
         current_start = 0
         current_end = 0
 
-    for paragraph in paragraphs:
+    for paragraph in expanded:
         proposed_len = len(paragraph.text)
         if current_texts:
             proposed_len += sum(len(text) for text in current_texts)

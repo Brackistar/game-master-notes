@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Wayfinder Ask ready state in dark theme on the target landscape tablet</title>
+  <desc id="desc">Implementation-ready dark theme reference for an 1129 by 706 dp expanded window. A labelled navigation rail leads to a centered 720 dp Ask workspace with source scope, answer mode, model and offline status, example prompts, and an anchored question composer.</desc>
+  <style>
+    text{font-family:Roboto,Arial,sans-serif;fill:#C6D6DE}
+    .canvas{fill:#071016}.device{fill:#0D171D;stroke:#40545F;stroke-width:1}
+    .nav{fill:#08141D}.surface{fill:#142229;stroke:#58717D;stroke-width:1}
+    .mutedSurface{fill:#1C2D36}.selected{fill:#123F50}.primary{fill:#5CC9ED}
+    .strong{fill:#E8F2F6}.muted{fill:#93A8B4}.navText{fill:#E6F1F7}.navMuted{fill:#93ADBC}
+    .onPrimary{fill:#002A38}.success{fill:#70D995}.focus{fill:none;stroke:#78D9F5;stroke-width:3}
+    .h1{font-size:28px;font-weight:700}.h2{font-size:20px;font-weight:700}
+    .title{font-size:16px;font-weight:600}.body{font-size:14px}.label{font-size:14px;font-weight:600}
+    .meta{font-size:12px;font-weight:600}.note{font-size:12px}
+  </style>
+  <rect width="1440" height="900" class="canvas"/>
+  <text x="36" y="42" class="strong h2">09 · Ask — ready / dark tablet reference</text>
+  <text x="36" y="64" class="muted note">1129 × 706 dp target viewport · expanded width · labelled rail · 720 dp working region</text>
+
+  <g transform="translate(36 88)">
+    <rect width="1129" height="706" rx="18" class="device"/>
+    <path d="M18 0h94v706H18A18 18 0 0 1 0 688V18A18 18 0 0 1 18 0z" class="nav"/>
+    <text x="20" y="42" class="navText title">GMN</text>
+
+    <rect x="12" y="72" width="88" height="64" rx="10" class="selected"/>
+    <rect x="12" y="72" width="3" height="64" rx="2" class="primary"/>
+    <path d="M48 89l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#D7F5FF"/>
+    <text x="48" y="125" text-anchor="middle" class="navText meta">Ask</text>
+
+    <rect x="12" y="144" width="88" height="64" rx="10" fill="transparent"/>
+    <path d="M39 160h18v18H39zm3 3v12m5-12v12m5-12v12" fill="none" stroke="#93ADBC" stroke-width="2"/>
+    <text x="48" y="197" text-anchor="middle" class="navMuted meta">Library</text>
+
+    <rect x="12" y="216" width="88" height="64" rx="10" fill="transparent"/>
+    <circle cx="48" cy="234" r="8" fill="none" stroke="#93ADBC" stroke-width="2"/>
+    <circle cx="48" cy="234" r="2.5" fill="#93ADBC"/>
+    <text x="48" y="269" text-anchor="middle" class="navMuted meta">Settings</text>
+
+    <circle cx="23" cy="660" r="4" class="success"/>
+    <text x="34" y="664" class="navText note">Offline</text>
+    <text x="20" y="684" class="navMuted note">12 indexed</text>
+
+    <g transform="translate(112 0)">
+      <text x="36" y="42" class="muted meta">ASK / ALL 12 BOOKS</text>
+      <rect x="763" y="20" width="106" height="34" rx="17" class="mutedSurface"/>
+      <circle cx="782" cy="37" r="4" class="success"/>
+      <text x="793" y="41" class="strong meta">Offline · ready</text>
+
+      <g transform="translate(148 74)">
+        <text x="0" y="28" class="strong h1">Ask the Books</text>
+        <text x="0" y="54" class="muted body">Rules and lore, grounded in your indexed sourcebooks.</text>
+
+        <rect x="0" y="76" width="174" height="44" rx="8" class="selected"/>
+        <text x="16" y="103" class="strong label">All 12 books</text>
+        <path d="M151 95l5 5 5-5" fill="none" stroke="#D7F5FF" stroke-width="2"/>
+        <rect x="186" y="76" width="132" height="44" rx="8" class="surface"/>
+        <text x="202" y="103" class="strong label">Lookup</text>
+        <path d="M294 95l5 5 5-5" fill="none" stroke="#C6D6DE" stroke-width="2"/>
+        <rect x="482" y="80" width="238" height="36" rx="18" class="mutedSurface"/>
+        <circle cx="500" cy="98" r="4" class="success"/>
+        <text x="512" y="102" class="muted meta">LFM2.5 350M Q2 · ready</text>
+
+        <rect x="0" y="144" width="720" height="222" rx="14" class="surface"/>
+        <text x="24" y="181" class="strong h2">What do you need at the table?</text>
+        <text x="24" y="207" class="muted body">Choose an example or write your own question. Examples fill the draft without submitting.</text>
+
+        <rect x="24" y="229" width="672" height="48" rx="8" class="mutedSurface"/>
+        <path d="M44 247l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#5CC9ED"/>
+        <text x="64" y="259" class="strong body">How does hidden movement work?</text>
+        <rect x="24" y="289" width="672" height="48" rx="8" class="mutedSurface"/>
+        <path d="M44 307l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#5CC9ED"/>
+        <text x="64" y="319" class="strong body">What is known about the Ashen Court?</text>
+
+        <g transform="translate(0 468)">
+          <rect width="720" height="126" rx="14" class="surface"/>
+          <text x="20" y="28" class="muted meta">QUESTION</text>
+          <text x="20" y="61" class="muted body">Ask a rules or lore question…</text>
+          <text x="20" y="103" class="muted note">Enter a question to enable Ask · Ctrl+Enter submits</text>
+          <circle cx="674" cy="80" r="26" fill="#293A42"/>
+          <path d="M674 90V70m0 0l-8 8m8-8l8 8" fill="none" stroke="#6F858F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(1194 106)">
+    <text class="strong title">Implementation notes</text>
+    <text y="34" class="muted note"><tspan x="0" dy="0">• Paint background at app root.</tspan><tspan x="0" dy="20">• Paint surface on controls/cards.</tspan><tspan x="0" dy="20">• Never place dark-theme text</tspan><tspan x="12" dy="16">on the default white window.</tspan></text>
+    <text y="138" class="strong meta">SIZE CONTRACT</text>
+    <text y="164" class="muted note"><tspan x="0" dy="0">Rail: 112 dp</tspan><tspan x="0" dy="20">Workspace: max 720 dp</tspan><tspan x="0" dy="20">Outer margin: 24–32 dp</tspan><tspan x="0" dy="20">Controls: ≥ 48 dp target</tspan><tspan x="0" dy="20">Composer: 96–160 dp</tspan><tspan x="0" dy="20">No fixed-height body viewport</tspan></text>
+    <text y="306" class="strong meta">HIERARCHY</text>
+    <text y="332" class="muted note"><tspan x="0" dy="0">Model: compact status only</tspan><tspan x="0" dy="20">Import/setup: Settings</tspan><tspan x="0" dy="20">Diagnostics: overflow or</tspan><tspan x="12" dy="16">troubleshooting surface</tspan><tspan x="0" dy="20">Composer: anchored in main pane</tspan></text>
+    <text y="450" class="strong meta">CONTRAST</text>
+    <text y="476" class="muted note"><tspan x="0" dy="0">Body text: ≥ 4.5:1</tspan><tspan x="0" dy="20">Large text: ≥ 3:1</tspan><tspan x="0" dy="20">Controls/focus: ≥ 3:1</tspan><tspan x="0" dy="20">Status: icon + label</tspan></text>
+  </g>
+</svg>

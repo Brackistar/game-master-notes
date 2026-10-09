@@ -1,0 +1,61 @@
+flowchart LR
+  subgraph Input[User Local Files]
+    PDF[Owned PDF sourcebook]
+    Flags[CLI flags\nsystem + edition + title]
+    Config[Optional JSON config\nrepeatable builds]
+  end
+
+  subgraph Builder[PC Pack Builder CLI]
+    ConfigPkg[configuration\nbuild options]
+    Pipeline[content_processing\npipeline orchestration]
+    Extract[pdf_extraction\npage-aware text]
+    Ocr[ocr_detection\nimage-only + blank pages]
+    Layout[pdf_extraction\ncolumns + blocks]
+    Cleanup[content_processing\nheaders + word/table repair]
+    Front[content_processing\nfront-matter cleanup]
+    Toc[content_processing\nTOC cleanup]
+    Chunk[content_processing\nparagraph chunks]
+    Quality[content_processing\noverlap + dedupe]
+    Embed[embedding_generation\none vector per chunk]
+    ReportBuild[pack_archive\nreport + timings]
+    Diagnostics[pdf_extraction\nlayout diagnostics]
+    Validate[pack_archive\ncounts + schema + checksums]
+    Write[pack_archive\nZIP writer]
+    Compare[pdf_extraction\nextractor comparison]
+    Schema[pack_archive\nschema command]
+    Inspect[pack_archive\nreport + sample chunks]
+  end
+
+  subgraph Pack[GMN Pack Output]
+    Manifest[manifest.json]
+    Docs[documents.json]
+    Chunks[chunks.jsonl]
+    Vectors[embeddings.npy]
+    Report[extraction-report.json]
+  end
+
+  PDF --> Pipeline
+  Flags --> ConfigPkg --> Pipeline
+  Config --> ConfigPkg
+  Pipeline --> Extract --> Ocr --> Layout --> Cleanup --> Front --> Toc --> Chunk --> Quality --> Embed
+  Ocr --> ReportBuild
+  Quality --> ReportBuild --> Diagnostics
+  Embed --> Validate --> Write
+  Diagnostics --> Write
+  Extract --> Compare
+  Write --> Manifest
+  Write --> Docs
+  Write --> Chunks
+  Write --> Vectors
+  Write --> Report
+  Pack --> Inspect
+  Schema --> Import
+  Pack --> Import[Android pack importer]
+
+  classDef input fill:#f7f7f7,stroke:#666,color:#111;
+  classDef process fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
+  classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
+
+  class PDF,Flags,Config input;
+  class ConfigPkg,Pipeline,Extract,Ocr,Layout,Cleanup,Front,Toc,Chunk,Quality,Embed,ReportBuild,Diagnostics,Validate,Write,Compare,Schema,Inspect process;
+  class Manifest,Docs,Chunks,Vectors,Report,Import output;

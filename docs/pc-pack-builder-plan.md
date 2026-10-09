@@ -1,0 +1,273 @@
+# PC Pack Builder Plan
+
+## Metadata
+
+- File: `docs/pc-pack-builder-plan.md`
+- Created: 2026-08-10
+- Last updated: 2026-10-04
+- User: brackistar
+
+Related diagram: [pc-pack-builder-plan.mmd](pc-pack-builder-plan.mmd)
+
+## Purpose
+
+The PC pack builder converts user-owned sourcebook PDFs into portable sourcebook packs that the Android app can import. It runs on the user's local computer because PDF extraction and embedding generation are more practical there than on low-requirement Android tablets.
+
+The builder must never require committing PDFs, extracted book text, or commercial generated packs to the repository.
+
+## Product Goals
+
+- Accept one or more local PDFs.
+- Extract text with page references preserved.
+- Create citeable text chunks.
+- Generate embeddings for semantic search.
+- Produce an importable pack archive with manifest, chunks, citations, and embeddings.
+- Produce logs and validation output so bad PDF extraction can be diagnosed.
+
+## Suggested Stack
+
+- Language: Python
+- CLI framework: Typer or argparse
+- PDF extraction: start with PyMuPDF or pdfplumber, then benchmark both on real books
+- Data files inside pack: JSON for manifest and metadata, JSONL for chunks, binary or NumPy-compatible format for embeddings
+- Archive format: ZIP with a stable internal layout
+- Tests: pytest
+
+## Implementation Status
+
+The first implementation slice now lives in `pack-builder/`.
+
+Current structure:
+
+- `src/pack_builder/cli.py`
+- `src/pack_builder/configuration/`
+- `src/pack_builder/core_domain/`
+- `src/pack_builder/pdf_extraction/`
+- `src/pack_builder/ocr_detection/`
+- `src/pack_builder/content_processing/`
+- `src/pack_builder/embedding_generation/`
+- `src/pack_builder/pack_archive/`
+- `tests/`
+
+The current code keeps CLI, configuration, domain models, PDF extraction, content processing, embedding generation, and pack archive responsibilities in separate packages to keep file size and cognitive complexity under control.
+
+Implemented commands:
+
+- `build --system --edition --title --out --extractor [pymupdf|pdfplumber] <pdf...>`
+- `build --extractor pymupdf-layout`
+- `build --config <json>`
+- `build --dry-run`
+- `build --force`
+- `build --chunk-overlap-chars <int>`
+- `build --max-chars-per-chunk <int>`
+- `build --no-clean-text`
+- `build --keep-front-matter`
+- `build --front-matter-max-page <int>`
+- `build --keep-toc-pages`
+- `build --toc-max-page <int>`
+- `build --no-deduplicate-chunks`
+- `build --split-content-types`
+- `build --report-out <json>`
+- `inspect <pack>`
+- `inspect --json <pack>`
+- `report <pack>`
+- `report --json <pack>`
+- `compare-extractors <pdf>`
+- `compare-extractors --json <pdf>`
+- `schema`
+- `schema --json`
+- `sample-chunks <pack>`
+- `sample-chunks --contains <text> --limit <n> <pack>`
+- `page-chunks --page <n> <pack>`
+- `validate <pack>`
+- `validate --json <pack>`
+
+Implemented quality controls:
+
+- Output overwrite protection unless `--force` is passed.
+- Dry run extraction and chunk preview without embedding generation.
+- Config-file builds with CLI flag override precedence.
+- Extraction report export and report inspection.
+- Sample chunk inspection for real-world PDF review.
+- Repeated-line cleanup for common headers and footers.
+- Hyphenated line repair.
+- Conservative split-word repair for common layout artifacts.
+- Table-shaped line preservation with pipe-separated cells.
+- Early front-matter cleanup for credits and legal pages.
+- Early table-of-contents cleanup with a max-page guard, including dense inline TOC text extracted from complex PDFs.
+- Block-based PyMuPDF layout ordering for column-heavy RPG manuals.
+- Optional chunk overlap for retrieval continuity.
+- Duplicate normalized chunk removal.
+- Duplicate normalized page detection.
+- OCR-needed page diagnostics for image-only extraction results.
+- OCR detection that separates image-only candidates, true blank pages, and low-text image pages.
+- Table-shaped and multi-column-shaped text diagnostics.
+- Merged-word diagnostics for layout extraction artifacts.
+- Normal report output with page references and timing metrics.
+- Page-level chunk inspection for debugging individual PDF pages.
+- Manifest build options for reproducible pack creation.
+- Extractor comparison between PyMuPDF, PyMuPDF layout, and pdfplumber.
+- Schema contract output for Android importer planning.
+- Password-protected PDF handling is intentionally excluded.
+- Focused config validation for invalid JSON, bad `pdfs`, missing required values, missing PDFs, and too-small chunks.
+- Opt-in deterministic paragraph classification that produces independently chunked Ruleset and Narrative packs.
+- Explicit abstention for weak or mixed scores, with ambiguous paragraphs duplicated into both category inputs.
+- English lexical-plus-structural scoring and structural-only fallback for other configured languages.
+- Category qualification at 1,800 confident characters across at least two paragraphs.
+- Preflight conflict detection, temporary archive validation, and rollback-aware multi-output publication.
+
+Ruleset/narrative output behavior:
+
+- `book.gmnpack` is a template for `book-ruleset.gmnpack` and `book-narrative.gmnpack`.
+- Category titles gain ` - Ruleset` or ` - Narrative`, which the Android importer already reads from `manifest.title`.
+- Only qualifying categories are written; if neither qualifies, the build writes no pack and reports the reason.
+- Classifier scores are explainable integers, not calibrated probabilities.
+- Reports record version, mode, thresholds, feature and label counts, confident coverage, ambiguity duplication, and output decisions without recording additional source text.
+- Synthetic evaluation enforces high-purity behavior, but manual review with user-owned books remains required before making cross-publisher quality claims.
+
+Implemented archive layout:
+
+- `manifest.json`
+- `documents.json`
+- `chunks.jsonl`
+- `embeddings.npy`
+- `extraction-report.json`
+
+Android integration status:
+
+- The Android importer consumes `manifest.json`, `documents.json`, and `chunks.jsonl`.
+- It validates required archive members and records embedding metadata from `manifest.json`.
+- `embeddings.npy` is still packaged for future hybrid vector retrieval, but Android does not query vectors yet.
+- Current Android retrieval works best when chunks preserve paragraph boundaries, because the app now selects useful paragraph-sized excerpts for assistant evidence.
+
+## V1 Pack Archive Layout
+
+Use a ZIP archive with this internal shape:
+
+- `manifest.json`
+- `documents.json`
+- `chunks.jsonl`
+- `embeddings.npy`
+- `extraction-report.json`
+
+The manifest should include:
+
+- Pack schema version
+- Pack id
+- Title
+- Game system
+- Edition
+- Language
+- Source PDF filename
+- Source PDF checksum
+- Generator version
+- Embedding model id
+- Embedding dimensions
+- Chunk count
+- Created timestamp
+
+Each chunk should include:
+
+- Stable chunk id
+- Document id
+- Section or heading label when known
+- Page start
+- Page end
+- Citation label
+- Normalized text
+- Token or character count
+- Embedding row index
+
+## CLI Commands
+
+Initial commands:
+
+- `build`: convert PDF files into a pack archive.
+- `inspect`: print pack metadata and extraction stats.
+- `report`: print extraction quality metrics.
+- `compare-extractors`: compare PyMuPDF and pdfplumber output for one PDF.
+- `schema`: print the current `.gmnpack` contract.
+- `sample-chunks`: inspect representative chunks for manual quality review.
+- `validate`: verify manifest, chunk count, embedding count, and required fields.
+
+Example shape:
+
+```bash
+pack-builder build --system "Mage" --edition "20th" --title "Core Rulebook" --out mage-core.gmnpack book.pdf
+pack-builder build --config mage-core-build.json
+pack-builder report mage-core.gmnpack
+pack-builder compare-extractors book.pdf
+pack-builder schema --json
+pack-builder sample-chunks --limit 5 mage-core.gmnpack
+pack-builder inspect mage-core.gmnpack
+pack-builder validate mage-core.gmnpack
+```
+
+## Implementation Phases
+
+### Phase 1: Text Extraction
+
+- Read a PDF page by page.
+- Preserve page numbers.
+- Normalize whitespace.
+- Emit extraction reports with empty pages, suspiciously short pages, and extraction errors.
+
+### Phase 2: Chunking
+
+- Split text into chunks that are small enough for retrieval context.
+- Preserve page ranges and section labels where available.
+- Prefer paragraph-aware splitting before falling back to character limits.
+- Keep chunk ids deterministic from pack id, document id, page range, and chunk index.
+
+### Phase 3: Embeddings
+
+- Generate one embedding per chunk.
+- Record model id and dimensions in the manifest.
+- Fail validation if embedding count and chunk count differ.
+- Keep the embedding model replaceable so Android does not hard-code one provider.
+
+### Phase 4: Pack Writing
+
+- Write manifest, document metadata, chunks, embeddings, and report into one ZIP archive.
+- Validate the archive immediately after writing.
+- Make pack generation repeatable for the same input and settings when possible.
+
+## Testing
+
+- Unit test page extraction normalization.
+- Unit test chunk boundaries and citation labels.
+- Unit test manifest validation.
+- Unit test pack read/write round trips.
+- Unit test build config validation and CLI override behavior.
+- Unit test report and sample-chunk CLI output.
+- Unit test repeated-line cleanup and hyphen repair.
+- Unit test split-word repair, table-line preservation, and front-matter cleanup.
+- Unit test table-of-contents cleanup.
+- Unit test chunk overlap and duplicate chunk removal.
+- Unit test advanced extraction diagnostics.
+- Unit test OCR detection categories.
+- Unit test schema contract output.
+- Unit test extractor comparison CLI output.
+- Unit test every content-classification cue family, deterministic scoring, abstention, and structural fallback.
+- Test category-specific chunking, citations, embedding rows, titles, filenames, qualification gates, conflicts, force replacement, and no-output behavior.
+- Evaluate the synthetic holdout with per-class precision/recall/F1, ambiguity recall, confusion counts, and confident coverage rather than overall accuracy alone.
+- Use tiny synthetic PDFs in the repo for tests, not copyrighted sourcebooks.
+- Manually test with real owned books outside the repo.
+
+## Risks
+
+- PDFs with scanned rule text may need OCR later.
+- Image-only covers, chapter openers, divider art, and blank end pages are expected to appear in OCR detection review categories, not always as OCR candidates.
+- Password-protected PDFs are not handled by design.
+- Rulebooks with complex tables may extract poorly.
+- Embedding model choice affects Android search compatibility.
+- Very large packs may stress tablet import time and storage.
+
+## Suggested Extensions
+
+- OCR execution pipeline for scanned books.
+- Extraction profiles per publisher or PDF style.
+- Deduplication for repeated headers, footers, and legal text.
+- Optional image/table extraction metadata.
+- Embedding cache for faster rebuilds of unchanged chunks.
+- Pack signing or checksums for integrity.

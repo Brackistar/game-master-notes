@@ -1,0 +1,31 @@
+stateDiagram-v2
+    [*] --> CheckLibrary
+    CheckLibrary --> NoBooks: zero indexed books
+    CheckLibrary --> Ready: one or more indexed books
+    NoBooks --> Ready: successful import
+    Ready --> Retrieving: submit valid question
+    Retrieving --> NoEvidence: no supported passages
+    Retrieving --> Generating: evidence selected
+    Retrieving --> Ready: cancel
+    Generating --> Answer: supported response
+    Generating --> Fallback: invalid or unsupported output
+    Generating --> Timeout: deadline reached
+    Generating --> Ready: cancel
+    Answer --> EvidenceDetail: open citation
+    EvidenceDetail --> Answer: close/back
+    Answer --> Retrieving: ask follow-up
+    NoEvidence --> Retrieving: edit and retry
+    Timeout --> Retrieving: retry
+    Timeout --> Ready: dismiss
+    Fallback --> EvidenceDetail: open cited excerpt
+    Fallback --> Retrieving: ask narrower question
+
+    note right of Retrieving
+      Show current stage and elapsed state.
+      Cancel remains independently responsive.
+    end note
+
+    note right of Fallback
+      Deterministic cited excerpts are a valid
+      terminal answer, not a hidden error.
+    end note

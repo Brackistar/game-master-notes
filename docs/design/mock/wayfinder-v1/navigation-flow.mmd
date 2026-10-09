@@ -1,0 +1,21 @@
+flowchart LR
+    Launch([Launch]) --> Ask[Ask the Books\nDefault destination]
+    Ask -->|Tap citation / Evidence| Evidence[Evidence detail]
+    Evidence -->|Back on compact| Ask
+    Ask -->|Ask scope| Scope[Choose source scope]
+    Scope --> Ask
+    Ask -->|Primary navigation| Library[Library]
+    Library -->|Select sourcebook| Book[Sourcebook detail]
+    Book -->|Manage sources| Sources[Manage sources]
+    Library -->|Add / manage| Sources
+    Sources -->|Choose folder| SAF[Android system folder picker]
+    SAF -->|Permission granted| Import[Scan and import]
+    Import --> Library
+    Ask -->|Primary navigation| Session[Session shell\nFuture]
+    Ask -->|Primary navigation| Settings[Settings]
+    Settings --> Models[Local models]
+    Models -->|Choose model file| Picker[Android system file picker]
+    Picker --> Models
+
+    classDef future fill:#E7EEF2,stroke:#8A9BA6,color:#425866,stroke-dasharray:5 4;
+    class Session future;

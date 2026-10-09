@@ -1,0 +1,40 @@
+flowchart LR
+  User[User request\nsearch or assistant] --> Normalize[Normalize query]
+
+  subgraph Retrieval[Shared Retrieval Pipeline]
+    Normalize --> Keyword[SQLite FTS\nstrict keyword search]
+    Normalize -.future.-> Semantic[Vector search\nsemantic matches]
+    Keyword --> Filter[Weak-match rejection\nparagraph excerpts]
+    Filter --> Rank[Rank candidates]
+    Semantic -.future.-> Rank
+    Filters[Campaign + system + tag filters] --> Rank
+    Pinned[Pinned lore\nactive session context] --> Rank
+    Rank --> Bundle[Evidence brief\nparagraph citations]
+  end
+
+  subgraph Assistant[Assistant Orchestration]
+    Bundle --> Prompt[Grounded prompt builder]
+    Prompt --> Engine[AiEngine adapter]
+    Engine --> Fallback[Grounded fallback\nreadable excerpts]
+    Engine --> Llama[llama.cpp engine]
+    Llama --> Model[LFM2.5 GGUF\n350M-class target]
+    Model --> Guard[Quality guard\ntimeout + bad output fallback]
+    Guard --> Response[Grounded response]
+    Fallback --> Response
+  end
+
+  subgraph Output[User-Facing Output]
+    Response --> Citations[Citations + context preview]
+    Citations --> Save[Save useful output\nas note]
+    Response --> Bench[Benchmark metrics\nload + tokens/sec + notes]
+  end
+
+  classDef retrieval fill:#fff3d8,stroke:#b37518,color:#3f2a05;
+  classDef ai fill:#f1e8ff,stroke:#6f45ad,color:#25123f;
+  classDef output fill:#e9f7ef,stroke:#2d7d46,color:#13331f;
+  classDef input fill:#e8f3ff,stroke:#2f6f9f,color:#10233f;
+
+  class User,Normalize input;
+  class Keyword,Semantic,Filter,Rank,Filters,Pinned,Bundle retrieval;
+  class Prompt,Engine,Fallback,Llama,Model,Guard,Response ai;
+  class Citations,Save,Bench output;

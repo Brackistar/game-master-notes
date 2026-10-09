@@ -28,12 +28,65 @@ go.work.sum
 .env
 .env.*
 
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+*.egg-info/
+dist/
+build/
+
+# Generated sourcebook packs
+*.gmnpack
+# Keep the synthetic pack fixture available to Android contract tests.
+!pack-builder/tests/fixtures/v1/synthetic.gmnpack
+
 # Editor/IDE
 # .idea/
 .vscode/
-.codex
+.codex/
+AGENTS.md
+agents.md
 
-# Frontend (Vite/React)
+# Mempalace
+.mempalace/
+entities.json
+mempalace.yaml
+
+# Node modules
 node_modules/
-dist/
-coverage/
+
+# Android local SDK and IDE metadata
+android/local.properties
+android/.idea/
+android/.gradle/
+android/.kotlin/
+*.iml
+
+# Android generated build outputs
+android/build/
+android/**/build/
+android/captures/
+android/.externalNativeBuild/
+android/**/.externalNativeBuild/
+android/.cxx/
+android/**/.cxx/
+
+# Android packaged artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Android signing and local service files
+*.jks
+*.keystore
+android/**/google-services.json
+
+# GitHub local steering files
+.github/*
+!.github/workflows/
+!.github/workflows/**
+.github/instructions/

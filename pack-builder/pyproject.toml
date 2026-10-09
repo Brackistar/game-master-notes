@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "game-master-notes-pack-builder"
+version = "0.1.0"
+description = "Local sourcebook pack builder for Game Master Notes."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "pdfplumber>=0.11",
+    "pymupdf>=1.24",
+    "rich>=13.7",
+    "sentence-transformers>=3.0",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "reportlab>=4.0",
+]
+
+[project.scripts]
+pack-builder = "pack_builder.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a cached or downloadable embedding model",
+]

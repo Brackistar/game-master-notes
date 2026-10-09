@@ -4,7 +4,7 @@
 
 - File: `pack-builder/README.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-10
+- Last updated: 2026-10-04
 - User: brackistar
 
 Local CLI for converting user-owned PDFs into `.gmnpack` archives that the Android app can import.
@@ -33,6 +33,7 @@ uv run pack-builder build --force --max-chars-per-chunk 1200 --report-out report
 uv run pack-builder build --extractor pymupdf-layout --force --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --chunk-overlap-chars 200 --keep-toc-pages --no-clean-text --no-deduplicate-chunks --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --dry-run --report-out report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
+uv run pack-builder build --split-content-types --report-out split-report.json --system "Example System" --edition "1e" --title "Example Book" --out example.gmnpack book.pdf
 uv run pack-builder build --config build-config.json
 uv run pack-builder report example.gmnpack
 uv run pack-builder compare-extractors book.pdf
@@ -54,6 +55,7 @@ uv run pack-builder validate --json example.gmnpack
 - `--remove-toc-pages/--keep-toc-pages` toggles early table-of-contents cleanup.
 - `--toc-max-page` limits TOC cleanup to early book pages.
 - `--deduplicate-chunks/--no-deduplicate-chunks` toggles duplicate chunk removal.
+- `--split-content-types/--no-split-content-types` opts into independently chunked Ruleset and Narrative packs.
 - `--report-out` writes the extraction quality report as standalone JSON.
 - `--verbose` prints empty, suspicious, duplicate, and warning counts.
 - `--json` makes `inspect` and `validate` machine-readable.
@@ -79,11 +81,27 @@ Example `build-config.json`:
   "remove_toc_pages": true,
   "toc_max_page": 20,
   "deduplicate_chunks": true,
+  "split_content_types": false,
   "report_out": "C:/path/to/report.json"
 }
 ```
 
 CLI flags override config file values.
+
+## Ruleset/Narrative Separation
+
+Split builds classify cleaned paragraphs before chunks are assembled. The requested base output is used as a filename template:
+
+- `example.gmnpack` produces `example-ruleset.gmnpack` and/or `example-narrative.gmnpack`.
+- Manifest titles become `Example Book - Ruleset` and `Example Book - Narrative`.
+- Ambiguous paragraphs are placed in both qualifying packs so uncertain text is not discarded.
+- A category qualifies only with at least 1,800 confidently classified characters across at least two paragraphs. Ambiguous text does not count toward this gate.
+
+The versioned `rules-narrative-v1` classifier uses deterministic, inspectable scores rather than a trained or generative model. English builds combine lexical and structural cues. Other configured languages use only language-neutral structural cues and report `structural-fallback`, which normally has lower confident coverage. A score is an internal heuristic, not a probability.
+
+Classification reporting includes the classifier version and mode, score thresholds, matched-feature counts, per-label counts, confident coverage, ambiguous duplication count, confident character totals, and category decisions. Synthetic holdout tests require at least 90% precision per confident class, at least 90% recall for deliberately mixed/ambiguous examples, and at least 60% confident coverage. These fixtures protect behavior but do not establish accuracy for every publisher, genre, layout, or language; review reports and sample chunks from user-owned books before relying on broad separation quality.
+
+All qualifying destinations are checked before any final file is changed. Archives are embedded and validated as temporary files, then published together with rollback protection. `--force` applies to every qualifying derived output. If neither category qualifies, no pack is written and the command exits unsuccessfully after reporting the decisions.
 
 ## Quality Inspection
 
@@ -112,6 +130,8 @@ flowchart TD
   WRITE --> PACK[.gmnpack]
   PACK --> CHECK[Validate pack]
 ```
+
+With `--split-content-types`, classification is inserted between TOC cleanup and chunking, and each category follows its own chunk-quality, embedding, archive, and validation path.
 
 ## Archive Layout
 

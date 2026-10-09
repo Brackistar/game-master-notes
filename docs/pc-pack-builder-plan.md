@@ -4,7 +4,7 @@
 
 - File: `docs/pc-pack-builder-plan.md`
 - Created: 2026-08-10
-- Last updated: 2026-08-28
+- Last updated: 2026-10-04
 - User: brackistar
 
 Related diagram: [pc-pack-builder-plan.mmd](pc-pack-builder-plan.mmd)
@@ -66,6 +66,7 @@ Implemented commands:
 - `build --keep-toc-pages`
 - `build --toc-max-page <int>`
 - `build --no-deduplicate-chunks`
+- `build --split-content-types`
 - `build --report-out <json>`
 - `inspect <pack>`
 - `inspect --json <pack>`
@@ -109,6 +110,20 @@ Implemented quality controls:
 - Schema contract output for Android importer planning.
 - Password-protected PDF handling is intentionally excluded.
 - Focused config validation for invalid JSON, bad `pdfs`, missing required values, missing PDFs, and too-small chunks.
+- Opt-in deterministic paragraph classification that produces independently chunked Ruleset and Narrative packs.
+- Explicit abstention for weak or mixed scores, with ambiguous paragraphs duplicated into both category inputs.
+- English lexical-plus-structural scoring and structural-only fallback for other configured languages.
+- Category qualification at 1,800 confident characters across at least two paragraphs.
+- Preflight conflict detection, temporary archive validation, and rollback-aware multi-output publication.
+
+Ruleset/narrative output behavior:
+
+- `book.gmnpack` is a template for `book-ruleset.gmnpack` and `book-narrative.gmnpack`.
+- Category titles gain ` - Ruleset` or ` - Narrative`, which the Android importer already reads from `manifest.title`.
+- Only qualifying categories are written; if neither qualifies, the build writes no pack and reports the reason.
+- Classifier scores are explainable integers, not calibrated probabilities.
+- Reports record version, mode, thresholds, feature and label counts, confident coverage, ambiguity duplication, and output decisions without recording additional source text.
+- Synthetic evaluation enforces high-purity behavior, but manual review with user-owned books remains required before making cross-publisher quality claims.
 
 Implemented archive layout:
 
@@ -233,6 +248,9 @@ pack-builder validate mage-core.gmnpack
 - Unit test OCR detection categories.
 - Unit test schema contract output.
 - Unit test extractor comparison CLI output.
+- Unit test every content-classification cue family, deterministic scoring, abstention, and structural fallback.
+- Test category-specific chunking, citations, embedding rows, titles, filenames, qualification gates, conflicts, force replacement, and no-output behavior.
+- Evaluate the synthetic holdout with per-class precision/recall/F1, ambiguity recall, confusion counts, and confident coverage rather than overall accuracy alone.
 - Use tiny synthetic PDFs in the repo for tests, not copyrighted sourcebooks.
 - Manually test with real owned books outside the repo.
 
